@@ -1,0 +1,5 @@
+# Ignore the RAR archive
+_ProjectMAPPER_v0.0.rar
+
+# Ignore everything in the _logs folder
+_logs/
