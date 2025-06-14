@@ -1,6 +1,6 @@
 @echo off
 :: ========================================================================
-:: Git Auto-Push Script (Pushes local repo to GitHub and enforces 'main')
+:: Git Auto-Push Script (Main-Only, for clean single-branch projects)
 :: ========================================================================
 
 :: =====================[ GLOBAL CONFIG ]=======================
@@ -18,19 +18,9 @@ if "%GITHUB_URL%"=="" (
 echo Initializing Git repository...
 git init >nul 2>&1
 
-:: Remove existing origin if present to avoid errors
+:: Ensure only correct remote
 git remote remove origin >nul 2>&1
 git remote add origin %GITHUB_URL%
-
-:: =====================[ BRANCH SYNC TO MAIN ]=================
-:: Rename 'master' to 'main' if it's the current branch
-git branch > current_branch.tmp
-findstr /C:"master" current_branch.tmp >nul
-if %errorlevel%==0 (
-    echo Renaming local 'master' branch to 'main'...
-    git branch -m master main
-)
-del current_branch.tmp
 
 :: =====================[ .GITIGNORE SETUP ]====================
 echo Creating/updating .gitignore...
@@ -50,10 +40,10 @@ echo Creating/updating .gitignore...
 :: =====================[ STAGE + COMMIT ]======================
 echo Staging and committing files...
 git add .
-git commit -m "Initial commit" >nul 2>&1
+git commit -m "Update project files" >nul 2>&1
 
 :: =====================[ FORCE PUSH TO MAIN ]==================
-echo Forcing push to remote 'main' branch...
+echo Pushing to remote 'main' branch (forced)...
 git push --force -u origin main
 
 :: =====================[ DONE ]================================
