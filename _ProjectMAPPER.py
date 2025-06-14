@@ -1,6 +1,6 @@
 # projectMAPPER.py
 # A standalone project mapping + auditing + backup tool
-# Version 0.6.0 - Refactored for non-blocking UI with threaded startup and tree loading.
+# Version 0.6.1 - Integrated thread-safe scan timeout.
 """
 ProjectMAPPER: A Tkinter-based desktop application for project analysis.
 
@@ -21,7 +21,7 @@ import os
 import json
 import tarfile
 import tkinter as tk
-from tkinter import filedialog, scrolledtext, ttk
+from tkinter import filedialog, scrolledtext, ttk, messagebox
 import tkinter.font as tkFont
 from pathlib import Path
 from datetime import datetime
@@ -30,19 +30,20 @@ import platform
 import threading
 import queue
 import sys
-# import shutil # Removed, was for a previous test snippet
+import time
 
 # ==============================================================================
 # --- Constants ---
 # ==============================================================================
 
 # --- Application Version ---
-SCRIPT_VERSION: str = "0.6.0"
+SCRIPT_VERSION: str = "0.6.1"
 
 # --- Application Paths & Default Configuration ---
 APP_DIR: Path = Path(__file__).resolve().parent
-DEFAULT_ROOT_DIR: Path = APP_DIR.parent # Default to one level above script dir
+DEFAULT_ROOT_DIR: Path = APP_DIR # Default script dir
 PROJECT_CONFIG_FILENAME: str = "_project_mapper_config.json"
+MAX_SCAN_TIME_SECONDS: int = 20 # Seconds before asking user to continue a long scan
 
 # --- Predefined Exclusions ---
 EXCLUDED_FOLDERS: set[str] = {
@@ -113,6 +114,7 @@ popup_exclusion_checkbox_vars: dict[str, tk.IntVar] = {} # Stores tk.IntVar for 
 
 # --- Queues & Application State Dictionary ---
 gui_queue: queue.Queue = queue.Queue() # Queue for GUI updates from threads
+scan_timeout_result_queue: queue.Queue = queue.Queue() # Queue for timeout messagebox result
 
 app_state: dict = {
     "root": None,                            # Main tk.Tk() window instance
@@ -494,94 +496,111 @@ def refresh_folder_tree_threaded(tree: ttk.Treeview, selected_root_path: Path):
 def _worker_build_tree_data(tree: ttk.Treeview, project_root: Path, loading_node_id: str):
     """
     [WORKER THREAD] Scans the filesystem and builds a thread-safe data structure
-    representing the tree. Then, it schedules the UI update on the main thread.
+    representing the tree. Includes a timeout to handle very large directories.
     """
-    tree_data = [] # This will hold a thread-safe representation of our tree.
+    start_time = time.time()
+    tree_data = []
     folder_tree_item_states.clear()
+
+    def ask_user_to_continue_safely() -> bool:
+        """
+        Posts a request to the main GUI thread to show a messagebox and waits for the result.
+        Returns True if the user clicks 'Yes', False otherwise.
+        """
+        def _show_messagebox_and_get_result():
+            root = app_state.get('root')
+            try:
+                user_wants_to_continue = messagebox.askyesno(
+                    "Directory Scan Taking Long",
+                    f"The directory scan has run for over {MAX_SCAN_TIME_SECONDS} seconds.\n"
+                    "This can happen with very large projects or slow network drives.\n\n"
+                    "Do you want to continue scanning?",
+                    parent=root
+                )
+                scan_timeout_result_queue.put(user_wants_to_continue)
+            except Exception as e:
+                print(f"Error in messagebox callback: {e}")
+                scan_timeout_result_queue.put(False)
+
+        gui_queue.put(_show_messagebox_and_get_result)
+        return scan_timeout_result_queue.get()
 
     try:
         persisted_states = load_project_config(project_root)
 
         def _scan_recursive(current_path: Path, parent_iid: str):
+            nonlocal start_time
+            if time.time() - start_time > MAX_SCAN_TIME_SECONDS:
+                schedule_log_message(f"Scan timeout of {MAX_SCAN_TIME_SECONDS}s exceeded. Asking user...", LOG_WARNING)
+                if not ask_user_to_continue_safely():
+                    raise TimeoutError("User chose to abort the scan.")
+                else:
+                    schedule_log_message("User chose to continue. Resetting scan timer.", LOG_INFO)
+                    start_time = time.time()
+
             try:
-                # Sort items: directories first, then alphabetically
                 dirs_to_process = sorted(
                     [item for item in current_path.iterdir() if item.is_dir()],
                     key=lambda x: x.name.lower()
                 )
-
                 for p in dirs_to_process:
                     path_str = str(p.resolve())
                     relative_path_str = str(p.relative_to(project_root))
-
-                    # Determine initial check state
-                    # Check persisted state using both absolute and relative paths for robustness
                     initial_state = persisted_states.get(path_str, persisted_states.get(relative_path_str, S_CHECKED))
                     if p.name in EXCLUDED_FOLDERS and path_str not in persisted_states and relative_path_str not in persisted_states:
                         initial_state = S_UNCHECKED
                     folder_tree_item_states[path_str] = initial_state
-
-                    # Calculate size (this is one of the slow parts)
                     folder_size_str = f" {format_display_size(get_folder_size_bytes(p))}"
-
-                    # Add to our data structure instead of calling tree.insert()
                     tree_data.append({
-                        "parent": parent_iid,
-                        "iid": path_str,
-                        "text": f"{p.name}{folder_size_str}",
-                        "open": False
+                        "parent": parent_iid, "iid": path_str,
+                        "text": f"{p.name}{folder_size_str}", "open": False
                     })
-                    _scan_recursive(p, path_str) # Recurse
-
+                    _scan_recursive(p, path_str)
             except (PermissionError, FileNotFoundError):
                  tree_data.append({
                     "parent": parent_iid, "iid": f"error_{current_path.name}_{parent_iid}",
                     "text": f"🚫 Error reading {current_path.name}", "open": False
                  })
 
-        # Start the scan from the project root
         root_path_str = str(project_root.resolve())
         root_state = persisted_states.get(root_path_str, persisted_states.get(".", S_CHECKED))
         folder_tree_item_states[root_path_str] = root_state
         root_size_str = f" {format_display_size(get_folder_size_bytes(project_root))}"
-
         tree_data.append({
             "parent": "", "iid": root_path_str,
             "text": f"{project_root.name} (Project Root){root_size_str}", "open": True
         })
         _scan_recursive(project_root, root_path_str)
 
+    except TimeoutError:
+        schedule_log_message("Scan aborted by user due to timeout.", LOG_WARNING)
+        tree_data.append({
+            "parent": "", "iid": "timeout_error",
+            "text": "⚠️ Scan Aborted by User (Timeout)", "open": True
+        })
     except Exception as e:
         schedule_log_message(f"Critical error during directory scan: {e}", LOG_CRITICAL)
-        # Prepare an error message to be displayed in the UI
         tree_data = [{
             "parent": "", "iid": "scan_error",
             "text": f"CRITICAL: Failed to scan directory. {e}", "open": True
         }]
 
-
-    # 3. QUEUE UI UPDATE: Define a function to update the GUI and put it on the queue.
     def _populate_tree_on_main_thread():
         try:
             if tree.exists(loading_node_id):
                 tree.delete(loading_node_id)
-
-            # This loop runs on the main thread and is very fast.
             for item_data in tree_data:
                 try:
                     tree.insert(
                         item_data["parent"], "end", iid=item_data["iid"],
                         text=item_data["text"], open=item_data["open"]
                     )
-                except tk.TclError: # Avoid duplicate IID errors
+                except tk.TclError:
                     pass
-
-            # After populating, apply the visual checkmarks
             root_path_str = str(project_root.resolve())
             if tree.exists(root_path_str):
                  refresh_tree_visuals(tree, root_path_str)
             schedule_log_message(f"Folder tree refreshed for: {project_root.name}", LOG_INFO)
-
         except Exception as e:
             schedule_log_message(f"Error populating tree from background thread: {e}", LOG_CRITICAL)
 
@@ -848,7 +867,7 @@ def manage_dynamic_exclusions_popup() -> None:
                 to_remove.append(exclusion_text)
 
         if not to_remove:
-            tk.messagebox.showinfo("No Selection", "No exclusions checked for removal.", parent=popup)
+            messagebox.showinfo("No Selection", "No exclusions checked for removal.", parent=popup)
             return
 
         actual_removed_count = 0
@@ -866,9 +885,9 @@ def manage_dynamic_exclusions_popup() -> None:
                 save_project_config(Path(project_root_path_str))
 
             _populate_popup_exclusions_frame(scrollable_frame, canvas) # Refresh the list in the popup
-            tk.messagebox.showinfo("Success", f"Removed {actual_removed_count} exclusion(s).", parent=popup)
+            messagebox.showinfo("Success", f"Removed {actual_removed_count} exclusion(s).", parent=popup)
         elif to_remove : # Items were checked but not found in the set (e.g. list out of sync somehow)
-             tk.messagebox.showwarning("Not Found", "Selected items were not found in current exclusion set. The list may be out of sync.", parent=popup)
+             messagebox.showwarning("Not Found", "Selected items were not found in current exclusion set. The list may be out of sync.", parent=popup)
 
 
     remove_button = tk.Button(action_button_frame, text="Remove Checked Items",
