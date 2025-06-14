@@ -1,6 +1,6 @@
 @echo off
 :: ========================================================================
-:: Git Auto-Push Script (Pushes to GitHub and enforces 'main' branch)
+:: Git Auto-Push Script (Pushes local repo to GitHub and enforces 'main')
 :: ========================================================================
 
 :: =====================[ GLOBAL CONFIG ]=======================
@@ -22,8 +22,8 @@ git init >nul 2>&1
 git remote remove origin >nul 2>&1
 git remote add origin %GITHUB_URL%
 
-:: =====================[ BRANCH SYNC ]=========================
-:: Rename 'master' to 'main' if needed
+:: =====================[ BRANCH SYNC TO MAIN ]=================
+:: Rename 'master' to 'main' if it's the current branch
 git branch > current_branch.tmp
 findstr /C:"master" current_branch.tmp >nul
 if %errorlevel%==0 (
@@ -52,9 +52,9 @@ echo Staging and committing files...
 git add .
 git commit -m "Initial commit" >nul 2>&1
 
-:: =====================[ PUSH TO MAIN ]========================
-echo Pushing to remote 'main' branch...
-git push -u origin main
+:: =====================[ FORCE PUSH TO MAIN ]==================
+echo Forcing push to remote 'main' branch...
+git push --force -u origin main
 
 :: =====================[ DONE ]================================
 echo.
