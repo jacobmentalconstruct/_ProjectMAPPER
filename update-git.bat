@@ -1,9 +1,10 @@
 @echo off
 :: ========================================================================
-:: Git Auto-Push Script for Single Project Repos
+:: Git Auto-Push Script (Pushes to GitHub and enforces 'main' branch)
 :: ========================================================================
 
 :: =====================[ GLOBAL CONFIG ]=======================
+setlocal enabledelayedexpansion
 set "SCRIPT_NAME=update-git.bat"
 set "GITHUB_URL="
 
@@ -17,11 +18,22 @@ if "%GITHUB_URL%"=="" (
 echo Initializing Git repository...
 git init >nul 2>&1
 
+:: Remove existing origin if present to avoid errors
 git remote remove origin >nul 2>&1
 git remote add origin %GITHUB_URL%
 
-:: =====================[ .GITIGNORE ]==========================
-echo Generating .gitignore...
+:: =====================[ BRANCH SYNC ]=========================
+:: Rename 'master' to 'main' if needed
+git branch > current_branch.tmp
+findstr /C:"master" current_branch.tmp >nul
+if %errorlevel%==0 (
+    echo Renaming local 'master' branch to 'main'...
+    git branch -m master main
+)
+del current_branch.tmp
+
+:: =====================[ .GITIGNORE SETUP ]====================
+echo Creating/updating .gitignore...
 (
     echo __pycache__/
     echo *.pyc
@@ -35,19 +47,14 @@ echo Generating .gitignore...
     echo %SCRIPT_NAME%
 ) > .gitignore
 
-:: =====================[ COMMIT & PUSH ]=======================
-echo Staging and committing...
+:: =====================[ STAGE + COMMIT ]======================
+echo Staging and committing files...
 git add .
 git commit -m "Initial commit" >nul 2>&1
 
-echo Pushing to remote...
-git branch > _branch.tmp
-findstr /C:"main" _branch.tmp >nul && (
-    git push -u origin main
-) || (
-    git push -u origin master
-)
-del _branch.tmp
+:: =====================[ PUSH TO MAIN ]========================
+echo Pushing to remote 'main' branch...
+git push -u origin main
 
 :: =====================[ DONE ]================================
 echo.
