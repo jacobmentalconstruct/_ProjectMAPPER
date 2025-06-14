@@ -7,4 +7,4 @@ _logs/
 *.rar
 .vscode/
 .idea/
-push_to_github.bat
+update-git.bat

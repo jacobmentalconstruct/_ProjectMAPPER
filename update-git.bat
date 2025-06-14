@@ -1,39 +1,56 @@
 @echo off
-:: Prompt for GitHub repo URL securely
-SET /P REPOURL="Enter GitHub repo URL (e.g., https://github.com/youruser/yourrepo.git): "
+:: ========================================================================
+:: Git Auto-Push Script for Single Project Repos
+:: ========================================================================
 
-:: Initialize the git repo
-git init
+:: =====================[ GLOBAL CONFIG ]=======================
+set "SCRIPT_NAME=update-git.bat"
+set "GITHUB_URL="
 
-:: Create or update .gitignore
+:: =====================[ USER INPUT ]==========================
+if "%GITHUB_URL%"=="" (
+    set /P GITHUB_URL=Enter GitHub repo URL (example: https://github.com/user/repo.git^) ^
+:
+)
+
+:: =====================[ INIT GIT + REMOTE ]===================
+echo Initializing Git repository...
+git init >nul 2>&1
+
+git remote remove origin >nul 2>&1
+git remote add origin %GITHUB_URL%
+
+:: =====================[ .GITIGNORE ]==========================
+echo Generating .gitignore...
 (
-echo __pycache__/
-echo *.pyc
-echo *.log
-echo .env
-echo *.db
-echo _logs/
-echo *.rar
-echo .vscode/
-echo .idea/
-echo push_to_github.bat
+    echo __pycache__/
+    echo *.pyc
+    echo *.log
+    echo .env
+    echo *.db
+    echo _logs/
+    echo *.rar
+    echo .vscode/
+    echo .idea/
+    echo %SCRIPT_NAME%
 ) > .gitignore
 
-:: Stage and commit everything except ignored
+:: =====================[ COMMIT & PUSH ]=======================
+echo Staging and committing...
 git add .
-git commit -m "Initial commit"
+git commit -m "Initial commit" >nul 2>&1
 
-:: Add remote
-git remote add origin %REPOURL%
-
-:: Detect current branch and push
-git branch > temp.txt
-findstr "main" temp.txt >nul && (
+echo Pushing to remote...
+git branch > _branch.tmp
+findstr /C:"main" _branch.tmp >nul && (
     git push -u origin main
 ) || (
     git push -u origin master
 )
-del temp.txt
+del _branch.tmp
 
-echo === Push Complete ===
+:: =====================[ DONE ]================================
+echo.
+echo ✅ Push complete!
+echo 🔗 Repo: %GITHUB_URL%
 pause
