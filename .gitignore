@@ -1,5 +1,10 @@
-# Ignore the RAR archive
-_ProjectMAPPER_v0.0.rar
-
-# Ignore everything in the _logs folder
+__pycache__/
+*.pyc
+*.log
+.env
+*.db
 _logs/
+*.rar
+.vscode/
+.idea/
+push_to_github.bat
