@@ -1,3 +1,142 @@
+Dump: C:\Users\jacob\Documents\_UsefulHelperSCRIPTS\_ProjectMAPPER
+
+
+--------------------------------------------------------------------------------
+FILE: gitignore
+--------------------------------------------------------------------------------
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Production
+build
+dist
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+--------------------------------------------------------------------------------
+FILE: LICENSE.md
+--------------------------------------------------------------------------------
+MIT License
+
+Copyright (c) 2025 Jacob Lambert
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+FILE: README.md
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE: requirements.txt
+--------------------------------------------------------------------------------
+tk>=0.1.0
+--------------------------------------------------------------------------------
+FILE: setup_env.bat
+--------------------------------------------------------------------------------
+@echo off
+echo [SYSTEM] Initializing new project environment...
+
+:: 1. Create the venv if it doesn't exist
+if not exist .venv (
+    echo [SYSTEM] Creating .venv...
+    py -m venv .venv
+)
+
+:: 2. Upgrade pip and install requirements
+echo [SYSTEM] Installing dependencies...
+.venv\Scripts\python.exe -m pip install --upgrade pip
+if exist requirements.txt (
+    .venv\Scripts\pip install -r requirements.txt
+)
+
+echo.
+echo [SUCCESS] Environment ready!
+echo You can now open this folder in VS Code or launch via scripts_menu.py
+pause
+--------------------------------------------------------------------------------
+FILE: _ProjectMAPPER.spec
+--------------------------------------------------------------------------------
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER\\src\\app.py'],
+    pathex=['C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER'],
+    binaries=[],
+    datas=[('C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER\\assets', 'assets'), ('C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER\\assets', 'assets'), ('C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER\\src', 'src')],
+    hiddenimports=[],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False,
+    optimize=0,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name='_ProjectMAPPER',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=['C:\\Users\\jacob\\Documents\\_UsefulHelperSCRIPTS\\_ProjectMAPPER\\assets\\icons\\projectmapper.ico'],
+)
+
+--------------------------------------------------------------------------------
+FILE: src\app.py
+--------------------------------------------------------------------------------
 import sys
 import argparse
 import tkinter as tk
@@ -14,7 +153,6 @@ import fnmatch
 import os
 import json
 import tarfile
-import sqlite3
 
 # ==============================================================================
 # 0. PYTHONW SAFETY CHECK
@@ -51,7 +189,7 @@ FORCE_BINARY_EXTENSIONS_FOR_DUMP = {
     ".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv",
     ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods",
     ".exe", ".dll", ".so", ".o", ".a", ".lib", ".app", ".dmg", ".deb", ".rpm",
-    ".db", ".sqlite", ".sqlite3", ".db3", ".mdb", ".accdb", ".dat", ".idx", ".pickle", ".joblib",
+    ".db", ".sqlite", ".mdb", ".accdb", ".dat", ".idx", ".pickle", ".joblib",
     ".pyc", ".pyo", ".class", ".jar", ".wasm",
     ".ttf", ".otf", ".woff", ".woff2",
     ".iso", ".img", ".bin", ".bak", ".data", ".asset", ".pak"
@@ -83,8 +221,6 @@ THEME = {
     "heading_bg": "#2A3441",
     "heading_text": "#F3F6F9",
     "selection": "#3B7E8D",
-    "tree_row_highlight": "#D8E8FF",
-    "tree_row_highlight_text": "#12283D",
     "accent": "#C56F3D",
     "accent_hover": "#D78251",
     "accent_active": "#A65A31",
@@ -299,11 +435,7 @@ class ProjectMapperApp:
         style.configure("Treeview", background=self.widgets['tree_bg_normal'], 
                         foreground=THEME["text"], fieldbackground=self.widgets['tree_bg_normal'],
                         borderwidth=0, font=tree_font, rowheight=24)
-        style.map(
-            "Treeview",
-            background=[('selected', THEME["tree_row_highlight"])],
-            foreground=[('selected', THEME["tree_row_highlight_text"])],
-        )
+        style.map("Treeview", background=[('selected', THEME["selection"])], foreground=[('selected', THEME["heading_text"])])
         style.configure("Treeview.Heading", background=THEME["heading_bg"], foreground=THEME["heading_text"], relief=tk.FLAT)
         
         style.configure(
@@ -369,19 +501,9 @@ class ProjectMapperApp:
 
         # Top Pane: Tree
         left_frame = tk.Frame(paned, bg=THEME["panel_bg"])
-        self.widgets['folder_tree'] = ttk.Treeview(
-            left_frame,
-            show="tree headings",
-            columns=("nav_up", "nav_down", "size"),
-            selectmode="browse",
-        )
-        self.widgets['folder_tree'].column("#0", width=760)
-        self.widgets['folder_tree'].column("nav_up", width=34, anchor="center", stretch=False)
-        self.widgets['folder_tree'].column("nav_down", width=34, anchor="center", stretch=False)
-        self.widgets['folder_tree'].column("size", width=100, anchor="e", stretch=False)
-        self.widgets['folder_tree'].heading("#0", text="Explorer")
-        self.widgets['folder_tree'].heading("nav_up", text="↑")
-        self.widgets['folder_tree'].heading("nav_down", text="↓")
+        self.widgets['folder_tree'] = ttk.Treeview(left_frame, show="tree", columns=("size"), selectmode="none")
+        self.widgets['folder_tree'].column("#0", width=800)
+        self.widgets['folder_tree'].column("size", width=100, anchor="e")
         self.widgets['folder_tree'].heading("size", text="Size")
         
         vsb = ttk.Scrollbar(left_frame, orient="vertical", command=self.widgets['folder_tree'].yview)
@@ -390,7 +512,6 @@ class ProjectMapperApp:
         self.widgets['folder_tree'].pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
         self.widgets['folder_tree'].bind("<ButtonRelease-1>", self.on_tree_item_click)
-        self.widgets['folder_tree'].bind("<FocusOut>", self._on_tree_focus_out)
         
         paned.add(left_frame, weight=3) # Give tree more initial weight
 
@@ -405,7 +526,6 @@ class ProjectMapperApp:
         actions = [
             ("Map Project Tree", self.build_folder_tree_impl, True),
             ("Dump Source Files", self.dump_files_impl, True),
-            ("Export SQLite DB", self.export_sqlite_impl, True),
             ("Backup Project (Zip)", self.backup_project_impl, True),
             ("Audit System Info", self.audit_system_impl, False)
         ]
@@ -672,35 +792,6 @@ class ProjectMapperApp:
         tree.insert("", "end", text="Scanning...")
         self.run_threaded_action(lambda: self._initial_tree_load_impl(path), task_id='load_tree')
 
-    def _navigate_tree_to_path(self, target_path: Path):
-        try:
-            resolved = target_path.resolve()
-        except Exception:
-            return
-
-        if not resolved.is_dir():
-            return
-
-        self.widgets['selected_root_var'].set(str(resolved))
-        self.schedule_log_message(f"Explorer root changed to: {resolved}")
-        self._rescan_project_tree()
-
-    def _set_active_tree_row(self, iid: str | None):
-        tree = self.widgets['folder_tree']
-        if not iid or not tree.exists(iid):
-            return
-        tree.focus_set()
-        tree.focus(iid)
-        tree.selection_set(iid)
-
-    def _clear_active_tree_row(self, _event=None):
-        tree = self.widgets['folder_tree']
-        tree.selection_remove(tree.selection())
-        tree.focus("")
-
-    def _on_tree_focus_out(self, _event):
-        self.root.after(1, self._clear_active_tree_row)
-
     def _initial_tree_load_impl(self, root_path: Path):
         with self.state_lock:
             self.folder_item_states.clear()
@@ -755,14 +846,7 @@ class ProjectMapperApp:
         tree = self.widgets['folder_tree']
         for i in tree.get_children(): tree.delete(i)
         for d in data:
-            tree.insert(
-                d['parent'],
-                "end",
-                iid=d['iid'],
-                text=d['text'],
-                open=d.get('open', False),
-                values=("", "", "..."),
-            )
+            tree.insert(d['parent'], "end", iid=d['iid'], text=d['text'], open=d.get('open', False))
             tree.set(d['iid'], "size", "...")
         
         self.refresh_tree_visuals()
@@ -799,12 +883,6 @@ class ProjectMapperApp:
             prefix = "📄 " if p.is_file() else "" 
             
             tree.item(iid, text=f" {prefix}{p.name}", image=icon)
-            if p.is_dir():
-                tree.set(iid, "nav_up", "↑")
-                tree.set(iid, "nav_down", "↓")
-            else:
-                tree.set(iid, "nav_up", "")
-                tree.set(iid, "nav_down", "")
             
             # Recursion only needed for folders (files have no children)
             if tree.get_children(iid):
@@ -815,60 +893,23 @@ class ProjectMapperApp:
             root = self._get_current_project_path()
             if root: _refresh(str(root.resolve()))
 
-    def _get_tree_click_action(self, tree, event):
-        """Return the explicit control action for a tree click, or None."""
-        iid = tree.identify_row(event.y)
-        if not iid:
-            return None, None
-
-        element = tree.identify("element", event.x, event.y) or ""
-        column = tree.identify_column(event.x)
-        path = Path(iid)
-
-        if "image" in element:
-            return "toggle_checkbox", iid
-
-        if not path.is_dir():
-            return None, iid
-
-        if column == "#1" and tree.set(iid, "nav_up") == "↑":
-            return "navigate_up", iid
-
-        if column == "#2" and tree.set(iid, "nav_down") == "↓":
-            return "navigate_down", iid
-
-        return None, iid
-
     def on_tree_item_click(self, event):
         tree = event.widget
-        action, iid = self._get_tree_click_action(tree, event)
+        
+        # Identify specific element. 
+        # Note: element name varies by theme (e.g., "image", "Treeitem.image", etc.)
+        element = tree.identify("element", event.x, event.y)
+        iid = tree.identify_row(event.y)
+        
+        if not iid: return
 
-        if not iid:
-            self._clear_active_tree_row()
-            return
-
-        self._set_active_tree_row(iid)
-
-        if not action:
-            return
-
-        if action == "toggle_checkbox":
+        # ROBUST FIX: Check if "image" is part of the element name
+        if "image" in element:
             with self.state_lock:
                 curr = self.folder_item_states.get(iid, S_UNCHECKED)
                 new = S_CHECKED if curr != S_CHECKED else S_UNCHECKED
                 self.folder_item_states[iid] = new
             self.refresh_tree_visuals(iid)
-            return
-
-        p = Path(iid)
-        if action == "navigate_up":
-            parent = p.parent
-            if parent != p and parent.is_dir():
-                self._navigate_tree_to_path(parent)
-            return
-
-        if action == "navigate_down":
-            self._navigate_tree_to_path(p)
 
     def set_global_selection(self, state):
         with self.state_lock:
@@ -1151,373 +1192,6 @@ class ProjectMapperApp:
         
         self.schedule_log_message(f"Dump saved: {fname} ({count} files)")
 
-    def export_sqlite_impl(self):
-        root = self._get_current_project_path()
-        if not root: return
-
-        out_dir = self.get_log_dir(root)
-        fname = self._generate_filename(root.name, "project_export", ".sqlite3")
-        out_file = out_dir / fname
-
-        if out_file.exists():
-            try:
-                out_file.unlink()
-            except Exception as e:
-                self.schedule_log_message(f"SQLite export failed: could not replace {fname} ({e})", "ERROR")
-                return
-
-        created_at = datetime.now().isoformat(timespec="seconds")
-        dumped_file_count = 0
-        tree_entry_count = 0
-        cancelled = False
-
-        def upsert_metadata(conn, key: str, value):
-            conn.execute(
-                "INSERT OR REPLACE INTO export_metadata (key, value) VALUES (?, ?)",
-                (key, "" if value is None else str(value)),
-            )
-
-        conn = None
-        try:
-            conn = sqlite3.connect(out_file)
-            with conn:
-                conn.execute(
-                    """
-                    CREATE TABLE export_metadata (
-                        key TEXT PRIMARY KEY,
-                        value TEXT NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE project_tree (
-                        tree_order INTEGER NOT NULL,
-                        relative_path TEXT PRIMARY KEY,
-                        parent_relative_path TEXT,
-                        name TEXT NOT NULL,
-                        entry_type TEXT NOT NULL,
-                        depth INTEGER NOT NULL,
-                        size_bytes INTEGER,
-                        is_selected INTEGER NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE project_files (
-                        dump_order INTEGER NOT NULL,
-                        relative_path TEXT PRIMARY KEY,
-                        parent_relative_path TEXT NOT NULL,
-                        size_bytes INTEGER NOT NULL,
-                        content TEXT NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE export_errors (
-                        relative_path TEXT PRIMARY KEY,
-                        error TEXT NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE export_artifacts (
-                        name TEXT PRIMARY KEY,
-                        content TEXT NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE export_manifest (
-                        id INTEGER PRIMARY KEY CHECK (id = 1),
-                        manifest_version TEXT NOT NULL,
-                        title TEXT NOT NULL,
-                        summary TEXT NOT NULL,
-                        contents_markdown TEXT NOT NULL,
-                        created_at TEXT NOT NULL
-                    )
-                    """
-                )
-
-                base_metadata = {
-                    "project_root": str(root),
-                    "created_at": created_at,
-                    "export_format_version": "1.1",
-                    "respect_exclusions": int(self._respect_exclusions_enabled()),
-                    "timestamps_enabled": int(self.widgets['use_timestamps'].get()),
-                    "max_dump_file_size_bytes": 1_000_000,
-                    "dump_encoding": "utf-8",
-                    "manifest_table": "export_manifest",
-                    "manifest_artifact_name": "agent_manifest_markdown",
-                }
-                for key, value in base_metadata.items():
-                    upsert_metadata(conn, key, value)
-
-                tree_lines = [f"Project Tree: {root}\nGenerated: {created_at}\n"]
-                tree_order = 0
-
-                def insert_tree_row(path: Path, parent_rel: str | None, entry_type: str, is_selected: bool):
-                    nonlocal tree_entry_count, tree_order
-                    rel = "." if path == root else self._rel_posix(path, root)
-                    try:
-                        size_bytes = get_folder_size_bytes(path) if path.is_dir() else path.stat().st_size
-                    except OSError:
-                        size_bytes = None
-
-                    depth = 0 if rel == "." else len(rel.split("/"))
-                    conn.execute(
-                        """
-                        INSERT OR REPLACE INTO project_tree (
-                            tree_order, relative_path, parent_relative_path, name,
-                            entry_type, depth, size_bytes, is_selected
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            tree_order,
-                            rel,
-                            parent_rel,
-                            path.name,
-                            entry_type,
-                            depth,
-                            size_bytes,
-                            int(is_selected),
-                        ),
-                    )
-                    tree_order += 1
-                    tree_entry_count += 1
-                    return rel
-
-                insert_tree_row(root, None, "dir", True)
-
-                def walk_tree(curr: Path, prefix: str):
-                    nonlocal cancelled
-                    if self.stop_event.is_set():
-                        cancelled = True
-                        tree_lines.append(f"{prefix}!!! CANCELLED !!!")
-                        return
-
-                    try:
-                        items = sorted(list(curr.iterdir()), key=lambda x: (x.is_file(), x.name.lower()))
-                    except Exception:
-                        return
-
-                    visible_items = []
-                    for item in items:
-                        if item.is_dir():
-                            if self.should_exclude_path(item, root):
-                                continue
-                            if not self.is_selected(item, root):
-                                continue
-                        else:
-                            if self.should_exclude_path(item, root):
-                                continue
-                            if not self.is_selected(item.parent, root):
-                                continue
-                        visible_items.append(item)
-
-                    parent_rel = "." if curr == root else self._rel_posix(curr, root)
-                    for i, item in enumerate(visible_items):
-                        if self.stop_event.is_set():
-                            cancelled = True
-                            tree_lines.append(f"{prefix}!!! CANCELLED !!!")
-                            return
-
-                        is_last = i == len(visible_items) - 1
-                        connector = "└── " if is_last else "├── "
-
-                        if item.is_dir():
-                            insert_tree_row(item, parent_rel, "dir", True)
-                            tree_lines.append(f"{prefix}{connector}📁 {item.name}/")
-                            walk_tree(item, prefix + ("    " if is_last else "│   "))
-                        else:
-                            insert_tree_row(item, parent_rel, "file", True)
-                            tree_lines.append(f"{prefix}{connector}📄 {item.name}")
-
-                walk_tree(root, "")
-                conn.execute(
-                    "INSERT OR REPLACE INTO export_artifacts (name, content) VALUES (?, ?)",
-                    ("project_tree_text", "\n".join(tree_lines)),
-                )
-                conn.commit()
-
-                for r, d, f in os.walk(root):
-                    if self.stop_event.is_set():
-                        cancelled = True
-                        break
-
-                    curr = Path(r)
-                    kept_dirs = []
-                    for dirname in d:
-                        dir_path = curr / dirname
-                        if self.should_exclude_path(dir_path, root):
-                            continue
-                        if not self.is_selected(dir_path, root):
-                            continue
-                        kept_dirs.append(dirname)
-                    d[:] = kept_dirs
-
-                    if not self.is_selected(curr, root):
-                        continue
-
-                    for fname_item in f:
-                        if self.stop_event.is_set():
-                            cancelled = True
-                            break
-
-                        fpath = curr / fname_item
-                        if self.should_exclude_path(fpath, root):
-                            continue
-
-                        try:
-                            size_bytes = fpath.stat().st_size
-                        except OSError as e:
-                            conn.execute(
-                                "INSERT OR REPLACE INTO export_errors (relative_path, error) VALUES (?, ?)",
-                                (self._rel_posix(fpath, root), f"stat failed: {e}"),
-                            )
-                            continue
-
-                        if size_bytes > 1_000_000:
-                            continue
-                        if is_binary(fpath) or "".join(fpath.suffixes).lower() in FORCE_BINARY_EXTENSIONS_FOR_DUMP:
-                            continue
-
-                        rel = self._rel_posix(fpath, root)
-                        if dumped_file_count % 5 == 0:
-                            self.schedule_log_message(f"Exporting to SQLite: {rel}", "DEBUG")
-
-                        try:
-                            with open(fpath, "r", encoding="utf-8", errors="ignore") as f_in:
-                                content = f_in.read()
-                            conn.execute(
-                                """
-                                INSERT OR REPLACE INTO project_files (
-                                    dump_order, relative_path, parent_relative_path, size_bytes, content
-                                ) VALUES (?, ?, ?, ?, ?)
-                                """,
-                                (
-                                    dumped_file_count,
-                                    rel,
-                                    "." if curr == root else self._rel_posix(curr, root),
-                                    size_bytes,
-                                    content,
-                                ),
-                            )
-                            dumped_file_count += 1
-                            if dumped_file_count % 25 == 0:
-                                conn.commit()
-                        except Exception as e:
-                            conn.execute(
-                                "INSERT OR REPLACE INTO export_errors (relative_path, error) VALUES (?, ?)",
-                                (rel, str(e)),
-                            )
-
-                upsert_metadata(conn, "tree_entry_count", tree_entry_count)
-                upsert_metadata(conn, "dumped_file_count", dumped_file_count)
-                upsert_metadata(conn, "was_cancelled", int(cancelled))
-                manifest_summary = (
-                    "Portable ProjectMapper snapshot containing the selected project tree, "
-                    "selected text file contents, export metadata, and any read errors."
-                )
-                manifest_body = "\n".join([
-                    "# ProjectMapper SQLite Export Manifest",
-                    "",
-                    "## Purpose",
-                    manifest_summary,
-                    "",
-                    "## Snapshot",
-                    f"- Source project root: `{root}`",
-                    f"- Export file: `{fname}`",
-                    f"- Generated at: `{created_at}`",
-                    f"- Tree entries exported: `{tree_entry_count}`",
-                    f"- Text files dumped: `{dumped_file_count}`",
-                    f"- Export cancelled: `{int(cancelled)}`",
-                    "",
-                    "## Tables",
-                    "- `export_manifest`: this onboarding document.",
-                    "- `export_metadata`: key/value facts about this export run.",
-                    "- `project_tree`: selected directories and files in traversal order.",
-                    "- `project_files`: dumped text file contents keyed by relative path.",
-                    "- `export_errors`: paths that could not be read or stat-ed cleanly.",
-                    "- `export_artifacts`: derived human-readable artifacts stored in the DB.",
-                    "",
-                    "## Inclusion Rules",
-                    "- Selection follows the checkbox state in the ProjectMapper tree.",
-                    "- If `respect_exclusions` is `1`, `.gitignore`, hard exclusions, and dynamic filename exclusions were applied.",
-                    "- `project_files` only includes text-readable files at or below `1000000` bytes.",
-                    "- Binary-like files and known database/archive/media formats are skipped from `project_files`.",
-                    "- The root path is represented as `.` in relative-path columns.",
-                    "",
-                    "## Path Conventions",
-                    "- `relative_path` values use POSIX-style `/` separators.",
-                    "- `parent_relative_path` points to the containing directory, with root as `.`.",
-                    "- Join `project_tree.relative_path` to `project_files.relative_path` to map tree nodes to dumped content.",
-                    "",
-                    "## Important Metadata Keys",
-                    "- `export_format_version`",
-                    "- `project_root`",
-                    "- `created_at`",
-                    "- `respect_exclusions`",
-                    "- `timestamps_enabled`",
-                    "- `max_dump_file_size_bytes`",
-                    "- `tree_entry_count`",
-                    "- `dumped_file_count`",
-                    "- `was_cancelled`",
-                    "",
-                    "## Quick Start Queries",
-                    "```sql",
-                    "SELECT * FROM export_manifest;",
-                    "SELECT key, value FROM export_metadata ORDER BY key;",
-                    "SELECT relative_path, entry_type, size_bytes FROM project_tree ORDER BY tree_order;",
-                    "SELECT relative_path, substr(content, 1, 400) AS preview FROM project_files ORDER BY dump_order LIMIT 20;",
-                    "SELECT * FROM export_errors ORDER BY relative_path;",
-                    "```",
-                    "",
-                    "## Caveats",
-                    "- File contents were read as UTF-8 with `errors='ignore'`.",
-                    "- If `was_cancelled` is `1`, this database may be partial.",
-                    "- Files omitted by selection or exclusion rules do not appear in exported tables.",
-                ])
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO export_manifest (
-                        id, manifest_version, title, summary, contents_markdown, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        1,
-                        "1.1",
-                        "ProjectMapper SQLite Export Manifest",
-                        manifest_summary,
-                        manifest_body,
-                        created_at,
-                    ),
-                )
-                conn.execute(
-                    "INSERT OR REPLACE INTO export_artifacts (name, content) VALUES (?, ?)",
-                    ("agent_manifest_markdown", manifest_body),
-                )
-                conn.commit()
-
-            if cancelled:
-                self.schedule_log_message(
-                    f"SQLite export cancelled: {fname} ({tree_entry_count} tree entries, {dumped_file_count} files captured)",
-                    "WARNING",
-                )
-            else:
-                self.schedule_log_message(
-                    f"SQLite export saved: {fname} ({tree_entry_count} tree entries, {dumped_file_count} files)",
-                )
-        except Exception as e:
-            self.schedule_log_message(f"SQLite export failed: {e}", "ERROR")
-        finally:
-            if conn is not None:
-                conn.close()
-
     def backup_project_impl(self):
         root = self._get_current_project_path()
         if not root: return
@@ -1703,3 +1377,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+--------------------------------------------------------------------------------
+FILE: src\__init__.py
+--------------------------------------------------------------------------------

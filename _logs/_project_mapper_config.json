@@ -1,0 +1,18 @@
+{
+  "folder_states": {
+    ".": "checked",
+    "assets": "unchecked",
+    "assets\\icons": "checked",
+    "assets\\icons\\projectmapper.ico": "checked",
+    "src": "checked",
+    "src\\__init__.py": "unchecked",
+    "src\\app.py": "checked",
+    "_ProjectMAPPER.spec": "checked",
+    "gitignore": "unchecked",
+    "LICENSE.md": "checked",
+    "README.md": "unchecked",
+    "requirements.txt": "unchecked",
+    "setup_env.bat": "unchecked"
+  },
+  "dynamic_exclusions": []
+}
