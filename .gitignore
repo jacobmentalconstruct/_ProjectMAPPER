@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+.venv/
+venv/
+env/
+
+# Testing
+coverage
+.pytest_cache/
+
+# Production
+build
+dist
+vendor_exports/*
+!vendor_exports/README.md
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+logs/
+_logs/
+
+# Local development journal (not an application dependency)
+.dev-log/
+
+# ProjectMapper generated state
+_projectmapper/
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
