@@ -15,8 +15,10 @@ and never read by the application. Phase 2 is completed after the external-revie
 corrections and a 110-test acceptance run. Its corrected acceptance record is
 `.dev-log/02-review-followthrough.md`. Phase 3 is also completed and parked: 124
 tests passed, with measured lazy rendering and metadata scan improvements. Its
-acceptance record is `.dev-log/03-logical-tree-and-rendering.md`. Next is Phase 4,
-project patch review; it has not been opened yet.
+acceptance record is `.dev-log/03-logical-tree-and-rendering.md`. The plan was
+revised on 2026-09-23 for public release. Phase 4 is now release readiness and v0.4.0.
+Former Phases 4–7 are renumbered 5–8, with v1.0.0 at Phase 8. Phase 9 adds CLI and
+MCP adapters. See the plan's decision log.
 
 ## Conventions
 

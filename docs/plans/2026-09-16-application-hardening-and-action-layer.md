@@ -2,13 +2,17 @@
 
 Date: 2026-09-16
 
-Status: **Phase 2 completed and parked after external-review corrections, action
-inventory and 110 passing tests. Phase 3 completed and parked with 124 passing tests
-and measured scan/render improvements. Next: Phase 4, project patch review.
-See `.dev-log/03-logical-tree-and-rendering.md` for acceptance evidence.**
+Status: **Phases 0–3 completed and parked (Phase 3: 124 passing tests, measured
+scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
+2026-09-23 for release: next is Phase 4, release readiness and v0.4.0. Former
+Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
+acceptance. See the decision log (section 17).**
 
 Implementation was authorized after the initial planning review. Later tranches remain
 subject to their entry records, implementation/review cycles and acceptance gates.
+
+Numbering note: journals dated before 2026-09-23 use the original numbering, in which
+"Phase/Tranche 4" meant project patch review. Those references are historical.
 
 ## 1. Expected outcome
 
@@ -27,21 +31,30 @@ The completed pass also provides responsive large-project navigation, per-file
 patch review, recoverable backup generations, useful session history, and a
 repeatable verification suite.
 
+The application is released publicly: an interim v0.4.0 once repository hygiene,
+packaging and snapshot byte-binding are complete, and v1.0.0 at final acceptance.
+After v1.0.0, a command-line client and a local stdio MCP server use the same action
+layer. An agent can read, validate and propose changes but cannot approve its own
+destructive operations. Approval stays with a trusted human adapter.
+
 ## 2. Current state and gap
 
-Current as of Phase 3 acceptance, 2026-09-17. Historical entry observations and
+Current as of Phase 3 acceptance (2026-09-17), revised 2026-09-23 for release scope. Historical entry observations and
 repairs are retained in the dated tranche journals; they are not current defects.
 
 | Area | Current state | Required difference |
 | --- | --- | --- |
 | Structure | Tk presentation lives in `src/app.py` and `src/tree_view.py`; application services, core machinery and tools have separate modules. | Preserve these boundaries in later work. |
-| Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Add later backup/history operations through the same seam. CLI/MCP transports remain deferred. |
+| Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Add later backup/history operations through the same seam. CLI/MCP adapters follow in Phase 9. |
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | The UI has JSON authoring, Add File, combined diff, linked actions, and apply approval. | Add per-file status and source/diff/result views with hunk navigation. |
 | Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
-| Testing | Phase 3 acceptance passed 124 regressions and two explicit benchmarks. | Extend coverage for Phases 4–6, then perform whole-application acceptance in Phase 7. |
+| Testing | Phase 3 acceptance passed 124 regressions and two explicit benchmarks; re-verified 2026-09-23 before commit. pytest is not installed in the project `.venv`. | Declare development dependencies; extend coverage for Phases 4–7 and 9; whole-application acceptance in Phase 8. |
+| Snapshot freshness | The capture signature hashes every file in one pass; captured contents are read in a second pass. A file changed A→B between the passes is stored as B under A's signature and is reported fresh again if it returns to A. | Bind captured bytes to the published signature; refuse publication on mismatch. |
+| Repository/release | One pre-revival commit plus Tranche 3. `requirements.txt` names the unrelated PyPI `tk` package; Node `package-lock.json` residue; tracked ignored `manual-fixture/x.txt`; tracked `.parts/` file deleted in the working tree; `setup_env.bat` names a nonexistent `scripts_menu.py`. The top-level package is named `src`; launch is Windows `.bat` or `python -m src.app`. No pyproject, changelog or tagged release. | Clean repository, standard installable package and entry point, documented install, changelog, versioned releases. |
+| Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
 
 ### Historical baseline issues — resolved, retained for context only
 
@@ -83,11 +96,16 @@ Acceptance evidence is in `.dev-log/00-baseline-and-safety.md`,
 8. Session operation history and consistent error reporting.
 9. Isolated tests, failure injection, GUI smoke checks, and standalone export checks.
 10. Documentation and a final acceptance report.
+11. Release readiness: repository hygiene, standard packaging, snapshot byte-binding,
+    changelog, and versioned releases (v0.4.0 interim, v1.0.0 at final acceptance).
+12. After v1.0.0 acceptance: a CLI client and a local stdio MCP server over the public
+    action layer, with approval held by a trusted human adapter.
 
 ### Deferred
 
-- Shipping a CLI command surface or an MCP server.
-- Network listeners, IPC transport, remote authentication, and cross-process coordination.
+- Attaching a CLI/MCP process to an already-running desktop instance (shared live
+  state across processes). Each Phase 9 process hosts its own Controller.
+- Network listeners, remote transports, remote authentication, and cross-process coordination.
 - Persistent event infrastructure, automatic filesystem watchers, and plugin frameworks.
 - Repository patch operations for creation, deletion, rename, or binary transformation.
 - Arbitrary shell execution or arbitrary dynamically registered external actions.
@@ -444,6 +462,82 @@ unsuitable rather than quietly marking it passed.
   discarding unsaved work. Operation events trigger this behavior consistently.
 - Listener or GUI callback exceptions are reported; do not swallow them silently.
 
+## 12A. Release readiness design
+
+Added 2026-09-23. Sections 12A/12B are inserted rather than renumbered so existing
+section references remain valid.
+
+### Repository hygiene
+
+- Record the `.parts/` removal already present in the working tree. The runtime never
+  required the directory; its read-only/no-write protections stay in force if it reappears.
+- Untrack `manual-fixture/x.txt` without deleting it locally (it is already ignored
+  residue). Remove the Node `package-lock.json`, which has no role in this project.
+- Runtime dependencies: none beyond the Python standard library with Tkinter. Remove
+  the PyPI `tk` requirement. Declare development dependencies (pytest) explicitly and
+  run the suite inside the project environment, not only a system interpreter.
+- Correct stale launcher text. Do not delete or repermission legacy `tests/tmp*` fixtures.
+
+### Packaging
+
+- Proposed layout: move the package from `src/` (top-level import name `src`) to
+  `src/projectmapper/`, the standard src-layout. An installed distribution must not
+  publish a top-level package named `src`. Confirm or revise this at tranche entry
+  with an evidence-backed decision before moving files.
+- `pyproject.toml` (PEP 621) with a single version source, a `projectmapper` GUI
+  entry point, `python -m projectmapper`, and a dev dependency group. Establish the
+  minimum Python version from the code's actual syntax rather than assuming it.
+- `setup_env.bat`/`run.bat` keep working for Windows users, using an editable install.
+- Vendor export, diagnostics import checks and startup smoke tests follow the new
+  layout. The vendor package still excludes `.parts/`, `.dev-log/`, caches and
+  generated state.
+- Build a wheel/sdist and verify installation and startup in a fresh virtual
+  environment outside the repository.
+
+### Snapshot byte-binding (ABA)
+
+- The capture read of each captured file computes its digest from the exact bytes
+  stored (text or blob) and compares it with that file's digest from the signature
+  pass. On mismatch, refuse publication with `source_changed`. Discard the scratch
+  database, keep the prior published snapshot, and require a new compile.
+- Unselected files keep their current signature treatment. Freshness semantics for
+  unchecked files do not change without a separately recorded decision.
+- Keep the signature algorithm unchanged, so an unchanged project's existing
+  snapshots still verify. Bump the snapshot schema version only if stored structure changes.
+- Regression: inject a change between the signature and capture passes. Prove that
+  A→B is refused, and that A→B→A never yields a published snapshot containing B.
+
+### Release artifacts and publication
+
+- Single version source; `CHANGELOG.md`; README install/quick start and a statement
+  of purpose; refreshed screenshot if the UI has changed.
+- A fresh vendor export and a wheel installation each verified in clean directories.
+- Tag `v0.4.0` locally at acceptance. Pushing, publishing a GitHub release, or
+  uploading to a package index are outward-facing and each requires explicit owner
+  approval at that time.
+
+## 12B. CLI and MCP adapter design (Phase 9)
+
+- Both are thin adapters. Each process composes its own Controller/Dispatcher and
+  submits only public named actions. No domain rules move into an adapter.
+- The trusted approval resolver is never exposed as a CLI flag, MCP tool, or payload
+  field. Approval-required actions (delete, project apply, Save As overwrite, backup
+  restore/prune) are resolved only by a trusted human adapter in that process, such as
+  a blocking local confirmation dialog. Without one, they return `approval_required`
+  and do not write. An agent-controlled channel, including non-TTY standard input,
+  is never treated as a human approver.
+- CLI: scan, inspect, compile, export, and patch/project-patch validation with
+  structured JSON output and stable exit codes. Its write behavior follows the same
+  approval rule.
+- MCP: a local stdio server exposing tools with JSON schemas derived from action
+  contracts, and resources for the project tree and snapshot projections. No network
+  listener. Tool results carry bounded content; the event history remains content-free.
+- Dependency decision at entry: a minimal standard-library JSON-RPC/stdio
+  implementation or the official MCP SDK as an optional extra. The runtime GUI must
+  remain free of third-party dependencies either way.
+- Documentation: agent integration guide, including example client configuration and
+  the approval model.
+
 ## 13. Implementation phases and stop gates
 
 ### Phase 0 — Inventory, baseline and safety regressions
@@ -504,7 +598,25 @@ commands and limits are in `.dev-log/03-logical-tree-and-rendering.md`.
 Gate: performance targets in section 9 are met or an explicit evidence-backed
 adjustment is reviewed; logical scan/capture results remain equivalent.
 
-### Phase 4 — Patch review
+### Phase 4 — Release readiness and v0.4.0
+
+Design: section 12A. Inserted 2026-09-23; later phases renumbered.
+
+- [ ] Repository hygiene: `.parts/` removal recorded, residue untracked/removed,
+      corrected runtime and development dependencies, launcher text fixed.
+- [ ] Packaging: layout decision recorded; src-layout package, pyproject, entry point
+      and version source; launchers, vendor export, diagnostics and tests updated.
+- [ ] Snapshot byte-binding with A→B and A→B→A regressions.
+- [ ] Changelog, README install/quick start, version 0.4.0.
+- [ ] Full suite in the project environment, benchmark, both launch modes, fresh wheel
+      install and fresh vendor export in clean directories.
+- [ ] Local `v0.4.0` tag. Publication only with explicit owner approval.
+
+Gate: clean repository; installable package with no top-level `src` import; ABA gap
+closed by regression evidence; all existing behavior and tests preserved; release
+artifacts verified in clean locations. No outward publication without approval.
+
+### Phase 5 — Patch review
 
 - [ ] Implement file review list, shared view components and hunk navigation.
 - [ ] Improve manifest initialization/Add File and per-file validation feedback.
@@ -514,7 +626,7 @@ adjustment is reviewed; logical scan/capture results remain equivalent.
 
 Gate: users can inspect every file/hunk and apply only the exact current approved plan.
 
-### Phase 5 — Backup generations, restore and retention
+### Phase 6 — Backup generations, restore and retention
 
 - [ ] Define managed storage format, ownership and scope.
 - [ ] Create unique generations through shared write services.
@@ -525,7 +637,7 @@ Gate: users can inspect every file/hunk and apply only the exact current approve
 Gate: restoration is verified, retention only touches approved app-owned records,
 and failure never silently consumes the recovery material.
 
-### Phase 6 — History and operational clarity
+### Phase 7 — History and operational clarity
 
 - [ ] Add bounded event-backed history and filters/detail view.
 - [ ] Connect validation, apply, restore, rollback, capture and export events.
@@ -535,7 +647,7 @@ and failure never silently consumes the recovery material.
 Gate: history explains what happened and what needs attention without exposing
 file contents or duplicating authoritative state.
 
-### Phase 7 — Full acceptance and documentation
+### Phase 8 — Full acceptance, documentation and v1.0.0
 
 - [ ] Run the complete suite with isolated fixtures and no unexplained failures.
 - [ ] Run fault-injection and interleaving tests from the acceptance matrix below.
@@ -545,8 +657,27 @@ file contents or duplicating authoritative state.
 - [ ] Update end-user instructions and developer action/API guidance.
 - [ ] Write final acceptance report listing evidence and any remaining limits.
 
-Gate: every required stop condition is satisfied. A blocked check is recorded as
-blocked; passing a small subset does not make the plan complete.
+- [ ] Update version, changelog and install documentation; verify wheel and vendor
+      export in clean directories; tag `v1.0.0` locally. Publication requires
+      explicit owner approval.
+
+Gate: every required stop condition for Phases 0–8 is satisfied. A blocked check is
+recorded as blocked; passing a small subset does not make the plan complete.
+
+### Phase 9 — CLI and MCP adapters
+
+Design: section 12B. Opens only after Phase 8 is accepted.
+
+- [ ] Entry decision: MCP implementation dependency and process/approval composition.
+- [ ] CLI over public actions with JSON output, exit codes and approval rule.
+- [ ] Local stdio MCP server: tools, resources, bounded results and schemas.
+- [ ] Trusted approval adapter; prove agents cannot approve, forge or reuse decisions.
+- [ ] Protocol conformance, denial/stale-plan, payload-bound and content-free-history tests.
+- [ ] Agent integration guide; changelog; release as a minor version with owner approval.
+
+Gate: an agent client can scan, read, compile, export and validate/propose patches
+through MCP; every approval-required action either receives a trusted human decision
+or makes no write; the desktop and tests remain green.
 
 ## 14. Acceptance matrix
 
@@ -569,6 +700,9 @@ blocked; passing a small subset does not make the plan complete.
 | Editor synchronization | External/action-originated changes mark existing editor sessions stale without discarding unsaved buffers. |
 | Diagnostics | No fixed-name overwrite, no imports from references, accurate failure reporting and owned-probe cleanup. |
 | Packaging | Clean vendor app starts and runs representative actions with no `.parts/` or development runtime dependency. |
+| Installation | A built wheel installs into a fresh environment outside the repository; `projectmapper` and `python -m projectmapper` start; no top-level `src` package is installed. |
+| Snapshot byte-binding | A change injected between the signature and capture passes refuses publication; A→B→A never publishes B; the prior snapshot survives. |
+| CLI/MCP (Phase 9) | Agent clients use only public actions; approval-required actions make no write without a trusted human decision; forged/reused approval and non-TTY input cannot approve; history carries no file contents. |
 
 ## 15. Global stop conditions
 
@@ -588,6 +722,12 @@ The implementation is complete only when:
 10. `.parts/` was not written to, imported, packaged, or made required.
 11. Documentation describes actual behavior and the final acceptance report records
     residual limitations. Incomplete gates are not labeled complete.
+12. Snapshot publication is bound to the bytes actually captured.
+13. The application installs and starts as a standard package; release artifacts are
+    verified in clean locations; v0.4.0 and v1.0.0 are tagged at their gates, and
+    anything published had explicit owner approval.
+14. Phase 9: CLI and MCP adapters meet the section 12B approval rule and their gate.
+    Conditions 1–13 define v1.0.0 and do not depend on Phase 9.
 
 ## 16. Verification record template
 
@@ -619,8 +759,14 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | --- | --- | --- |
 | 2026-09-16 | Store development plans in `docs/`, with a short index and dated plan files. | Recorded in this documentation pass. |
 | 2026-09-16 | Add a shared action seam before further UI/service extraction. | Implemented and accepted in Phases 1–2. |
-| 2026-09-16 | Keep actual CLI/MCP transports and cross-process communication out of this pass. | Proposed scope boundary from the review. |
+| 2026-09-16 | Keep actual CLI/MCP transports and cross-process communication out of this pass. | Superseded 2026-09-23 for CLI/MCP (Phase 9); cross-process attachment remains deferred. |
 | 2026-09-16 | Keep destructive approval enforcement below the UI and shared across callers. | Required design constraint. |
 | 2026-09-16 | Retain complete-manifest project patch application; partial hunk selection is deferred. | Proposed simplification. |
 | 2026-09-16 | Use bounded session history and explicit backup cleanup initially. | Proposed default; no persistent history or automatic pruning. |
 | 2026-09-16 | Begin implementation after the plan review; keep CLI/MCP transports deferred. | Implemented through Phase 3. Corrected Phase 2 acceptance: `.dev-log/02-review-followthrough.md`; Phase 3: `.dev-log/03-logical-tree-and-rendering.md`. |
+| 2026-09-23 | Revive the project for public release. Commit the parked Tranche 3 after re-verification (124 passed; benchmarks 2 passed). | Committed `74c9b99`. |
+| 2026-09-23 | Insert Phase 4, release readiness (hygiene, packaging, snapshot byte-binding, v0.4.0), ahead of patch review; renumber former Phases 4–7 to 5–8. Tag v1.0.0 at Phase 8. | Owner decision. Pre-2026-09-23 journals keep the old numbering. |
+| 2026-09-23 | Bring CLI and local stdio MCP adapters into this plan as Phase 9, after v1.0.0 acceptance. Each process hosts its own Controller; the trusted approval resolver is never exposed to agents. | Owner decision; supersedes the transport deferral. |
+| 2026-09-23 | Record the working-tree removal of the disposable `.parts/_MonacoVIEWER.py` in Phase 4. `.parts/` protections remain. | Owner decision. |
+| 2026-09-23 | Proposed: move the package to `src/projectmapper/` so an installed distribution does not publish a top-level `src` package. | To be confirmed or revised with evidence at Phase 4 entry. |
+| 2026-09-23 | Outward-facing publication (push, GitHub release, package index) needs explicit owner approval each time. Local tags are part of the gates. | Required constraint. |
