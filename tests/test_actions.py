@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -6,8 +7,8 @@ import threading
 import unittest
 
 from tests.support import temporary_directory
-from src.application import ActionError, Dispatcher, Request
-from src.application.controller import create_application
+from projectmapper.application import ActionError, Dispatcher, Request
+from projectmapper.application.controller import create_application
 
 
 class ActionTests(unittest.TestCase):
@@ -21,8 +22,9 @@ class ActionTests(unittest.TestCase):
 
     def test_headless_import(self):
         run = subprocess.run([sys.executable, "-B", "-c",
-                              "import sys; from src.application.controller import create_application; assert 'tkinter' not in sys.modules"],
-                             capture_output=True, text=True, timeout=10)
+                              "import sys; from projectmapper.application.controller import create_application; assert 'tkinter' not in sys.modules"],
+                             capture_output=True, text=True, timeout=10,
+                             env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")})
         self.assertEqual(run.returncode, 0, run.stderr)
 
     def test_cancellation_at_approval_publication_is_terminal(self):
@@ -65,7 +67,7 @@ class ActionTests(unittest.TestCase):
         self.assertEqual(self.app.rows, [])
 
     def test_binary_hash_helper(self):
-        from src.core.helpers import sha256_bytes
+        from projectmapper.core.helpers import sha256_bytes
         import hashlib
         data = bytes(range(256))
         self.assertEqual(sha256_bytes(data), hashlib.sha256(data).hexdigest())

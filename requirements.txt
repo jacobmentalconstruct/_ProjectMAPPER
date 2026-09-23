@@ -1,1 +1,2 @@
-tk>=0.1.0
+# ProjectMapper has no third-party runtime dependencies.
+# It requires Python 3.10+ with Tkinter (bundled with the python.org installers).

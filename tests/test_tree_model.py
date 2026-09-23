@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from src.core.tree_model import LogicalTree
+from projectmapper.core.tree_model import LogicalTree
 
 
 class LogicalTreeTests(unittest.TestCase):

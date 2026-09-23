@@ -412,14 +412,15 @@ class ProjectMapperApp:
     tree_rows = _model_property("rows")
     scan_skipped_paths = _model_property("skipped")
 
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: tk.Tk, initial_root=None):
         self.root = root
+        self.initial_root = Path(initial_root or Path.cwd()).resolve()
         self.theme = THEME
         self.gui_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.widgets = {}
         self.current_progress_popup = None
-        self.controller, self.approve_action = create_application(DEFAULT_ROOT_DIR)
+        self.controller, self.approve_action = create_application(self.initial_root)
         self.controller.scan_fn = lambda root, policy, stop: scan_project_tree(root, policy, stop)
         self.project_state = self.controller.state
         self.action_operations = set()
@@ -566,7 +567,7 @@ class ProjectMapperApp:
         top_frame.pack(fill=tk.X, padx=10, pady=8)
 
         tk.Label(top_frame, text="Project Root:", bg=THEME["panel_bg"], fg=THEME["text"]).pack(side=tk.LEFT)
-        self.widgets["selected_root_var"] = tk.StringVar(value=str(DEFAULT_ROOT_DIR))
+        self.widgets["selected_root_var"] = tk.StringVar(value=str(self.initial_root))
         self.widgets["project_path_entry"] = tk.Entry(
             top_frame,
             textvariable=self.widgets["selected_root_var"],
@@ -1211,22 +1212,23 @@ class ProjectMapperApp:
 # === [SECTION: THREADING_AND_LOGGING] END ===
 
 
-# === [SECTION: CLI] BEGIN ===
-# minimal CLI:
-#   optional compile snapshot from path later
-#   simple launch GUI for now
-# === [SECTION: CLI] END ===
-
-
 # === [SECTION: ENTRYPOINT] BEGIN ===
-def run_gui():
+def run_gui(initial_root=None):
     root = tk.Tk()
-    ProjectMapperApp(root)
+    ProjectMapperApp(root, initial_root)
     root.mainloop()
 
 
-def main():
-    run_gui()
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(prog="projectmapper", description=APP_NAME)
+    parser.add_argument("root", nargs="?", type=Path,
+                        help="project folder to open (default: the current directory)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {APP_VERSION}")
+    args = parser.parse_args(argv)
+    if args.root is not None and not args.root.is_dir():
+        parser.error(f"not a folder: {args.root}")
+    run_gui(args.root)
 
 
 if __name__ == "__main__":

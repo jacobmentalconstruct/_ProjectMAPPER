@@ -6,7 +6,7 @@ import tkinter as tk
 import unittest
 from unittest.mock import patch
 
-from src.app import ProjectMapperApp, scan_project_tree
+from projectmapper.app import ProjectMapperApp, scan_project_tree
 
 
 class EditorTests(unittest.TestCase):
@@ -53,10 +53,10 @@ class EditorTests(unittest.TestCase):
         self.assertIn("Save failed", self.window.status.get())
 
     def test_replace_all_requires_confirmation(self):
-        with patch("src.tools.text_editor.messagebox.askyesno", return_value=False):
+        with patch("projectmapper.tools.text_editor.messagebox.askyesno", return_value=False):
             self.window.replace_all("hello", "goodbye")
         self.assertIn("hello", self.window.content())
-        with patch("src.tools.text_editor.messagebox.askyesno", return_value=True):
+        with patch("projectmapper.tools.text_editor.messagebox.askyesno", return_value=True):
             self.window.replace_all("hello", "goodbye")
         self.assertEqual(self.window.content(), "print('goodbye')\r\n")
         self.assertTrue(self.window.dirty)

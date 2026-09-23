@@ -2,13 +2,22 @@
 from pathlib import Path
 
 APP_NAME = "ProjectMapper Snapshot Compiler"
-APP_VERSION = "0.3.0-snapshot-compiler"
+APP_VERSION = "0.4.0.dev0"  # Single version source; pyproject.toml reads it.
 SNAPSHOT_SCHEMA_VERSION = "0.1"
 SNAPSHOT_COMPILER_ID = "projectmapper.snapshot_compiler"
 
 APP_DIR = Path(__file__).resolve().parents[1]
-SOURCE_ROOT = APP_DIR.parent
-DEFAULT_ROOT_DIR = APP_DIR
+
+
+def _source_checkout_root():
+    """Repository root for a src-layout checkout; None for an installed package."""
+    candidate = APP_DIR.parents[1]
+    if (candidate / "pyproject.toml").is_file() and candidate / "src" / APP_DIR.name == APP_DIR:
+        return candidate
+    return None
+
+
+SOURCE_ROOT = _source_checkout_root()
 OUTPUT_ROOT_NAME = "_projectmapper"
 VENDOR_EXPORT_ROOT_NAME = "vendor_exports"
 MAX_TEXT_FILE_SIZE_BYTES = 1_000_000
@@ -51,6 +60,7 @@ VENDOR_EXPORT_INCLUDE_FILES = (
     ".gitignore",
     "LICENSE.md",
     "README.md",
+    "pyproject.toml",
     "requirements.txt",
     "run.bat",
     "setup_env.bat",
@@ -75,5 +85,5 @@ VENDOR_EXPORT_EXCLUDED_PREFIXES = (
 
 VENDOR_EXPORT_EXCLUDED_SUFFIXES = (
     ".pyc", ".pyo", ".pyd", ".log", ".tmp", ".sqlite", ".sqlite3",
-    ".db", ".db3", ".bak",
+    ".db", ".db3", ".bak", ".egg-info",
 )

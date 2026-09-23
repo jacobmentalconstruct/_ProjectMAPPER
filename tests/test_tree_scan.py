@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.support import temporary_directory
-from src.core.exclusions import ExclusionPolicy
-from src.core.tree import scan_project_tree
+from projectmapper.core.exclusions import ExclusionPolicy
+from projectmapper.core.tree import scan_project_tree
 
 
 class TreeScanTests(unittest.TestCase):
@@ -44,7 +44,7 @@ class TreeScanTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
 
     def test_inaccessible_directory_is_recorded(self):
-        with patch("src.core.tree.os.scandir", side_effect=PermissionError("denied")):
+        with patch("projectmapper.core.tree.os.scandir", side_effect=PermissionError("denied")):
             rows, skipped = scan_project_tree(self.folder, ExclusionPolicy())
         self.assertEqual(len(rows), 1)
         self.assertEqual(skipped[0]["skip_reason"], "permission_denied")
@@ -53,7 +53,7 @@ class TreeScanTests(unittest.TestCase):
         entries = [SimpleNamespace(name="link", stat=lambda **kw: SimpleNamespace(st_mode=stat.S_IFLNK)),
                    SimpleNamespace(name="junction", stat=lambda **kw: SimpleNamespace(
                        st_mode=stat.S_IFDIR, st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT))]
-        with patch("src.core.tree.os.scandir") as scandir:
+        with patch("projectmapper.core.tree.os.scandir") as scandir:
             scandir.return_value.__enter__.return_value = iter(entries)
             rows, skipped = scan_project_tree(self.folder, ExclusionPolicy())
         self.assertEqual(len(rows), 1)

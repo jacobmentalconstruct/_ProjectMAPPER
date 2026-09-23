@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "projectmapper"
+dynamic = ["version"]
+description = "Map a project folder, compile portable SQLite snapshots, and apply reviewed text patches."
+readme = "README.md"
+license = { file = "LICENSE.md" }
+requires-python = ">=3.10"
+dependencies = []
+classifiers = [
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.gui-scripts]
+projectmapper = "projectmapper.app:main"
+
+[project.urls]
+Repository = "https://github.com/jacobmentalconstruct/_ProjectMAPPER"
+
+[tool.setuptools.dynamic]
+version = { attr = "projectmapper.core.config.APP_VERSION" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["projectmapper*"]

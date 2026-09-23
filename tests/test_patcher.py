@@ -1,6 +1,7 @@
 from tests.support import temporary_directory, tk_root
 import gc
 import json
+import os
 from pathlib import Path
 import tempfile
 import subprocess
@@ -9,8 +10,8 @@ import tkinter as tk
 import unittest
 from unittest.mock import patch
 
-from src.app import ProjectMapperApp
-from src.tools.patcher import PatchError, PatchSession, apply_patch_text
+from projectmapper.app import ProjectMapperApp
+from projectmapper.tools.patcher import PatchError, PatchSession, apply_patch_text
 
 
 def hunk(search, replacement, **extra):
@@ -100,7 +101,7 @@ class SessionTests(unittest.TestCase):
 
     def test_failed_replace_preserves_target_and_cleans_scratch(self):
         original = self.path.read_bytes()
-        with patch("src.tools.patcher.os.replace", side_effect=PermissionError("locked")):
+        with patch("projectmapper.tools.patcher.os.replace", side_effect=PermissionError("locked")):
             with self.assertRaises(PermissionError):
                 PatchSession(self.path).save("b")
         self.assertEqual(self.path.read_bytes(), original)
@@ -118,19 +119,21 @@ class SessionTests(unittest.TestCase):
             PatchSession(self.path.parent / ".parts" / "reference.py")
 
     def test_vendor_export_runs_without_reference_folder(self):
-        from src.app import create_vendor_export
+        from projectmapper.app import create_vendor_export
         result = create_vendor_export(export_root=self.path.parent / "exports", make_zip=False)
         exported = Path(result["export_dir"])
         self.assertFalse((exported / ".parts").exists())
-        self.assertTrue((exported / "src" / "tools" / "patcher.py").is_file())
-        self.assertTrue((exported / "src" / "tools" / "patcher_ui.py").is_file())
-        self.assertTrue((exported / "src" / "tools" / "text_toucher.py").is_file())
-        self.assertTrue((exported / "src" / "tools" / "text_editor.py").is_file())
+        package = exported / "src" / "projectmapper"
+        for name in ("patcher.py", "patcher_ui.py", "text_toucher.py", "text_editor.py"):
+            self.assertTrue((package / "tools" / name).is_file(), name)
+        self.assertTrue((exported / "pyproject.toml").is_file())
+        self.assertFalse((exported / ".dev-log").exists())
         check = subprocess.run([
             sys.executable, "-B", "-c",
-            "import runpy, sys; runpy.run_module('src.app', run_name='smoke'); "
-            "sys.path.insert(0, 'src'); runpy.run_path('src/app.py', run_name='smoke')",
-        ], cwd=exported, capture_output=True, text=True, timeout=20)
+            "import runpy, sys; runpy.run_module('projectmapper.app', run_name='smoke'); "
+            "sys.path.insert(0, 'src/projectmapper'); "
+            "runpy.run_path('src/projectmapper/app.py', run_name='smoke')",
+        ], cwd=exported, env={**os.environ, "PYTHONPATH": str(exported / "src")}, capture_output=True, text=True, timeout=20)
         self.assertEqual(check.returncode, 0, check.stderr)
 
 
@@ -234,13 +237,13 @@ class PatcherUITests(unittest.TestCase):
 
     def test_file_menu_does_not_change_capture_selection(self):
         from types import SimpleNamespace
-        from src.app import scan_project_tree
+        from projectmapper.app import scan_project_tree
         rows, _ = scan_project_tree(self.project, self.app.exclusion_policy)
         self.app.populate_tree(rows)
         tree = self.app.widgets["folder_tree"]
         tree.focus(str(self.path))
         before = dict(self.app.folder_item_states)
-        with patch("src.app.tk.Menu") as menu:
+        with patch("projectmapper.app.tk.Menu") as menu:
             self.app.on_file_context_menu(SimpleNamespace(keysym="F10"))
             self.assertEqual(menu.return_value.add_command.call_count, 5)
         self.assertEqual(self.app.folder_item_states, before)
@@ -256,7 +259,7 @@ class PatcherUITests(unittest.TestCase):
 
     def test_menu_remains_available_after_posting(self):
         from types import SimpleNamespace
-        from src.app import scan_project_tree
+        from projectmapper.app import scan_project_tree
         rows, _ = scan_project_tree(self.project, self.app.exclusion_policy)
         self.app.populate_tree(rows)
         self.app.widgets["folder_tree"].focus(str(self.path))
@@ -266,7 +269,7 @@ class PatcherUITests(unittest.TestCase):
         self.assertEqual(self.app.file_context_menu.entrycget(0, "label"), "Tokenizing Patcher…")
 
     def test_mouse_release_posts_file_menu_and_opens_clicked_file(self):
-        from src.app import scan_project_tree
+        from projectmapper.app import scan_project_tree
         rows, _ = scan_project_tree(self.project, self.app.exclusion_policy)
         self.app.populate_tree(rows)
         self.root.deiconify()
@@ -289,7 +292,7 @@ class PatcherUITests(unittest.TestCase):
 
     def test_folder_right_click_explains_file_only_operation(self):
         from types import SimpleNamespace
-        from src.app import scan_project_tree
+        from projectmapper.app import scan_project_tree
         rows, _ = scan_project_tree(self.project, self.app.exclusion_policy)
         self.app.populate_tree(rows)
         self.app.widgets["folder_tree"].focus(str(self.project))

@@ -14,10 +14,11 @@ def collect_diagnostics(app=None):
     def check(name, ok, detail):
         checks.append({"name": name, "ok": bool(ok), "detail": str(detail)})
 
-    modules = (("src.core.snapshots", "core.snapshots"), ("src.tools.patcher", "tools.patcher"),
-               ("src.tools.project_patcher", "tools.project_patcher"),
-               ("src.core.files", "core.files"),
-               ("src.application.controller", "application.controller"))
+    modules = (("projectmapper.core.snapshots", "core.snapshots"),
+               ("projectmapper.tools.patcher", "tools.patcher"),
+               ("projectmapper.tools.project_patcher", "tools.project_patcher"),
+               ("projectmapper.core.files", "core.files"),
+               ("projectmapper.application.controller", "application.controller"))
     for candidates in modules:
         try:
             loaded = next((name for name in candidates if _try_import(name)), None)

@@ -8,9 +8,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.support import temporary_directory, tk_root
-from src.app import ProjectMapperApp
-from src.core.exclusions import ExclusionPolicy
-from src.core.tree import scan_project_tree
+from projectmapper.app import ProjectMapperApp
+from projectmapper.core.exclusions import ExclusionPolicy
+from projectmapper.core.tree import scan_project_tree
 
 
 class TreeBenchmark(unittest.TestCase):

@@ -16,5 +16,5 @@ if exist requirements.txt (
 
 echo.
 echo [SUCCESS] Environment ready!
-echo You can now open this folder in VS Code or launch via scripts_menu.py
+echo Launch ProjectMapper with run.bat
 pause

@@ -44,7 +44,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 
 | Area | Current state | Required difference |
 | --- | --- | --- |
-| Structure | Tk presentation lives in `src/app.py` and `src/tree_view.py`; application services, core machinery and tools have separate modules. | Preserve these boundaries in later work. |
+| Structure | Package `src/projectmapper/` (moved 2026-09-23, Phase 4). Tk presentation lives in `app.py` and `tree_view.py`; application services, core machinery and tools have separate modules. | Preserve these boundaries in later work. |
 | Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Add later backup/history operations through the same seam. CLI/MCP adapters follow in Phase 9. |
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
@@ -153,7 +153,7 @@ Services -> state transitions + operation events -> subscribers
 ### Dependency rules
 
 - Core data types, engines, services, and the dispatcher must not import Tkinter,
-  UI modules, or `src.app`.
+  UI modules, or `projectmapper.app`.
 - Adapters collect inputs, present results, and translate events into interface updates.
 - Services own domain behavior; the dispatcher handles cross-cutting coordination.
 - Engines remain directly unit-testable. Public interactive entry points use the
@@ -167,6 +167,7 @@ Services -> state transitions + operation events -> subscribers
 ### Proposed module boundaries
 
 Exact filenames may be adjusted during extraction when doing so reduces complexity.
+Since Phase 4 the `src/` paths below are under the package directory `src/projectmapper/`.
 
 | Location | Responsibility |
 | --- | --- |
@@ -768,5 +769,6 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-09-23 | Insert Phase 4, release readiness (hygiene, packaging, snapshot byte-binding, v0.4.0), ahead of patch review; renumber former Phases 4–7 to 5–8. Tag v1.0.0 at Phase 8. | Owner decision. Pre-2026-09-23 journals keep the old numbering. |
 | 2026-09-23 | Bring CLI and local stdio MCP adapters into this plan as Phase 9, after v1.0.0 acceptance. Each process hosts its own Controller; the trusted approval resolver is never exposed to agents. | Owner decision; supersedes the transport deferral. |
 | 2026-09-23 | Record the working-tree removal of the disposable `.parts/_MonacoVIEWER.py` in Phase 4. `.parts/` protections remain. | Owner decision. |
-| 2026-09-23 | Proposed: move the package to `src/projectmapper/` so an installed distribution does not publish a top-level `src` package. | To be confirmed or revised with evidence at Phase 4 entry. |
+| 2026-09-23 | Move the package to `src/projectmapper/` so an installed distribution does not publish a top-level `src` package. | Confirmed and implemented in Tranche 4 step 4.2; see `.dev-log/04-release-readiness.md`. |
 | 2026-09-23 | Outward-facing publication (push, GitHub release, package index) needs explicit owner approval each time. Local tags are part of the gates. | Required constraint. |
+| 2026-09-23 | Startup root is the optional command-line folder argument, otherwise the current working directory. It no longer defaults to the application's own source folder, which would be `site-packages` for an installed copy. Vendor export is available only from a source checkout. | Implemented in Tranche 4 step 4.2. |

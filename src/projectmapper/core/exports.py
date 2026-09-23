@@ -67,7 +67,7 @@ def build_fresh_start_install_markdown(export_name: str) -> str:
         "",
         "## What Is Included",
         "",
-        "- App source under `src/`",
+        "- App source under `src/projectmapper/`",
         "- Runtime scripts: `setup_env.bat` and `run.bat`",
         "- README, license, requirements, and app assets",
         "- A vendor export manifest",
@@ -95,6 +95,8 @@ def build_fresh_start_install_markdown(export_name: str) -> str:
 
 
 def create_vendor_export(source_root: Path | None = None, export_root: Path | None = None, make_zip: bool = True, stop_event=None, log_callback=None) -> dict:
+    if source_root is None and SOURCE_ROOT is None:
+        raise RuntimeError("Vendor export copies a source checkout; this ProjectMapper is an installed package.")
     source_root = (source_root or SOURCE_ROOT).resolve()
     export_root = ensure_dir((export_root or source_root / VENDOR_EXPORT_ROOT_NAME).resolve())
     export_name = safe_export_name(f"ProjectMapper-v{APP_VERSION}-blank-slate-{now_stamp()}")

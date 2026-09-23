@@ -122,8 +122,8 @@ atomic sibling backup immediately before an in-place save.
 Generated `.bak` files follow the built-in exclusion rule so they do not silently
 become part of a later snapshot; the rule can be allowed through the exclusions UI.
 
-The patcher implementation lives in `src/tools/patcher.py` and
-`src/tools/patcher_ui.py`.
+The patcher implementation lives in `src/projectmapper/tools/patcher.py` and
+`src/projectmapper/tools/patcher_ui.py`.
 The disposable `.parts/` folder is reference material only: it is never imported,
 is not included in vendor exports, and is protected from patcher writes. It can
 be removed without affecting the application.
@@ -149,7 +149,7 @@ The form clears after success so another file can be created in the same folder.
 Existing files are never overwritten, and failed creation keeps the form content.
 The `.parts/` reference folder is protected from creation as well as patching.
 
-The implementation is in `src/tools/text_toucher.py`; it has no dependency on the
+The implementation is in `src/projectmapper/tools/text_toucher.py`; it has no dependency on the
 reference script or `.parts/` folder.
 
 ## Deleting Files
@@ -171,7 +171,7 @@ button. Saves preserve the existing UTF-8/BOM and newline protections and refres
 the mapper snapshot state. Unsaved changes are confirmed before opening another
 file or closing the window.
 
-The editor is implemented in `src/tools/text_editor.py`. The integration keeps the
+The editor is implemented in `src/projectmapper/tools/text_editor.py`. The integration keeps the
 reference editor's useful workflow while avoiding its external Qt/pywebview and
 HTML asset dependencies.
 
@@ -223,7 +223,7 @@ SQLite availability, and optional `.parts/` isolation, then records the result i
 log and a small report dialog.
 
 Shared atomic writes, diff accounting, and tool-window styling live under
-`src/core/` and `src/tools/ui_base.py`; the disposable `.parts/` folder is never a
+`src/projectmapper/core/` and `src/projectmapper/tools/ui_base.py`; the disposable `.parts/` folder is never a
 runtime dependency. Directory sizes are accumulated during the tree walk so nested
 folders are not scanned repeatedly.
 
@@ -309,21 +309,19 @@ When enabled, selected binary-like files can be stored in the SQLite snapshot as
 
 ## Running
 
-From the project root:
+On Windows, run `setup_env.bat` once, then `run.bat` (optionally followed by a project
+folder). From an environment where the package is installed (`pip install .`):
 
 ```bash
-python src/app.py
+projectmapper [PROJECT_FOLDER]
+python -m projectmapper [PROJECT_FOLDER]
 ```
 
-Or, depending on the local environment:
-
-```bash
-py src/app.py
-```
+The mapper opens `PROJECT_FOLDER` when one is given, otherwise the current directory.
 
 ## Notes
 
-Tk presentation lives in `src/app.py` and `src/tree_view.py`. Shared actions and
-coordination live in `src/application/`, filesystem and snapshot services in
-`src/core/`, and transformation engines and their windows in `src/tools/`.
+Tk presentation lives in `src/projectmapper/app.py` and `src/projectmapper/tree_view.py`. Shared actions and
+coordination live in `src/projectmapper/application/`, filesystem and snapshot services in
+`src/projectmapper/core/`, and transformation engines and their windows in `src/projectmapper/tools/`.
 Current architecture and implementation status are indexed in `docs/README.md`.

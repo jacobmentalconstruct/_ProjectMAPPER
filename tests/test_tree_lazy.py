@@ -7,9 +7,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.support import tk_root, temporary_directory
-from src.app import ProjectMapperApp
-from src.core.snapshots import compile_snapshot
-from src.core.tree import scan_project_tree
+from projectmapper.app import ProjectMapperApp
+from projectmapper.core.snapshots import compile_snapshot
+from projectmapper.core.tree import scan_project_tree
 
 
 class LazyProjectionTests(unittest.TestCase):

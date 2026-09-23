@@ -16,6 +16,7 @@ tests/tmp*/
 # Production
 build
 dist
+*.egg-info/
 vendor_exports/*
 !vendor_exports/README.md
 

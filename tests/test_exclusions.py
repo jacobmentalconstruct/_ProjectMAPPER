@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.app import ExclusionPolicy, ProjectMapperApp, S_CHECKED, S_UNCHECKED, compile_snapshot, scan_project_tree
+from projectmapper.app import ExclusionPolicy, ProjectMapperApp, S_CHECKED, S_UNCHECKED, compile_snapshot, scan_project_tree
 
 
 class PolicyTests(unittest.TestCase):
@@ -198,7 +198,7 @@ class ManagerTests(unittest.TestCase):
             release.wait(3)
             return scan_project_tree(*args, **kwargs)
 
-        with patch("src.app.scan_project_tree", side_effect=slow_scan):
+        with patch("projectmapper.app.scan_project_tree", side_effect=slow_scan):
             self.app.request_rescan_tree_silent()
             self.root.after_cancel(self.app.scan_after_id)
             self.app._start_pending_scan()

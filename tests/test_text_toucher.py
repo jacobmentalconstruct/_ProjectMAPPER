@@ -8,9 +8,9 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from src.app import ProjectMapperApp, scan_project_tree
-from src.tools.patcher import PatchError
-from src.tools.text_toucher import create_text_file, file_name
+from projectmapper.app import ProjectMapperApp, scan_project_tree
+from projectmapper.tools.patcher import PatchError
+from projectmapper.tools.text_toucher import create_text_file, file_name
 
 
 class FileCreationTests(unittest.TestCase):
@@ -163,7 +163,7 @@ class CreatorUITests(unittest.TestCase):
             open_creator.assert_called_once_with(self.folder)
 
     def test_choose_parts_is_refused(self):
-        with patch("src.tools.text_toucher.filedialog.askdirectory", return_value=str(self.folder / ".parts")):
+        with patch("projectmapper.tools.text_toucher.filedialog.askdirectory", return_value=str(self.folder / ".parts")):
             self.window.choose_folder()
         self.assertEqual(self.window.folder, self.folder)
         self.assertIn("read-only", self.window.status.get())

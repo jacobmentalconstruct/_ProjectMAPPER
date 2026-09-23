@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from src.app import ProjectMapperApp
-from src.core.state import ProjectState
-from src.application.controller import create_application
+from projectmapper.app import ProjectMapperApp
+from projectmapper.core.state import ProjectState
+from projectmapper.application.controller import create_application
 
 
 class FileDeletionTests(unittest.TestCase):
@@ -27,8 +27,8 @@ class FileDeletionTests(unittest.TestCase):
         self.app.latest_snapshot_path = self.folder / "snapshot.sqlite3"
         self.app.log_message = Mock()
         self.app.request_rescan_tree_silent = Mock()
-        self.confirm = patch("src.app.messagebox.askyesno").start()
-        self.error = patch("src.app.messagebox.showerror").start()
+        self.confirm = patch("projectmapper.app.messagebox.askyesno").start()
+        self.error = patch("projectmapper.app.messagebox.showerror").start()
         self.addCleanup(patch.stopall)
 
     def test_declining_or_closing_does_not_delete(self):

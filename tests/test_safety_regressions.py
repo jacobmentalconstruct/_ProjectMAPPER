@@ -5,13 +5,13 @@ import unittest
 from unittest.mock import patch
 
 from tests.support import temporary_directory, tk_root
-from src.core.state import ProjectState
-from src.core.diagnostics import collect_diagnostics
-from src.tools.patcher import PatchError
-from src.tools.project_patcher import ProjectPatchSession
-from src.core.writes import stage_bytes
-from src.core.writes import create_backup
-from src.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot, scan_project_tree
+from projectmapper.core.state import ProjectState
+from projectmapper.core.diagnostics import collect_diagnostics
+from projectmapper.tools.patcher import PatchError
+from projectmapper.tools.project_patcher import ProjectPatchSession
+from projectmapper.core.writes import stage_bytes
+from projectmapper.core.writes import create_backup
+from projectmapper.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot, scan_project_tree
 
 
 def manifest(*names):
@@ -37,7 +37,7 @@ class WriteSafetyTests(unittest.TestCase):
             scratch = stage_bytes(destination, data, **kwargs)
             (self.folder / "a.txt").write_bytes(b"external")
             return scratch
-        with patch("src.tools.project_patcher.stage_bytes", side_effect=stage):
+        with patch("projectmapper.tools.project_patcher.stage_bytes", side_effect=stage):
             with self.assertRaises(PatchError):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"external")
@@ -53,7 +53,7 @@ class WriteSafetyTests(unittest.TestCase):
                 (self.folder / "b.txt").write_bytes(b"external")
                 raise PermissionError("injected replacement failure")
             return replace(source, destination)
-        with patch("src.tools.project_patcher.os.replace", side_effect=failing_replace):
+        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing_replace):
             with self.assertRaises(PatchError):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"old\r\n")
@@ -68,7 +68,7 @@ class WriteSafetyTests(unittest.TestCase):
                 (self.folder / "a.txt").write_bytes(b"external after first replacement")
                 raise PermissionError("injected failure")
             return replace(source, destination)
-        with patch("src.tools.project_patcher.os.replace", side_effect=failing_replace):
+        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing_replace):
             with self.assertRaisesRegex(PatchError, "[Rr]ecovery"):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"external after first replacement")
@@ -181,7 +181,7 @@ class UISafetyTests(unittest.TestCase):
     def test_programmatic_manifest_edit_cannot_apply_old_preview(self):
         window = self.project_window()
         window.manifest_box.insert("end", "invalid")
-        with patch("src.tools.project_patcher_ui.messagebox.askyesno", return_value=True) as approve:
+        with patch("projectmapper.tools.project_patcher_ui.messagebox.askyesno", return_value=True) as approve:
             window.apply()
         self.assertEqual(self.path.read_bytes(), b"old\r\n")
         approve.assert_not_called()
@@ -189,7 +189,7 @@ class UISafetyTests(unittest.TestCase):
     def test_displayed_plan_rejects_external_change_without_revalidation(self):
         window = self.project_window()
         self.path.write_bytes(b"old\r\nexternal\r\n")
-        with patch("src.tools.project_patcher_ui.messagebox.askyesno", return_value=True):
+        with patch("projectmapper.tools.project_patcher_ui.messagebox.askyesno", return_value=True):
             window.apply()
         self.assertEqual(self.path.read_bytes(), b"old\r\nexternal\r\n")
         self.assertIn("failed", window.status.get().lower())
@@ -200,7 +200,7 @@ class UISafetyTests(unittest.TestCase):
         first, second = [], []
         self.app.controller.dispatcher.subscribe(first.append)
         self.app.controller.dispatcher.subscribe(second.append)
-        with patch("src.tools.project_patcher_ui.messagebox.askyesno", return_value=True):
+        with patch("projectmapper.tools.project_patcher_ui.messagebox.askyesno", return_value=True):
             window.apply()
         self.assertEqual(first, second)
         self.assertTrue(any(e.action == "project_patch.apply" and e.type == "succeeded" for e in first))
@@ -212,7 +212,7 @@ class UISafetyTests(unittest.TestCase):
         window = self.project_window()
         snapshot = self.folder / "previous.sqlite3"
         self.app.project_state.mark_snapshot(snapshot)
-        with patch("src.tools.project_patcher_ui.messagebox.askyesno", return_value=False):
+        with patch("projectmapper.tools.project_patcher_ui.messagebox.askyesno", return_value=False):
             window.apply()
         self.assertEqual(self.path.read_bytes(), b"old\r\n")
         self.assertEqual(self.app.project_state.snapshot_path, snapshot)
@@ -223,7 +223,7 @@ class UISafetyTests(unittest.TestCase):
         def approve(*args, **kwargs):
             window.manifest_box.insert("end", "invalid")
             return True
-        with patch("src.tools.project_patcher_ui.messagebox.askyesno", side_effect=approve):
+        with patch("projectmapper.tools.project_patcher_ui.messagebox.askyesno", side_effect=approve):
             window.apply()
         self.assertEqual(self.path.read_bytes(), b"old\r\n")
 
@@ -261,7 +261,7 @@ class UISafetyTests(unittest.TestCase):
         args = (self.folder, output, self.app.tree_rows, self.app.folder_item_states, self.app.exclusion_policy, [])
         snapshot = compile_snapshot(*args)
         before = snapshot.read_bytes()
-        with patch("src.app.os.replace", side_effect=PermissionError("injected")):
+        with patch("projectmapper.app.os.replace", side_effect=PermissionError("injected")):
             with self.assertRaises(PermissionError):
                 compile_snapshot(*args)
         self.assertEqual(snapshot.read_bytes(), before)

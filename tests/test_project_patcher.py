@@ -5,9 +5,9 @@ import unittest
 from unittest.mock import patch
 from tests.support import temporary_directory, tk_root
 
-from src.tools.patcher import PatchError
-from src.tools.project_patcher import ProjectPatchSession, project_patch_diff
-from src.app import ProjectMapperApp
+from projectmapper.tools.patcher import PatchError
+from projectmapper.tools.project_patcher import ProjectPatchSession, project_patch_diff
+from projectmapper.app import ProjectMapperApp
 
 
 class ProjectPatchTests(unittest.TestCase):
