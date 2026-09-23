@@ -388,6 +388,9 @@ class Controller:
             path = snapshots.compile_snapshot(self.state.root, self.state.root / OUTPUT_ROOT_NAME,
                 self.rows, self.selection, self.policy, self.skipped, self.include_binary,
                 context.cancel_event, lambda message, level="INFO": context.progress(message=message, level=level))
+        except snapshots.SnapshotSourceChanged as exc:
+            context.check_cancelled()
+            raise ActionError("source_changed", str(exc)) from exc
         except RuntimeError:
             context.check_cancelled()
             raise

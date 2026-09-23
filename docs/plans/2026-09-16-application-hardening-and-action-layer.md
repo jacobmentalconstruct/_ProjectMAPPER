@@ -52,7 +52,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
 | Testing | Phase 3 acceptance passed 124 regressions and two explicit benchmarks; re-verified 2026-09-23 before commit. pytest is not installed in the project `.venv`. | Declare development dependencies; extend coverage for Phases 4–7 and 9; whole-application acceptance in Phase 8. |
-| Snapshot freshness | The capture signature hashes every file in one pass; captured contents are read in a second pass. A file changed A→B between the passes is stored as B under A's signature and is reported fresh again if it returns to A. | Bind captured bytes to the published signature; refuse publication on mismatch. |
+| Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | One pre-revival commit plus Tranche 3. `requirements.txt` names the unrelated PyPI `tk` package; Node `package-lock.json` residue; tracked ignored `manual-fixture/x.txt`; tracked `.parts/` file deleted in the working tree; `setup_env.bat` names a nonexistent `scripts_menu.py`. The top-level package is named `src`; launch is Windows `.bat` or `python -m src.app`. No pyproject, changelog or tagged release. | Clean repository, standard installable package and entry point, documented install, changelog, versioned releases. |
 | Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
 
@@ -497,6 +497,8 @@ section references remain valid.
 
 ### Snapshot byte-binding (ABA)
 
+- Correction (4.3): a compile already re-ran the signature after capture, so a
+  persistent A→B change was refused. The gap was A→B→A across the capture read.
 - The capture read of each captured file computes its digest from the exact bytes
   stored (text or blob) and compares it with that file's digest from the signature
   pass. On mismatch, refuse publication with `source_changed`. Discard the scratch

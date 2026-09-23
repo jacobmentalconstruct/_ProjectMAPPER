@@ -130,14 +130,5 @@ def safe_read_text(path: Path, max_bytes: int = MAX_TEXT_FILE_SIZE_BYTES) -> tup
         return None, f"read_failed: {exc}"
 
 
-def safe_read_blob(path: Path) -> tuple[bytes | None, str | None]:
-    try:
-        return path.read_bytes(), None
-    except PermissionError:
-        return None, "permission_denied"
-    except Exception as exc:
-        return None, f"blob_read_failed: {exc}"
-
-
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()

@@ -9,12 +9,20 @@ import gc
 import json
 import shutil
 import hashlib
+import io
 from pathlib import Path
 from datetime import datetime
 from .config import *
 from .helpers import *
 from .exclusions import ExclusionPolicy
 from .tree import scan_project_tree
+
+
+NUL_BYTE = bytes(1)
+
+
+class SnapshotSourceChanged(RuntimeError):
+    """Captured sources no longer match the signature; nothing was published."""
 
 def snapshot_output_filename(root: Path, suffix: str) -> str:
     return f"{root.name}_{suffix}"
@@ -448,8 +456,14 @@ def build_filedump_markdown(root: Path, snapshot_name: str, created_at: str, cap
     return "\n".join(lines)
 
 def capture_signature(root, policy, selection, include_binary=False, stop_event=None):
+    return _capture_inventory(root, policy, selection, include_binary, stop_event)[0]
+
+
+def _capture_inventory(root, policy, selection, include_binary=False, stop_event=None):
+    """Return the capture signature and each file's digest, keyed by relative path."""
     rows, skipped = scan_project_tree(root, policy, stop_event)
     inventory = []
+    digests = {}
     for row in rows:
         if stop_event is not None and stop_event.is_set():
             raise RuntimeError("Capture verification cancelled.")
@@ -462,8 +476,40 @@ def capture_signature(root, policy, selection, include_binary=False, stop_event=
                         raise RuntimeError("Capture verification cancelled.")
                     digest.update(chunk)
             value.append(digest.hexdigest())
+            digests[row["relative_path"]] = value[-1]
         inventory.append(value)
-    return hashlib.sha256(json.dumps([inventory, policy.collect_rules(), bool(include_binary), skipped], sort_keys=True).encode()).hexdigest()
+    signature = hashlib.sha256(json.dumps([inventory, policy.collect_rules(), bool(include_binary), skipped], sort_keys=True).encode()).hexdigest()
+    return signature, digests
+
+
+def read_captured_file(path: Path, include_binary: bool):
+    """Read a selected file once; stored text or blob and its digest share the same bytes.
+
+    Returns (text, blob, digest, skip_reason, blob_error). Skip reasons and blob errors
+    match the historical separate text and blob readers.
+    """
+    size = safe_stat_size(path)
+    if size is None:
+        return None, None, None, "stat_failed", None
+    if size > MAX_TEXT_FILE_SIZE_BYTES:
+        return None, None, None, "over_size_limit", None
+    forced_binary = "".join(path.suffixes).lower() in FORCE_BINARY_EXTENSIONS_FOR_DUMP
+    if forced_binary and not include_binary:
+        return None, None, None, "forced_binary_extension", None
+    try:
+        data = path.read_bytes()
+    except Exception as exc:
+        error = "permission_denied" if isinstance(exc, PermissionError) else None
+        if forced_binary:
+            return None, None, None, "forced_binary_extension", error or f"blob_read_failed: {exc}"
+        return None, None, None, error or f"read_failed: {exc}", None
+    digest = sha256_bytes(data)
+    if forced_binary or NUL_BYTE in data[:1024]:
+        reason = "forced_binary_extension" if forced_binary else "binary_detected"
+        return None, data if include_binary else None, digest, reason, None
+    # Same decoding as Path.read_text: universal newlines, undecodable bytes ignored.
+    text = io.TextIOWrapper(io.BytesIO(data), encoding=TEXT_ENCODING, errors="ignore").read()
+    return text, None, digest, None, None
 
 
 def snapshot_matches(path, root, policy, selection, include_binary=False):
@@ -489,7 +535,7 @@ def compile_snapshot(
     output_dir = ensure_dir(output_dir)
     snapshot_path = output_dir / f"{root.name}_{SNAPSHOT_DB_SUFFIX}"
     build_path = output_dir / f".{root.name}-{uuid4().hex}.building"
-    signature = capture_signature(root, policy, folder_item_states, include_binary_blobs, stop_event)
+    signature, source_digests = _capture_inventory(root, policy, folder_item_states, include_binary_blobs, stop_event)
 
     # Build into a scratch DB first, then swap it over the live one, so a locked
     # or half-written snapshot can never be mistaken for a fresh one.
@@ -515,6 +561,7 @@ def compile_snapshot(
     skipped_path_count = 0
     error_count = 0
     cancelled = False
+    changed_path = None
     captured_files_for_projection = []
 
     def emit(message: str, level: str = "INFO"):
@@ -593,12 +640,16 @@ def compile_snapshot(
                 skipped_path_count += 1
                 continue
 
-            content, read_error = safe_read_text(row["path"], max_bytes=MAX_TEXT_FILE_SIZE_BYTES)
+            content, blob_content, digest, read_error, blob_error = read_captured_file(row["path"], include_binary_blobs)
+            stored = content is not None or blob_content is not None
+            if stored and digest != source_digests.get(row["relative_path"]):
+                # Bytes differ from the signature pass (A -> B, even if later back to A).
+                changed_path = row["relative_path"]
+                break
             if read_error:
                 skip_reason = read_error.split(":", 1)[0]
                 blob_preserved = False
                 if include_binary_blobs and skip_reason in {"forced_binary_extension", "binary_detected"}:
-                    blob_content, blob_error = safe_read_blob(row["path"])
                     if blob_content is not None:
                         insert_project_blob(
                             conn,
@@ -606,7 +657,7 @@ def compile_snapshot(
                             row["relative_path"],
                             row.get("parent_relative_path"),
                             int(row.get("size_bytes") or len(blob_content)),
-                            sha256_bytes(blob_content),
+                            digest,
                             blob_content,
                         )
                         captured_blob_count += 1
@@ -756,9 +807,12 @@ def compile_snapshot(
     if cancelled or (stop_event is not None and stop_event.is_set()):
         remove_file_with_retry(build_path)
         raise RuntimeError("Snapshot compilation cancelled; previous snapshot preserved.")
+    if changed_path is not None:
+        remove_file_with_retry(build_path)
+        raise SnapshotSourceChanged(f"{changed_path} changed during capture; previous snapshot preserved.")
     if signature != capture_signature(root, policy, folder_item_states, include_binary_blobs, stop_event):
         remove_file_with_retry(build_path)
-        raise RuntimeError("Project changed during capture; previous snapshot preserved.")
+        raise SnapshotSourceChanged("Project changed during capture; previous snapshot preserved.")
     os.replace(build_path, snapshot_path)
 
     emit(
