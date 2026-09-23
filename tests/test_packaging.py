@@ -82,6 +82,13 @@ class SourceCheckoutTests(unittest.TestCase):
     def test_build_metadata_never_vendored(self):
         self.assertTrue(exports.is_vendor_export_excluded(Path("projectmapper.egg-info"))[0])
 
+    def test_vendored_batch_files_use_crlf(self):
+        folder = Path(temporary_directory(self).name)
+        source, target = folder / "lf.bat", folder / "out" / "lf.bat"
+        source.write_bytes(b"@echo off\necho one\r\necho two\n")
+        exports.copy_vendor_tree(source, target, [], [])
+        self.assertEqual(target.read_bytes(), b"@echo off\r\necho one\r\necho two\r\n")
+
     def test_vendor_export_refused_without_checkout(self):
         with patch.object(exports, "SOURCE_ROOT", None), self.assertRaisesRegex(RuntimeError, "source checkout"):
             exports.create_vendor_export(export_root=Path(temporary_directory(self).name))

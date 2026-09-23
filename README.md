@@ -1,10 +1,34 @@
-# ProjectMapper Snapshot Compiler
+# ProjectMapper
 
-ProjectMapper Snapshot Compiler is a small desktop utility for translating a project folder into a portable SQLite snapshot. It is intended to make project state easier to inspect, share, archive, and hand off to agents or other tools.
+ProjectMapper is a desktop workbench for moving a codebase between you, a reviewer
+and an AI model, in both directions:
 
-The app scans a selected root folder, displays the project tree, allows files and folders to be included or excluded, and compiles the selected project state into a SQLite database.
+- **Out:** choose files in a project tree and compile a portable SQLite snapshot.
+  Export it as a lightweight tree map, a full file dump, or both.
+- **Back in:** apply the JSON search/replace patches a model returns, to one file or
+  across a project. Every file is validated and shown as a diff; multi-file changes
+  apply only after you approve the exact preview.
 
-Development plans and architecture notes are indexed in [docs/README.md](docs/README.md).
+It runs locally, needs only Python and Tkinter, and has no third-party runtime
+dependencies. See [CHANGELOG.md](CHANGELOG.md) for release notes. Development plans
+and architecture notes are indexed in [docs/README.md](docs/README.md).
+
+## Install and quick start
+
+Requires Python 3.10+ with Tkinter (included with the python.org installers).
+
+```bash
+pip install .                      # from a checkout or vendor export
+projectmapper path/to/your/project # or: python -m projectmapper path/to/your/project
+```
+
+On Windows without installing: run `setup_env.bat` once, then
+`run.bat path\to\your\project`. With no folder argument, ProjectMapper opens the
+current directory.
+
+Then: review the tree, uncheck what you do not want, click **Compile Snapshot**, and
+use **Export Tree MD** / **Export Filedump MD** to share it. To bring changes back,
+right-click a file (**Tokenizing Patcher…**) or a folder (**Project Patcher…**).
 
 ![ProjectMapper screenshot](assets/Screenshots/Screenshot_ex01.PNG)
 

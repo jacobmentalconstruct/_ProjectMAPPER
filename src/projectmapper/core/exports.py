@@ -53,6 +53,10 @@ def copy_vendor_tree(source: Path, destination: Path, included: list[str], skipp
 
     ensure_dir(destination.parent)
     shutil.copy2(source, destination)
+    if destination.suffix.lower() == ".bat":
+        # cmd.exe expects CRLF; do not depend on how this checkout was made.
+        data = destination.read_bytes()
+        destination.write_bytes(data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
     included.append(destination.as_posix())
 
 
@@ -69,7 +73,7 @@ def build_fresh_start_install_markdown(export_name: str) -> str:
         "",
         "- App source under `src/projectmapper/`",
         "- Runtime scripts: `setup_env.bat` and `run.bat`",
-        "- README, license, requirements, and app assets",
+        "- README, changelog, license, `pyproject.toml`, requirements, and app assets",
         "- A vendor export manifest",
         "",
         "## What Is Not Included",
@@ -85,8 +89,8 @@ def build_fresh_start_install_markdown(export_name: str) -> str:
         "",
         "1. Copy this folder into a blank test project or any external project folder.",
         "2. Run `setup_env.bat` from this folder.",
-        "3. Run `run.bat`.",
-        "4. In the app, choose the project root you want to test.",
+        "3. Run `run.bat`, optionally followed by a project folder (`run.bat C:\\path\\to\\project`).",
+        "4. In the app, choose the project root you want to test if you did not pass one.",
         "5. Compile a snapshot. New records will be created only under the selected project's `_projectmapper` output folder.",
         "",
         "The app does not need prior ProjectMapper records to start.",

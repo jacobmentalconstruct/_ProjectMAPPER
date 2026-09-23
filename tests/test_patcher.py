@@ -128,6 +128,9 @@ class SessionTests(unittest.TestCase):
             self.assertTrue((package / "tools" / name).is_file(), name)
         self.assertTrue((exported / "pyproject.toml").is_file())
         self.assertFalse((exported / ".dev-log").exists())
+        for script in ("run.bat", "setup_env.bat"):
+            data = (exported / script).read_bytes()
+            self.assertEqual(data.count(b"\n"), data.count(b"\r\n"), script)
         check = subprocess.run([
             sys.executable, "-B", "-c",
             "import runpy, sys; runpy.run_module('projectmapper.app', run_name='smoke'); "

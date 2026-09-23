@@ -2,7 +2,7 @@
 from pathlib import Path
 
 APP_NAME = "ProjectMapper Snapshot Compiler"
-APP_VERSION = "0.4.0.dev0"  # Single version source; pyproject.toml reads it.
+APP_VERSION = "0.4.0"  # Single version source; pyproject.toml reads it.
 SNAPSHOT_SCHEMA_VERSION = "0.1"
 SNAPSHOT_COMPILER_ID = "projectmapper.snapshot_compiler"
 
@@ -58,6 +58,7 @@ FORCE_BINARY_EXTENSIONS_FOR_DUMP = {
 
 VENDOR_EXPORT_INCLUDE_FILES = (
     ".gitignore",
+    "CHANGELOG.md",
     "LICENSE.md",
     "README.md",
     "pyproject.toml",
