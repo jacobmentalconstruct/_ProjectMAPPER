@@ -622,7 +622,11 @@ class ProjectMapperApp:
         self._make_button(btn_row, "Export Tree MD", self.export_tree_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
         self._make_button(btn_row, "Export Filedump MD", self.export_filedump_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
         self._make_button(btn_row, "Export Tree+Dump MD", self.export_combined_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
-        self._make_button(btn_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.LEFT, padx=4)
+        vendor_button = self._make_button(btn_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"])
+        if SOURCE_ROOT is None:  # Installed package: there is no source checkout to vendor.
+            vendor_button.configure(state=tk.DISABLED)
+        vendor_button.pack(side=tk.LEFT, padx=4)
+        self.widgets["vendor_export_button"] = vendor_button
         self._make_button(btn_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=4)
         self._make_button(btn_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=4)
 

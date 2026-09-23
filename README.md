@@ -257,7 +257,9 @@ ProjectMapper can export a clean, vendible copy of itself for external testing.
 This is separate from project snapshot exports. It creates an installable app
 folder and zip under `vendor_exports/` with no Git history, virtual environment,
 Python caches, previous `_projectmapper` records, SQLite snapshot databases,
-logs, local `.env*` files, or generated export history.
+logs, local `.env*` files, or generated export history. Vendor export copies a
+source checkout, so it is unavailable (the button is disabled) when ProjectMapper
+runs as an installed package.
 
 From the UI, use:
 
@@ -331,17 +333,15 @@ Binary blob preservation is optional and disabled by default.
 
 When enabled, selected binary-like files can be stored in the SQLite snapshot as blobs. This allows the snapshot to serve more like a backup or rehydration artifact, while the default mode remains lighter and more suitable for agent communication.
 
-## Running
+## Development
 
-On Windows, run `setup_env.bat` once, then `run.bat` (optionally followed by a project
-folder). From an environment where the package is installed (`pip install .`):
+Launching is covered in [Install and quick start](#install-and-quick-start). To work on
+ProjectMapper itself:
 
 ```bash
-projectmapper [PROJECT_FOLDER]
-python -m projectmapper [PROJECT_FOLDER]
+pip install -e ".[dev]"
+python -m pytest            # full suite; tests/benchmark_tree.py holds opt-in benchmarks
 ```
-
-The mapper opens `PROJECT_FOLDER` when one is given, otherwise the current directory.
 
 ## Notes
 

@@ -64,6 +64,13 @@ class StartupRootTests(unittest.TestCase):
         self.assertEqual(app.controller.state.root, folder)
         self.assertEqual(app.widgets["selected_root_var"].get(), str(folder))
 
+    def test_vendor_button_follows_source_checkout(self):
+        folder = Path(temporary_directory(self).name).resolve()
+        self.assertEqual(str(self.make_app(folder).widgets["vendor_export_button"]["state"]), "normal")
+        with patch.object(app_module, "SOURCE_ROOT", None):
+            installed = self.make_app(folder)
+        self.assertEqual(str(installed.widgets["vendor_export_button"]["state"]), "disabled")
+
     def test_default_root_is_working_directory_not_package(self):
         app = self.make_app(None)
         self.assertEqual(app.controller.state.root, Path.cwd().resolve())

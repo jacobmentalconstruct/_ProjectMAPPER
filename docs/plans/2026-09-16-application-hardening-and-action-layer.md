@@ -4,9 +4,11 @@ Date: 2026-09-16
 
 Status: **Phases 0–3 completed and parked (Phase 3: 124 passing tests, measured
 scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
-2026-09-23 for release: next is Phase 4, release readiness and v0.4.0. Former
-Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
-acceptance. See the decision log (section 17).**
+2026-09-23 for release. Phase 4, release readiness, completed and parked
+2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
+tagged `v0.4.0` locally (not published). Next: Phase 5, project patch review.
+Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
+acceptance. See the decision log (section 17) and `.dev-log/04-release-readiness.md`.**
 
 Implementation was authorized after the initial planning review. Later tranches remain
 subject to their entry records, implementation/review cycles and acceptance gates.
@@ -605,15 +607,23 @@ adjustment is reviewed; logical scan/capture results remain equivalent.
 
 Design: section 12A. Inserted 2026-09-23; later phases renumbered.
 
-- [ ] Repository hygiene: `.parts/` removal recorded, residue untracked/removed,
+- [x] Repository hygiene: `.parts/` removal recorded, residue untracked/removed,
       corrected runtime and development dependencies, launcher text fixed.
-- [ ] Packaging: layout decision recorded; src-layout package, pyproject, entry point
+- [x] Packaging: layout decision recorded; src-layout package, pyproject, entry point
       and version source; launchers, vendor export, diagnostics and tests updated.
-- [ ] Snapshot byte-binding with A→B and A→B→A regressions.
-- [ ] Changelog, README install/quick start, version 0.4.0.
-- [ ] Full suite in the project environment, benchmark, both launch modes, fresh wheel
+- [x] Snapshot byte-binding with A→B and A→B→A regressions.
+- [x] Changelog, README install/quick start, version 0.4.0.
+- [x] Full suite in the project environment, benchmark, both launch modes, fresh wheel
       install and fresh vendor export in clean directories.
-- [ ] Local `v0.4.0` tag. Publication only with explicit owner approval.
+- [x] Local `v0.4.0` tag. Publication only with explicit owner approval (not yet given).
+
+Accepted 2026-09-23: 142 regression tests passed on Python 3.14.2 (`.venv`), 3.13.6 and
+3.10.6. Wheel and sdist were built without warnings. Fresh wheel installs on 3.10 and
+3.14 passed scan/compile/export and GUI launch. A fresh vendor export passed
+`setup_env.bat`, `run.bat`, GUI launch and `pip install` in a clean directory. Snapshot
+A→B→A publication was reproduced on the old compiler and is now refused. The
+benchmark matches Tranche 3. Evidence and residual limits are in
+`.dev-log/04-release-readiness.md`.
 
 Gate: clean repository; installable package with no top-level `src` import; ABA gap
 closed by regression evidence; all existing behavior and tests preserved; release

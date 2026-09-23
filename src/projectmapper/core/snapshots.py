@@ -24,6 +24,7 @@ NUL_BYTE = bytes(1)
 class SnapshotSourceChanged(RuntimeError):
     """Captured sources no longer match the signature; nothing was published."""
 
+
 def snapshot_output_filename(root: Path, suffix: str) -> str:
     return f"{root.name}_{suffix}"
 
