@@ -27,10 +27,12 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk, messagebox
 import tkinter.font as tkFont
 if __package__:
+    from .tree_view import TreeProjection
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                         TextToucherWindow, ProjectPatcherWindow)
     from .core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
 else:
+    from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                        TextToucherWindow, ProjectPatcherWindow)
     from core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
@@ -442,6 +444,7 @@ class ProjectMapperApp:
         self.exclusions_dirty = False
         self.transformed_paths = self.project_state.transformed_paths
         self.icon_imgs = {}
+        self.tree_projection = None
         self._create_tree_icons()
 
         self._setup_styles()
@@ -599,12 +602,15 @@ class ProjectMapperApp:
         self.widgets["folder_tree"].insert("", "end", text="Tree scanner pending", values=("", "", ""))
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.widgets["folder_tree"].yview)
+        vsb.bind("<ButtonPress-1>", lambda event: self.tree_projection._user_navigation(event)
+                 if self.tree_projection is not None else None)
         self.widgets["folder_tree"].configure(yscrollcommand=vsb.set)
         self.widgets["folder_tree"].pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
         self.widgets["folder_tree"].bind("<ButtonRelease-1>", self.on_tree_item_click)
         self.widgets["folder_tree"].bind("<ButtonRelease-3>", self.on_file_context_menu)
         self.widgets["folder_tree"].bind("<Shift-F10>", self.on_file_context_menu)
+        self.widgets["folder_tree"].bind("<<TreeviewOpen>>", self.on_tree_open)
         paned.add(tree_frame, weight=3)
 
         action_frame = tk.Frame(paned, bg=THEME["panel_bg"])
@@ -716,6 +722,8 @@ class ProjectMapperApp:
         tree = self.widgets["folder_tree"]
         keyboard = getattr(event, "keysym", "") == "F10"
         iid = tree.focus() if keyboard else tree.identify_row(event.y)
+        if iid.startswith(TreeProjection.PLACEHOLDER):
+            return "break"
         # Context selection must not toggle capture checkboxes.
         if iid:
             tree.selection_set(iid)
@@ -869,48 +877,37 @@ class ProjectMapperApp:
 
     def populate_tree(self, rows: list[dict]):
         tree = self.widgets["folder_tree"]
-        tree.delete(*tree.get_children())
-        for row in rows:
-            iid = str(row["path"])
-            parent = "" if row["parent"] is None else str(row["parent"])
-            state = self.folder_item_states.get(iid, S_UNCHECKED)
-            prefix = "📁" if row["entry_type"] == "dir" else "📄"
-            size_text = "" if row["size_bytes"] is None else format_display_size(row["size_bytes"])
-            is_dir = row["entry_type"] == "dir"
-            tree.insert(
-                parent,
-                "end",
-                iid=iid,
-                text=f"{prefix} {row['name']}",
-                image=self.icon_imgs.get(state, self.icon_imgs[S_UNCHECKED]),
-                values=("↑" if is_dir else "", "↓" if is_dir else "", size_text),
-                open=row["depth"] < 2,
-            )
-        self.refresh_tree_visuals()
+        if self.tree_projection is None:
+            self.tree_projection = TreeProjection(tree, self._insert_tree_row)
+        self.tree_projection.replace(rows)
+
+    def _insert_tree_row(self, row):
+        tree = self.widgets["folder_tree"]
+        iid = str(row["path"])
+        parent = "" if row["parent"] is None else str(row["parent"])
+        state = self.folder_item_states.get(iid, S_UNCHECKED)
+        prefix = "📁" if row["entry_type"] == "dir" else "📄"
+        size_text = "" if row["size_bytes"] is None else format_display_size(row["size_bytes"])
+        is_dir = row["entry_type"] == "dir"
+        tree.insert(parent, "end", iid=iid, text=f"{prefix} {row['name']}",
+                    image=self.icon_imgs.get(state, self.icon_imgs[S_UNCHECKED]),
+                    values=("↑" if is_dir else "", "↓" if is_dir else "", size_text),
+                    open=False)
+
+    def on_tree_open(self, event):
+        if self.tree_projection is not None:
+            self.tree_projection.expand(event.widget.focus())
 
     def refresh_tree_visuals(self, start_iid: str | None = None):
         tree = self.widgets["folder_tree"]
-
-        def refresh_one(iid: str):
-            if not tree.exists(iid):
-                return
+        pending = [start_iid] if start_iid else list(tree.get_children())
+        while pending:
+            iid = pending.pop()
+            if iid.startswith("__lazy__:") or not tree.exists(iid):
+                continue
             state = self.folder_item_states.get(iid, S_UNCHECKED)
             tree.item(iid, image=self.icon_imgs.get(state, self.icon_imgs[S_UNCHECKED]))
-            path = Path(iid)
-            if path.is_dir():
-                tree.set(iid, "nav_up", "↑")
-                tree.set(iid, "nav_down", "↓")
-            else:
-                tree.set(iid, "nav_up", "")
-                tree.set(iid, "nav_down", "")
-            for child in tree.get_children(iid):
-                refresh_one(child)
-
-        if start_iid:
-            refresh_one(start_iid)
-        else:
-            for child in tree.get_children(""):
-                refresh_one(child)
+            pending.extend(tree.get_children(iid))
 
     def on_tree_item_click(self, event):
         tree = event.widget
@@ -920,7 +917,11 @@ class ProjectMapperApp:
 
         column = tree.identify_column(event.x)
         element = tree.identify("element", event.x, event.y) or ""
+        if "indicator" in element:
+            return
         path = Path(iid)
+        if iid.startswith("__lazy__:"):
+            return
 
         if column == "#1" and path.is_dir():
             self.navigate_tree_to_path(path.parent)
@@ -1010,6 +1011,7 @@ class ProjectMapperApp:
             return
         self.widgets["selected_root_var"].set(str(target))
         self.action("project.set_root", {"path": str(target)})
+        self.populate_tree([])
         self.exclusions_dirty = False
         self.latest_source_mtime = 0.0
         self.transformed_paths = self.project_state.transformed_paths
@@ -1037,6 +1039,7 @@ class ProjectMapperApp:
             self.report_error("Invalid Project Root", f"Not a directory:\n{candidate}")
             return
         self.action("project.set_root", {"path": str(candidate.resolve())})
+        self.populate_tree([])
         self.exclusions_dirty = False
         self.latest_source_mtime = 0.0
         self.transformed_paths = self.project_state.transformed_paths

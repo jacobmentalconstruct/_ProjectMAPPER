@@ -2,7 +2,7 @@
 import fnmatch
 from pathlib import Path
 from .config import EXCLUDED_FOLDERS, PREDEFINED_EXCLUDED_FILENAMES, TEXT_ENCODING
-from .helpers import is_path_inside, rel_posix
+from .helpers import is_path_inside
 
 class ExclusionPolicy:
     def __init__(self):
@@ -108,10 +108,16 @@ class ExclusionPolicy:
         if p != r and not is_path_inside(p, r):
             return False, None
 
-        name = p.name
-        rel = rel_posix(p, r)
+        return self.should_exclude_entry(p, r, p.is_dir())
 
-        if p.is_dir():
+    def should_exclude_entry(self, path, root, is_dir):
+        """Match a scanner-owned, nonlinked entry using its existing metadata."""
+        if not self.respect_exclusions:
+            return False, None
+        name = path.name
+        rel = path.relative_to(root).as_posix()
+
+        if is_dir:
             if name in EXCLUDED_FOLDERS and self.rule_enabled("hardcoded_folder", name):
                 return True, "hardcoded_folder"
             if name in self.gitignore_dirnames and self.rule_enabled("gitignore_dirname", name):

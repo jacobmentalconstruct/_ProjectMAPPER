@@ -51,6 +51,8 @@ decisions belong to snapshot actions. Scan rendering no longer recalculates sele
 or republishes controller state. UI task names track presentation-worker lifetimes;
 dispatcher operation IDs track domain execution and cancellation.
 
-Tranche 3 covers lazy widgets and measured performance. Snapshot ABA byte binding,
+Tranche 3 completed lazy widgets and measured performance. Expansion/scrolling stay
+presentation-only; Controller delegates rows and capture selection to LogicalTree.
+Snapshot ABA byte binding,
 durable recovery generations, richer patch review and history remain separately
 tracked work. A successful tranche 2 audit does not claim those guarantees.

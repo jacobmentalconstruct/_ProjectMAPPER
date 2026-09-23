@@ -13,6 +13,7 @@ from .dispatcher import Dispatcher
 try:
     from ..core.state import ProjectState
     from ..core.tree import scan_project_tree
+    from ..core.tree_model import LogicalTree
     from ..core.exclusions import ExclusionPolicy
     from ..core.files import create_text_file, file_name
     from ..core import snapshots, exports
@@ -23,6 +24,7 @@ try:
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
+    from core.tree_model import LogicalTree
     from core.exclusions import ExclusionPolicy
     from core.files import create_text_file, file_name
     from core import snapshots, exports
@@ -43,13 +45,28 @@ def inputs(payload, required, optional=()):
 
 
 class Controller:
+    @property
+    def rows(self):
+        return self.tree_model.rows
+
+    @rows.setter
+    def rows(self, value):
+        self.tree_model.replace(value, self.selection)
+
+    @property
+    def selection(self):
+        return self.tree_model.selection
+
+    @selection.setter
+    def selection(self, value):
+        self.tree_model.selection = value
+
     def __init__(self, root, dispatcher=None):
         self.state = ProjectState(Path(root).resolve())
         self.policy = ExclusionPolicy()
         self.policy.load_gitignore(self.state.root)
-        self.rows = []
         self.skipped = []
-        self.selection = {}
+        self.tree_model = LogicalTree()
         self.dispatcher = dispatcher or Dispatcher()
         self.lock = threading.RLock()
         self.scan_fn = scan_project_tree
@@ -100,7 +117,8 @@ class Controller:
         with self.lock:
             self.state.set_root(root)
             self.policy.load_gitignore(root)
-            self.rows, self.skipped, self.selection = [], [], {}
+            self.skipped = []
+            self.tree_model = LogicalTree()
         return self.state_view()
 
     def _scan(self, payload, context):
@@ -116,14 +134,9 @@ class Controller:
         with self.lock:
             if generation != self.state.generation or revision != self.state.scan_revision:
                 raise ActionError("stale_scan", "Project changed during scan; a newer scan is required.")
-            self.rows, self.skipped = rows, skipped
+            self.skipped = skipped
             self.state.mark_scan_applied(revision, max((r["mtime"] or 0 for r in rows), default=0))
-            previous = self.selection
-            selection = {}
-            for row in rows:
-                key = str(row["path"])
-                selection[key] = previous.get(key, selection.get(str(row.get("parent")), "checked"))
-            self.selection = selection
+            self.tree_model.replace(rows, self.selection)
         return {"count": len(rows), "revision": revision, "generation": self.state.generation,
                 "rows": [{key: str(value) if isinstance(value, Path) else value for key, value in r.items()} for r in rows],
                 "skipped": skipped}
@@ -184,9 +197,7 @@ class Controller:
         if payload["state"] not in ("checked", "unchecked"):
             raise ActionError("invalid_input", "Unknown selection state.")
         parent = Path(payload.get("path", self.state.root)).resolve()
-        for row in self.rows:
-            if row["path"].is_relative_to(parent):
-                self.selection[str(row["path"])] = payload["state"]
+        self.tree_model.set_selection(parent, payload["state"])
         self.state.mark_dirty("selection_changed")
         return self.state_view()
 

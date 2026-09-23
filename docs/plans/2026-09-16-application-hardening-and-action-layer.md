@@ -3,7 +3,9 @@
 Date: 2026-09-16
 
 Status: **Phase 2 completed and parked after external-review corrections, action
-inventory and 110 passing tests. Phase 3 is next. See `.dev-log/02-review-followthrough.md`.**
+inventory and 110 passing tests. Phase 3 completed and parked with 124 passing tests
+and measured scan/render improvements. Next: Phase 4, project patch review.
+See `.dev-log/03-logical-tree-and-rendering.md` for acceptance evidence.**
 
 Implementation was authorized after the initial planning review. Later tranches remain
 subject to their entry records, implementation/review cycles and acceptance gates.
@@ -27,22 +29,25 @@ repeatable verification suite.
 
 ## 2. Current state and gap
 
-The following observations are based on the current source and prior checks. The
-implementation phase must establish a new baseline before treating past test
-results as evidence for new code.
+Current as of Phase 3 acceptance, 2026-09-17. Historical entry observations and
+repairs are retained in the dated tranche journals; they are not current defects.
 
 | Area | Current state | Required difference |
 | --- | --- | --- |
-| Structure | `src/app.py` contains UI, exclusion policy, snapshot schema/compiler, export logic, and worker coordination. | Extract focused services and leave the UI responsible for presentation and collecting inputs. |
-| Action routing | UI callbacks invoke engines, write files, update state, and display approvals directly. | Route application operations through a typed dispatcher with shared checks and results. |
-| State | `ProjectState` exists, while the app retains parallel scan, snapshot, task, and dirty-state fields. | Establish one authoritative state owner and read-only views for clients. |
-| Scanning | `src/core/tree.py` accumulates directory sizes during a walk; tree rendering is eager. | Reuse safe metadata, render lazily, and preserve navigation without hiding filesystem changes. |
+| Structure | Tk presentation lives in `src/app.py` and `src/tree_view.py`; application services, core machinery and tools have separate modules. | Preserve these boundaries in later work. |
+| Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Add later backup/history operations through the same seam. CLI/MCP transports remain deferred. |
+| State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
+| Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | The UI has JSON authoring, Add File, combined diff, linked actions, and apply approval. | Add per-file status and source/diff/result views with hunk navigation. |
 | Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
-| History | General log messages describe operations. | Derive a searchable/filterable session history from structured operation events. |
-| Testing | Focused suites passed previously; broader runs failed on temporary-directory and cache permissions. | Diagnose the actual environment issue and get a clean full run with isolated fixtures. |
+| History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
+| Testing | Phase 3 acceptance passed 124 regressions and two explicit benchmarks. | Extend coverage for Phases 4–6, then perform whole-application acceptance in Phase 7. |
 
-### Specific issues to establish and fix first
+### Historical baseline issues — resolved, retained for context only
+
+The following list records the original entry concerns, not outstanding work.
+Acceptance evidence is in `.dev-log/00-baseline-and-safety.md`,
+`.dev-log/02-review-followthrough.md`, and `.dev-log/03-logical-tree-and-rendering.md`.
 
 - Project patch rollback currently loops over every original file after an exception,
   including failures before any destination was replaced. It can overwrite an
@@ -286,8 +291,10 @@ Approval policy for this pass:
 
 ## 7. UI action inventory and migration matrix
 
-This is the initial inventory. Phase 0 must audit every button, menu item, binding,
-trace handler and indirect callback, and record any additional entry points.
+The table below is the historical proposal and includes future operations; it is
+not the implemented API contract. The completed desktop audit and actual action
+names are in [the verified action inventory](../action-inventory.md). Use that
+inventory for current integrations; retain this table only as planning context.
 
 | UI operation | Proposed action/service | Notes |
 | --- | --- | --- |
@@ -479,11 +486,20 @@ existing workflows pass regression checks through the dispatcher.
 
 ### Phase 3 — Tree performance
 
-- [ ] Establish measured benchmark baselines and correctness fixtures.
-- [ ] Implement safe metadata reuse and lazy widget population.
-- [ ] Preserve model-based selection, navigation and scroll state.
-- [ ] Verify changes, exclusions, inaccessible directories, links and cancellation.
-- [ ] Record baseline versus final work counts and timings.
+- [x] Establish measured benchmark baselines and correctness fixtures.
+- [x] Implement safe metadata reuse and lazy widget population.
+- [x] Preserve model-based selection, navigation and scroll state.
+- [x] Verify changes, exclusions, inaccessible directories, links and cancellation.
+- [x] Record baseline versus final work counts and timings.
+
+Accepted 2026-09-17: 124 regression tests passed. On Windows 10/Python 3.13.6,
+the 10,000-file nested fixture's scan median fell from 10.676s to 1.220s;
+initial render median fell from 0.794s to 0.015s (10,201 to 201 widgets).
+All 10,000 direct children render in batches, with a measured maximum heartbeat
+gap of 58ms. No cross-scan metadata cache: each explicit rescan enumerates fresh
+metadata, keeping change discovery straightforward. Selection for absent paths is
+forgotten; newly discovered paths inherit retained ancestors. Detailed evidence,
+commands and limits are in `.dev-log/03-logical-tree-and-rendering.md`.
 
 Gate: performance targets in section 9 are met or an explicit evidence-backed
 adjustment is reviewed; logical scan/capture results remain equivalent.
@@ -584,25 +600,27 @@ For each phase, record:
 - Environment facts for permission failures and benchmark measurements.
 - Follow-up fixes, remaining limitations and approved scope adjustments.
 
-No implementation verification is claimed by this documentation-only update.
+This template does not itself establish verification. Completed-phase evidence is
+recorded in the acceptance journals linked above.
 
 ## 17. Decision log
 
-External-review followthrough: reopen Phase 2; fix binary hashing and nested inherited
+Historical external-review direction (completed through Phase 3): reopen Phase 2; fix binary hashing and nested inherited
 selection; route tool creation/reads/previews through actions; apply exactly the
 displayed plan; move path safety below tools; verify the mutation lifecycle before
 parking. Phase 3 must establish a complete logical tree and inherited selection
-independent of rendered Tk nodes before lazy rendering. Tie snapshot captured bytes
+independent of rendered Tk nodes before lazy rendering. Outstanding: tie snapshot captured bytes
 to publication fingerprints to close the ABA gap; consider unchecked-file hashing
 only after defining the required freshness semantics. Current evidence and remaining
-gates are recorded in `.dev-log/02-review-followthrough.md`.
+gates are recorded in `.dev-log/02-review-followthrough.md` and
+`.dev-log/03-logical-tree-and-rendering.md`.
 
 | Date | Decision | Status |
 | --- | --- | --- |
 | 2026-09-16 | Store development plans in `docs/`, with a short index and dated plan files. | Recorded in this documentation pass. |
-| 2026-09-16 | Add a shared action seam before further UI/service extraction. | Included for review following the user's request. |
+| 2026-09-16 | Add a shared action seam before further UI/service extraction. | Implemented and accepted in Phases 1–2. |
 | 2026-09-16 | Keep actual CLI/MCP transports and cross-process communication out of this pass. | Proposed scope boundary from the review. |
 | 2026-09-16 | Keep destructive approval enforcement below the UI and shared across callers. | Required design constraint. |
 | 2026-09-16 | Retain complete-manifest project patch application; partial hunk selection is deferred. | Proposed simplification. |
 | 2026-09-16 | Use bounded session history and explicit backup cleanup initially. | Proposed default; no persistent history or automatic pruning. |
-| 2026-09-16 | Begin implementation after the plan review; keep CLI/MCP transports deferred. | Implemented through Phase 2; see `.dev-log/02-desktop-migration.md`. |
+| 2026-09-16 | Begin implementation after the plan review; keep CLI/MCP transports deferred. | Implemented through Phase 3. Corrected Phase 2 acceptance: `.dev-log/02-review-followthrough.md`; Phase 3: `.dev-log/03-logical-tree-and-rendering.md`. |

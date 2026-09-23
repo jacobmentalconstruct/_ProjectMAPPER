@@ -102,6 +102,12 @@ class CreatorUITests(unittest.TestCase):
         target.write_text("existing")
         rows, _ = scan_project_tree(self.folder, self.app.exclusion_policy)
         self.app.populate_tree(rows)
+        tree = self.app.widgets["folder_tree"]
+        tree.item(str(child), open=True)
+        tree.focus(str(child))
+        self.app.on_tree_open(SimpleNamespace(widget=tree))
+        while self.app.tree_projection.timer is not None:
+            self.root.update()
         for path in (child, target):
             self.app.widgets["folder_tree"].focus(str(path))
             with patch.object(tk.Menu, "tk_popup"):

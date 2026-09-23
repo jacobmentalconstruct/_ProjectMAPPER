@@ -13,9 +13,24 @@ interface contracts, phased implementation checklist, and completion criteria.
 Implementation records live in the private `.dev-log/` journal, which is ignored
 and never read by the application. Phase 2 is completed after the external-review
 corrections and a 110-test acceptance run. Its corrected acceptance record is
-`.dev-log/02-review-followthrough.md`. Phase 3 is next.
+`.dev-log/02-review-followthrough.md`. Phase 3 is also completed and parked: 124
+tests passed, with measured lazy rendering and metadata scan improvements. Its
+acceptance record is `.dev-log/03-logical-tree-and-rendering.md`. Next is Phase 4,
+project patch review; it has not been opened yet.
 
 ## Conventions
+
+Current authority: root `README.md` for user behavior, the active plan for remaining
+scope, and `action-inventory.md` for implemented action names. Dated tranche journals
+are historical evidence for their recorded code states; their entry descriptions
+are not statements of current defects.
+
+Superseded snapshots, onboarding material and June vendor exports are archived under
+`.dev-log/archive/2026-09-17-documentation-audit/`, with a historical-only notice and
+a hash manifest. They are retained for ontological/history reference, never as
+current implementation guidance. Legacy fixture directories are explicitly labeled
+as non-authoritative residue. `.parts/` is disposable, read-only reference input;
+it is not an archive, documentation authority or required application component.
 
 - Use `docs/plans/YYYY-MM-DD-descriptive-name.md` for substantial development plans.
 - Update an active plan in place as decisions are reviewed; record material changes

@@ -36,6 +36,20 @@ The SQLite snapshot is the primary truth source. Markdown exports are derived vi
    - Filedump
    - Combined tree and filedump
 
+## Tree navigation and selection
+
+Folders load their displayed children when expanded, in small batches. The complete
+scan and capture selection exist independently of the display: unchecked folders
+apply to all descendants, including unopened ones. Individual children can override
+that state. Expanding or collapsing a folder does not change capture selection.
+
+Rescan discovers external changes and preserves surviving open folders, focus and
+scroll position. New paths inherit their parent's selection. Paths absent from a
+completed scan (including excluded paths) lose their individual overrides; if they
+return, they inherit again. Changing roots resets selection. Displayed folder sizes
+sum files remaining after exclusions. Linked entries and Windows junctions are
+skipped rather than traversed.
+
 ## Managing Exclusions
 
 Click **Exclusions** to open the resizable rule manager. It lists built-in rules,
@@ -309,6 +323,7 @@ py src/app.py
 
 ## Notes
 
-ProjectMapper's main Tkinter application is organized with section markers in
-`src/app.py`. The single-file transformation engine and patcher window are separate
-modules, keeping transformation logic independently testable.
+Tk presentation lives in `src/app.py` and `src/tree_view.py`. Shared actions and
+coordination live in `src/application/`, filesystem and snapshot services in
+`src/core/`, and transformation engines and their windows in `src/tools/`.
+Current architecture and implementation status are indexed in `docs/README.md`.
