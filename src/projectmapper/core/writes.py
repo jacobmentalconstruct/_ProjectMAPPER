@@ -35,23 +35,3 @@ def atomic_write_bytes(destination, data, mode=None, prefix=".projectmapper-"):
     finally:
         if scratch.exists():
             scratch.unlink()
-
-
-def backup_path(destination):
-    destination = Path(destination)
-    return destination.with_name(destination.name + ".bak")
-
-
-def create_backup(destination, data=None):
-    """Write a recoverable sibling backup using the same atomic primitive."""
-    destination = Path(destination)
-    if data is None:
-        data = destination.read_bytes()
-    mode = stat.S_IMODE(destination.stat().st_mode) if destination.exists() else None
-    target = backup_path(destination)
-    scratch = stage_bytes(target, data, mode=mode, prefix=".projectmapper-backup-")
-    try:
-        os.link(scratch, target)
-        return target
-    finally:
-        scratch.unlink(missing_ok=True)

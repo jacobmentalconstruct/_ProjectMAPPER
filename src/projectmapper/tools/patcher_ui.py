@@ -92,7 +92,7 @@ class PatcherWindow(ToolWindowMixin):
         options = self.frame(self.top)
         options.pack(side="bottom", fill="x", padx=12, pady=(0, 5), before=panes)
         self.checkbutton(options, "Save as version", self.version).pack(side="left", padx=(0, 4))
-        self.checkbutton(options, "Keep .bak backup", self.backup).pack(side="left", padx=(10, 4))
+        self.checkbutton(options, "Keep backup", self.backup).pack(side="left", padx=(10, 4))
         self.suffix = tk.StringVar(self.top, "_v1.0")
         tk.Entry(options, textvariable=self.suffix, width=14,
                  bg=self.colors["field_bg"], fg=self.colors["field_text"],

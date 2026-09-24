@@ -23,6 +23,7 @@ try:
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
     from ..core.diff import DiffFile
+    from ..core.backups import BackupStore
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
@@ -35,6 +36,7 @@ except ImportError:
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
     from core.diff import DiffFile
+    from core.backups import BackupStore
 
 
 
@@ -151,6 +153,18 @@ class Controller:
         return {"path": str(session.path), "text": session.source, "sha256": fingerprint(session.original_bytes),
                 "bom": session.bom}
 
+    def _generation_writer(self, kind, action, context):
+        """Return a writer for ``[(path, data, mode)]`` that stores one generation per scope."""
+        def write(items):
+            groups = {}
+            for path, data, mode in items:
+                store = BackupStore.for_target(path, self.state.root)
+                groups.setdefault((store.scope, str(store.directory)), (store, []))[1].append((path, data, mode))
+            names = [f"{store.create(kind, action, context.operation_id, files).id} ({store.scope} store)"
+                     for store, files in groups.values()]
+            return ", ".join(names)
+        return write
+
     def _changed(self, path):
         with self.lock:
             if path.is_relative_to(self.state.root):
@@ -158,13 +172,20 @@ class Controller:
 
     def _save(self, payload, context):
         inputs(payload, ("path", "text", "sha256"), ("suffix", "backup"))
+        return self._guarded_save(payload, context, "text.save")
+
+    def _guarded_save(self, payload, context, action):
         if not isinstance(payload["text"], str):
             raise ActionError("invalid_input", "Text must be a string.")
         session = PatchSession(payload["path"])
         if fingerprint(session.original_bytes) != payload["sha256"]:
             raise ActionError("source_changed", "The target changed. Reload before saving.")
         context.check_cancelled()
-        path = session.save(payload["text"], payload.get("suffix"), backup=payload.get("backup", False))
+        backup = None
+        if payload.get("backup", False):
+            write = self._generation_writer("backup", action, context)
+            backup = lambda path, data, mode: write([(path, data, mode)])
+        path = session.save(payload["text"], payload.get("suffix"), backup=backup)
         self._changed(path)
         return {"path": str(path), "paths": [str(path)], "sha256": fingerprint(session.original_bytes)}
 
@@ -331,9 +352,10 @@ class Controller:
     def _patch_save(self, payload, context):
         inputs(payload, ("plan_id",), ("suffix", "backup"))
         session, result = self._plan(payload["plan_id"], "patch")
-        saved = self._save({"path": str(session.path), "text": result,
-                            "sha256": fingerprint(session.original_bytes),
-                            "suffix": payload.get("suffix"), "backup": payload.get("backup", False)}, context)
+        saved = self._guarded_save({"path": str(session.path), "text": result,
+                                    "sha256": fingerprint(session.original_bytes),
+                                    "suffix": payload.get("suffix"), "backup": payload.get("backup", False)},
+                                   context, "patch.save")
         self.plans.pop(payload["plan_id"], None)
         return saved
 
@@ -379,7 +401,11 @@ class Controller:
             ctx.check_cancelled()
             self._plan(payload["plan_id"], "project_patch")
             try:
-                paths = session.apply_all(backup=payload.get("backup", False))
+                backup = (self._generation_writer("backup", "project_patch.apply", ctx)
+                          if payload.get("backup", False) else None)
+                # Recovery material is always made durable, whether or not backups were requested.
+                recover = self._generation_writer("recovery", "project_patch.apply", ctx)
+                paths = session.apply_all(backup=backup, recover=recover)
             except PatchError as exc:
                 for item in session.results:
                     self._changed(item["path"])

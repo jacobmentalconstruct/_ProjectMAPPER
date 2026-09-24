@@ -7,10 +7,10 @@ import re
 import stat
 
 try:
-    from ..core.writes import create_backup, stage_bytes
+    from ..core.writes import stage_bytes
     from ..core.paths import PathSafetyError as PatchError, validate_target
 except ImportError:
-    from core.writes import create_backup, stage_bytes
+    from core.writes import stage_bytes
     from core.paths import PathSafetyError as PatchError, validate_target
 
 
@@ -104,7 +104,9 @@ class PatchSession:
         if "\x00" in self.source:
             raise PatchError("Binary files cannot be patched as text.")
 
-    def save(self, result, suffix=None, backup=False):
+    def save(self, result, suffix=None, backup=None):
+        """Guarded save. ``backup``, when given, is called as ``backup(path, original_bytes, mode)``
+        after staging and before replacement; if it raises, the target is left unchanged."""
         validate_target(self.path)
         if self.path.read_bytes() != self.original_bytes:
             raise PatchError("The target changed on disk. Reload it and validate the patch again.")
@@ -124,8 +126,8 @@ class PatchSession:
             if self.path.read_bytes() != self.original_bytes:
                 raise PatchError("The target changed during save. Reload before trying again.")
             if suffix is None:
-                if backup:
-                    create_backup(destination, self.original_bytes)
+                if backup is not None:
+                    backup(destination, self.original_bytes, stat.S_IMODE(self.path.stat().st_mode))
                 if validate_target(self.path).read_bytes() != self.original_bytes:
                     raise PatchError("The target changed during save. Reload before trying again.")
                 os.replace(scratch, destination)

@@ -73,7 +73,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.apply_button.pack(side="left")
         self.set_button_enabled(self.apply_button, False, "accent")
         # Backups are an apply option, so the choice sits beside Apply.
-        self.checkbutton(footer, "Keep .bak backups", self.backup).pack(side="left", padx=12)
+        self.checkbutton(footer, "Keep backups", self.backup).pack(side="left", padx=12)
 
         panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=(4, 6))

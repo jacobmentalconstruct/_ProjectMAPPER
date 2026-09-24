@@ -25,8 +25,20 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 - **Keep .bak backups** moved beside Apply. Disabled action buttons are greyed, and
   editor scrollbars follow the dark theme.
 
+- Backups are managed **generations** instead of sibling `.bak` files. Project files
+  back up to `_projectmapper/backups/`; files outside the project root go to a
+  per-user store. The options are now labelled **Keep backup** / **Keep backups**.
+  Existing `.bak` files are never touched.
+- Files inside `_projectmapper/` can no longer be project-patch targets.
+
 ### Fixed
 
+- A second backed-up save of the same file failed (`WinError 183`, `.bak` exists).
+- Any existing `.bak` file, even one the user made, blocked a whole project apply
+  with backups on.
+- After a failed rollback, the message claimed the original was "retained in this
+  session", but it was discarded. Originals are now saved durably in a `recovery`
+  generation that the message names; if that fails, the message says so.
 - **Add File…** on a new Project Patcher window produced a manifest that failed
   validation on the built-in example entry.
 - **Keep .bak backups** and the review position were cut off at the minimum window size.

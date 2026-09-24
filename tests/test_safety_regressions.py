@@ -7,10 +7,9 @@ from unittest.mock import patch
 from tests.support import temporary_directory, tk_root
 from projectmapper.core.state import ProjectState
 from projectmapper.core.diagnostics import collect_diagnostics
-from projectmapper.tools.patcher import PatchError
+from projectmapper.tools.patcher import PatchError, PatchSession
 from projectmapper.tools.project_patcher import ProjectPatchSession
 from projectmapper.core.writes import stage_bytes
-from projectmapper.core.writes import create_backup
 from projectmapper.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot, scan_project_tree
 
 
@@ -91,11 +90,16 @@ class WriteSafetyTests(unittest.TestCase):
         self.assertEqual(list(output.iterdir()), [sentinel])
 
     def test_backup_never_overwrites_existing_file(self):
+        # Phase 6 (decision A): sibling .bak files are no longer written. The intent is kept:
+        # a user's existing .bak is never overwritten, and backups no longer collide with it.
         backup = self.folder / "a.txt.bak"
         backup.write_bytes(b"unrelated")
-        with self.assertRaises(FileExistsError):
-            create_backup(self.folder / "a.txt")
+        session = PatchSession(self.folder / "a.txt")
+        stored = []
+        session.save("new\r\n", backup=lambda path, data, mode: stored.append(data))
         self.assertEqual(backup.read_bytes(), b"unrelated")
+        self.assertEqual(stored, [b"old\r\n"])
+        self.assertEqual((self.folder / "a.txt").read_bytes(), b"new\r\n")
 
 
 class StateSafetyTests(unittest.TestCase):

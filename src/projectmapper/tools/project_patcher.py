@@ -10,10 +10,12 @@ import copy
 from .patcher import PatchError, apply_patch_text, validate_target
 try:
     from ..core.diff import DiffFile, unified_diff_text
-    from ..core.writes import atomic_write_bytes, create_backup, stage_bytes
+    from ..core.writes import atomic_write_bytes, stage_bytes
+    from ..core.config import OUTPUT_ROOT_NAME
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
-    from core.writes import atomic_write_bytes, create_backup, stage_bytes
+    from core.writes import atomic_write_bytes, stage_bytes
+    from core.config import OUTPUT_ROOT_NAME
 
 
 EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
@@ -68,6 +70,10 @@ class ProjectPatchSession:
             raise PatchError(f"Project patch path escapes the project root: {relative}") from exc
         if any(part.casefold() == ".parts" for part in candidate.relative_to(self.root).parts):
             raise PatchError("The .parts reference folder is read-only.")
+        # Snapshots and managed backups live here; checked on the absolute path so a
+        # patch root inside the output folder cannot reach the store either.
+        if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in candidate.parts):
+            raise PatchError(f"The {OUTPUT_ROOT_NAME} output folder cannot be patched: {relative}")
         return candidate
 
     def _validate_manifest(self):
@@ -135,7 +141,14 @@ class ProjectPatchSession:
             raise PatchError("; ".join(errors))
         return self.results
 
-    def apply_all(self, backup=False):
+    def apply_all(self, backup=None, recover=None):
+        """Replace all validated files or none.
+
+        ``backup`` and ``recover`` are optional callables taking ``[(path, original_bytes, mode)]``
+        and returning a description of where the bytes were stored. ``backup`` runs after
+        staging and before any replacement; if it raises, nothing is replaced. ``recover``
+        runs when a rollback cannot restore a file, so its original survives durably.
+        """
         if not self.results:
             self.validate_all()
         results = copy.deepcopy(self.results)
@@ -156,9 +169,8 @@ class ProjectPatchSession:
             for _, result in scratch:
                 if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
                     raise PatchError(f"Source changed during staging: {result['relative_path']}")
-            if backup:
-                for result in results:
-                    create_backup(result["path"], result["original_bytes"])
+            if backup is not None:
+                backup([(result["path"], result["original_bytes"], result["mode"]) for result in results])
             for staged, result in scratch:
                 if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
                     raise PatchError(f"Source changed before replacement: {result['relative_path']}")
@@ -166,14 +178,26 @@ class ProjectPatchSession:
                 committed.append(result)
         except Exception as exc:
             failure = exc
+            unrestored = []
             for result in reversed(committed):
                 try:
                     destination = validate_target(result["path"])
                     if destination.read_bytes() != result["output_bytes"]:
-                        raise PatchError("External change preserved; original retained in this session")
+                        raise PatchError("External change preserved")
                     atomic_write_bytes(destination, result["original_bytes"], mode=result["mode"])
                 except (OSError, PatchError) as rollback_exc:
                     recovery_errors.append(f"{result['relative_path']}: {rollback_exc}")
+                    unrestored.append(result)
+            if unrestored:
+                # The originals exist only in memory now; make them durable before reporting.
+                if recover is None:
+                    recovery_errors.append("original bytes were not saved (no recovery store configured)")
+                else:
+                    try:
+                        location = recover([(r["path"], r["original_bytes"], r["mode"]) for r in unrestored])
+                        recovery_errors.append(f"originals saved in recovery backup {location}")
+                    except Exception as store_exc:
+                        recovery_errors.append(f"originals could not be saved: {store_exc}")
         finally:
             for staged, _ in scratch:
                 try:

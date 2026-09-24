@@ -141,10 +141,9 @@ and preserves line endings outside replaced blocks. Patch edits invalidate the
 preview. Saving refuses to overwrite externally changed source files or existing
 version files. Source, diff, and result are separate views; the diff is never saved
 as source. A successful save refreshes the tree and requires a new snapshot before
-exporting in the current app session. **Keep .bak backup** is opt-in and writes an
-atomic sibling backup immediately before an in-place save.
-Generated `.bak` files follow the built-in exclusion rule so they do not silently
-become part of a later snapshot; the rule can be allowed through the exclusions UI.
+exporting in the current app session. **Keep backup** is opt-in and stores the
+file's previous bytes as a backup generation immediately before an in-place save
+(see [Backups](#backups)). Every backed-up save creates a new generation.
 
 The patcher implementation lives in `src/projectmapper/tools/patcher.py` and
 `src/projectmapper/tools/patcher_ui.py`.
@@ -255,9 +254,35 @@ deletions, renames and binary operations remain separate tools.
 The project patcher uses the same linked **&** action group as the single-file
 patcher. Unlinked, **Validate / Preview** and **Apply Project Patch** are separate
 steps. Linked, either button validates the complete manifest and proceeds to the
-approval dialog; a failed validation stops the chain. Enable **Keep .bak backups**
-(beside Apply) to retain the original bytes beside each changed file. Backups are
-created only after validation and before replacement.
+approval dialog; a failed validation stops the chain. Enable **Keep backups** (beside
+Apply) to store every changed file's original bytes as one backup generation. It is
+created after validation and before any replacement; if it cannot be written, nothing
+is replaced.
+
+If a write fails partway and a replaced file cannot be rolled back (for example
+because it was edited externally in the meantime), the result is **recovery
+required**. The originals of those files are always saved in a `recovery` generation,
+even with backups off, and the message names it. If they cannot be saved, the
+message says so. Files inside `_projectmapper/` cannot be patch targets.
+
+## Backups
+
+Backups are stored as **generations**. Each is a folder holding the backed-up bytes
+and a `manifest.json` with each file's path, SHA-256, size and mode. The manifest is
+written last, so an interrupted backup is never mistaken for a usable one.
+
+- Files inside the project root back up to `<root>/_projectmapper/backups/`. That
+  folder is excluded from snapshots, vendor exports and project patches.
+- Files outside the project root back up to a per-user store:
+  `%LOCALAPPDATA%\ProjectMapper\backups` on Windows,
+  `~/Library/Application Support/ProjectMapper/backups` on macOS, and
+  `$XDG_STATE_HOME/projectmapper/backups` (default `~/.local/state/...`) elsewhere.
+  Set `PROJECTMAPPER_USER_BACKUPS` to use another folder.
+- Kinds: `backup` (you asked for it), `pre-restore` (the current bytes, saved before a
+  restore) and `recovery` (originals saved when a rollback could not complete).
+- A generation is usable only if its manifest is valid and every stored file matches
+  its recorded SHA-256. Anything else in the store is ignored and never modified.
+- ProjectMapper no longer writes sibling `.bak` files, and it never touches existing ones.
 
 ## State, diagnostics, and maintenance
 

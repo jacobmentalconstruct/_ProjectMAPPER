@@ -34,6 +34,16 @@ Phase 5 contract notes (2026-09-23):
 - Review selection, hunk navigation and highlighting are presentation-only; they
   never change the plan.
 
+Phase 6 contract notes (2026-09-24):
+- The `backup` flag of `text.save`, `patch.save` and `project_patch.apply` now
+  creates a managed generation (`core/backups.py`) in the target's scope (project
+  store or per-user store), not a sibling `.bak`. If a requested backup fails, the
+  write does not happen.
+- `project_patch.apply` always saves unrestorable originals in a `recovery`
+  generation; its `recovery_required` message names the generation or says it
+  could not be saved.
+- `project_patch.validate` refuses targets inside `_projectmapper/`.
+
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.
 
