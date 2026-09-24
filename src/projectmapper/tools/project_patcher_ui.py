@@ -49,7 +49,6 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.backup = tk.BooleanVar(self.top, False)
         self.checkbutton(toolbar, "Force patch indentation", self.force_indent,
                          self.invalidate).pack(side="left", padx=(4, 12))
-        self.checkbutton(toolbar, "Keep .bak backups", self.backup).pack(side="left", padx=4)
         self.label(self.top, text=f"Project root: {self.root_path}").pack(fill="x", padx=14)
 
         # Status and actions are packed before the panes so a small window never hides them.
@@ -72,14 +71,16 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.apply_button = self.button(self.action_group, "Apply Project Patch",
                                         lambda: self.run_action("apply"), "accent", state="disabled")
         self.apply_button.pack(side="left")
-        self.label(footer, panel=True, text="Alt+↑/↓ file · F8/Shift+F8 hunk · Ctrl+Enter validate").pack(
-            side="right", padx=6)
+        self.set_button_enabled(self.apply_button, False, "accent")
+        # Backups are an apply option, so the choice sits beside Apply.
+        self.checkbutton(footer, "Keep .bak backups", self.backup).pack(side="left", padx=12)
 
         panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=(4, 6))
         left = self.frame(panes)
         self.label(left, text="PROJECT PATCH MANIFEST", panel=True).pack(anchor="w", padx=8, pady=(6, 4))
         self.manifest_box = self.editor(left, True)
+        self.manifest_box.configure(width=40)  # Requested width; the pane still stretches.
         self.manifest_box.pack(fill="both", expand=True)
         self.manifest_box.insert("1.0", SKELETON)
         self.manifest_box.edit_modified(False)
@@ -88,7 +89,13 @@ class ProjectPatcherWindow(ToolWindowMixin):
 
         right = self.frame(panes)
         panes.add(right, weight=3)
-        self.file_list = ttk.Treeview(right, columns=("status", "add", "del", "hunks"), height=5,
+        header = self.frame(right)
+        header.pack(fill="x", padx=4, pady=(6, 0))
+        self.position = tk.StringVar(self.top, "No review yet")
+        self.position_label = self.label(header, panel=True, textvariable=self.position, fg=self.colors["text"])
+        self.position_label.pack(side="left")
+        self.label(header, panel=True, text="Alt+↑/↓ · F8 · Ctrl+Enter").pack(side="right")
+        self.file_list = ttk.Treeview(right, columns=("status", "add", "del", "hunks"), height=4,
                                       selectmode="browse")
         for column, text, width in (("#0", "File", 220), ("status", "Status", 150), ("add", "+", 48),
                                     ("del", "−", 48), ("hunks", "Hunks", 56)):
@@ -106,8 +113,6 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.next_hunk_button = self.button(nav, "Hunk ▶", lambda: self.step_hunk(1), state="disabled")
         for button in (self.prev_file_button, self.next_file_button, self.prev_hunk_button, self.next_hunk_button):
             button.pack(side="left", padx=(0, 4))
-        self.position = tk.StringVar(self.top, "No review yet")
-        self.label(nav, panel=True, textvariable=self.position).pack(side="left", padx=8)
 
         self.views = ttk.Notebook(right, style="Review.TNotebook")
         self.views.pack(fill="both", expand=True, padx=4, pady=(0, 4))
@@ -115,6 +120,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.diff_box = self.add_view(self.views, "Diff")
         self.result_box = self.add_view(self.views, "Result")
         for box in (self.source_box, self.diff_box, self.result_box):
+            box.configure(width=40)
             box.tag_configure("current_hunk", background=self.colors["heading_bg"])
 
     def bind_keys(self):
@@ -278,7 +284,8 @@ class ProjectPatcherWindow(ToolWindowMixin):
                                    activebackground=colors["linked"] if self.actions_linked else colors["field_bg_alt"],
                                    relief="sunken" if self.actions_linked else "raised")
         can_apply = self.results is not None
-        self.apply_button.configure(state="normal" if self.actions_linked or can_apply else "disabled")
+        self.set_button_enabled(self.apply_button, self.actions_linked or can_apply,
+                                "linked" if self.actions_linked else "accent")
 
     def run_action(self, action):
         if self.actions_linked:
@@ -360,7 +367,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
             count = len(result.get("paths", []))
         except (OSError, PatchError) as exc:
             self.status.set(f"Apply failed: {exc}")
-            self.apply_button.configure(state="disabled")
+            self.set_button_enabled(self.apply_button, False, "accent")
             return
         self.app.log_message(f"Applied project patch to {count} file(s). Compile a new snapshot before exporting.")
         self.app.request_rescan_tree_silent()

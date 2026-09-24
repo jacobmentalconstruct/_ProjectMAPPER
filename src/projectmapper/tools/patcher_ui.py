@@ -83,8 +83,10 @@ class PatcherWindow(ToolWindowMixin):
         self.apply_button = self.button(self.action_group, "Apply to Result",
                                         lambda: self.run_action("apply"), "secondary", state="disabled")
         self.apply_button.pack(side="left")
+        self.set_button_enabled(self.apply_button, False, "secondary")
         self.save_button = self.button(footer, "Save Result", self.save, "accent", state="disabled")
         self.save_button.pack(side="right")
+        self.set_button_enabled(self.save_button, False, "accent")
         self.version = tk.BooleanVar(self.top, False)
         self.backup = tk.BooleanVar(self.top, False)
         options = self.frame(self.top)
@@ -124,7 +126,8 @@ class PatcherWindow(ToolWindowMixin):
             activebackground=colors["linked"] if self.actions_linked else colors["field_bg_alt"],
             relief="sunken" if self.actions_linked else "raised")
         can_apply = self.preview is not None and self.validated_inputs == self.inputs()
-        self.apply_button.configure(state="normal" if self.actions_linked or can_apply else "disabled")
+        self.set_button_enabled(self.apply_button, self.actions_linked or can_apply,
+                                "linked" if self.actions_linked else "secondary")
 
     def run_action(self, action):
         if self.actions_linked:
@@ -138,7 +141,7 @@ class PatcherWindow(ToolWindowMixin):
     def invalidate(self):
         self.preview = self.result = self.validated_inputs = None
         self.refresh_action_group()
-        self.save_button.config(state="disabled")
+        self.set_button_enabled(self.save_button, False, "accent")
         self.show_text(self.diff_box, "")
         self.show_text(self.result_box, "")
         self.status.set("Patch changed. Validate again before applying.")
@@ -183,7 +186,7 @@ class PatcherWindow(ToolWindowMixin):
             return
         self.show_text(self.result_box, self.result)
         self.views.select(2)
-        self.save_button.config(state="normal")
+        self.set_button_enabled(self.save_button, True, "accent")
         self.status.set("Result ready. Save Result writes it to disk.")
 
     def save(self):

@@ -36,6 +36,12 @@ class ToolWindowMixin:
         button.configure(state=state, disabledforeground=self.colors["muted_text"])
         return button
 
+    def set_button_enabled(self, button, enabled, color):
+        """Disabled action buttons lose their colour so they do not look clickable."""
+        shade = color if enabled else "panel_alt_bg"
+        button.configure(state="normal" if enabled else "disabled", bg=self.colors[shade],
+                         activebackground=self.colors.get(shade + "_hover", self.colors["field_bg_alt"]))
+
     def checkbutton(self, parent, text, variable, command=None):
         return tk.Checkbutton(parent, text=text, variable=variable, command=command,
                               bg=self.colors["panel_bg"], fg=self.colors["text"],
@@ -89,7 +95,15 @@ class ToolWindowMixin:
             state="normal" if editable else "disabled")
         box.frame.configure(bg=self.colors["panel_bg"])
         box.vbar.pack_forget()
-        scrollbar = ttk.Scrollbar(box.frame, orient="vertical", command=box.yview)
+        # Dark scrollbar under the application's "clam" theme; a named style leaves others unchanged.
+        style = ttk.Style(box)
+        style.configure("Review.Vertical.TScrollbar", background=self.colors["panel_alt_bg"],
+                        troughcolor=self.colors["log_bg"], arrowcolor=self.colors["muted_text"],
+                        bordercolor=self.colors["panel_bg"], lightcolor=self.colors["panel_alt_bg"],
+                        darkcolor=self.colors["panel_alt_bg"])
+        style.map("Review.Vertical.TScrollbar", background=[("active", self.colors["secondary"])])
+        scrollbar = ttk.Scrollbar(box.frame, orient="vertical", command=box.yview,
+                                  style="Review.Vertical.TScrollbar")
         scrollbar.pack(side="right", fill="y", before=box._w)
         box.configure(yscrollcommand=scrollbar.set)
         return box

@@ -154,6 +154,18 @@ class ReviewWindowTests(unittest.TestCase):
                 self.assertEqual([item["path"] for item in manifest["files"]], ["c.py"])
                 self.assertTrue(self.window.validate(), self.window.status.get())
 
+    def test_disabled_apply_is_visibly_distinct_and_scrollbars_are_themed(self):
+        window, theme = self.window, self.app.theme
+        self.assertEqual(window.apply_button.cget("bg"), theme["panel_alt_bg"])
+        self.valid_manifest()
+        self.assertEqual(self.state(window.apply_button), "normal")
+        self.assertEqual(window.apply_button.cget("bg"), theme["accent"])
+        window.manifest_box.insert("end", " ")
+        self.root.update()
+        self.assertEqual(window.apply_button.cget("bg"), theme["panel_alt_bg"])
+        scrollbars = [child for child in window.diff_box.frame.winfo_children() if child.winfo_class() == "TScrollbar"]
+        self.assertEqual([str(bar.cget("style")) for bar in scrollbars], ["Review.Vertical.TScrollbar"])
+
     def test_copy_schema_copies_the_full_example(self):
         self.window.copy_schema()
         self.assertEqual(json.loads(self.window.top.clipboard_get()), EXAMPLE_MANIFEST)
@@ -168,6 +180,69 @@ class ReviewWindowTests(unittest.TestCase):
         self.assertIn("+2 / -2   a.py", message)
         self.assertIn("+0 / -0   b.py", message)
         self.assertEqual((self.folder / "a.py").read_bytes(), ORIGINAL.encode())
+
+
+class ReviewLayoutTests(unittest.TestCase):
+    """Measured geometry at the minimum size with long paths; keyboard reachability."""
+
+    def setUp(self):
+        base = Path(temporary_directory(self).name).resolve()
+        self.folder = base / ("very_long_project_folder_name_" * 2) / ("nested_directory_level_" * 2)
+        self.relative = "src/" + "deeply_nested_module_" * 3 + "/file_with_a_long_name.py"
+        (self.folder / self.relative).parent.mkdir(parents=True)
+        (self.folder / self.relative).write_bytes(ORIGINAL.encode())
+        self.root = tk_root(self)
+        self.root.withdraw()
+        self.app = ProjectMapperApp(self.root, self.folder)
+        for timer in self.root.tk.call("after", "info"):
+            self.root.after_cancel(timer)
+        self.window = self.app.open_project_patcher(self.folder)
+        self.addCleanup(lambda: self.window.top.winfo_exists() and self.window.top.destroy())
+        self.window.manifest_box.delete("1.0", "end")
+        self.window.manifest_box.insert("1.0", json.dumps({"files": [{"path": self.relative, "hunks": [
+            hunk("line 2", "LINE 2"), hunk("line 25", "LINE 25")]}]}))
+        self.window.manifest_box.edit_modified(False)
+        self.root.update()
+        self.assertTrue(self.window.validate())
+
+    def test_every_control_visible_at_minimum_size(self):
+        window = self.window
+        window.top.geometry("720x500")
+        self.root.update()
+        top = window.top
+        width, height = top.winfo_width(), top.winfo_height()
+        controls = [window.validate_button, window.link_button, window.apply_button, window.prev_file_button,
+                    window.next_file_button, window.prev_hunk_button, window.next_hunk_button,
+                    window.position_label, window.status_label, window.file_list, window.views, window.manifest_box]
+
+        def walk(widget):
+            yield widget
+            for child in widget.winfo_children():
+                yield from walk(child)
+        controls += [w for w in walk(top) if w.winfo_class() in ("Button", "Checkbutton")]
+        for widget in controls:
+            with self.subTest(widget=str(widget)):
+                x, y = widget.winfo_rootx() - top.winfo_rootx(), widget.winfo_rooty() - top.winfo_rooty()
+                self.assertTrue(widget.winfo_ismapped())
+                self.assertGreater(widget.winfo_width(), 1)
+                self.assertLessEqual(x + widget.winfo_width(), width)
+                self.assertLessEqual(y + widget.winfo_height(), height)
+                if widget.winfo_class() in ("Button", "Checkbutton"):
+                    self.assertGreaterEqual(widget.winfo_width(), widget.winfo_reqwidth(), "text clipped")
+
+    def test_keyboard_traversal_reaches_every_enabled_control(self):
+        window, chain, current = self.window, [], self.window.manifest_box
+        for _ in range(60):
+            current = current.tk_focusNext()
+            if current is None or current in chain:
+                break
+            chain.append(current)
+        expected = [window.validate_button, window.link_button, window.apply_button, window.file_list,
+                    window.next_hunk_button, window.views]
+        expected += [w for w in window.top.winfo_children()[0].winfo_children() if w.winfo_class() == "Button"]
+        for widget in expected:
+            self.assertIn(widget, chain, str(widget))
+        self.assertIn(window.manifest_box, chain + [window.manifest_box])
 
 
 class AddEntryTemplateTests(unittest.TestCase):
