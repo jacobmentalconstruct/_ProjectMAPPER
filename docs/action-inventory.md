@@ -43,6 +43,15 @@ Phase 6 contract notes (2026-09-24):
   generation; its `recovery_required` message names the generation or says it
   could not be saved.
 - `project_patch.validate` refuses targets inside `_projectmapper/`.
+- New headless actions (desktop window in step 6.4):
+
+  | Action | Contract |
+  | --- | --- |
+  | `backup.list` | `{scope?}` → generations of the project and/or user store with status (`ok`/`incomplete`/`corrupt`), kind, files and size. Read-only. |
+  | `backup.preview` | `{scope, generation, targets?}` → per-file current-vs-backup diff and a single-use restore `plan_id` bound to the generation, the files, the backup sha256 and the current sha256 (or "missing"). Refuses targets inside `_projectmapper/`. |
+  | `backup.restore` | `{plan_id}` → trusted approval. Re-checks current and backup bytes, saves existing current bytes as a `pre-restore` generation, then writes each file atomically. A partial failure is `recovery_required` and names what was restored and the pre-restore generation. |
+  | `backup.prune_preview` | `{scope, keep, include?}` → candidates (ok `backup`/`pre-restore` generations beyond the newest `keep`, plus explicitly included verified ids, including `recovery`) and `not_eligible` (incomplete/corrupt). |
+  | `backup.prune` | `{plan_id}` → trusted approval. Removes each candidate only if it is still verified, its manifest fingerprint matches the preview, and it contains only its recorded files. Anything else is reported and left in place. |
 
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.

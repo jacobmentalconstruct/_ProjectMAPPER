@@ -2,6 +2,7 @@
 
 from collections import Counter
 import hashlib
+import stat
 from pathlib import Path
 import threading
 import json
@@ -22,8 +23,9 @@ try:
     from ..core.diagnostics import collect_diagnostics
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
-    from ..core.diff import DiffFile
-    from ..core.backups import BackupStore
+    from ..core.diff import DiffFile, unified_diff_text
+    from ..core.backups import BackupError, BackupStore
+    from ..core.writes import atomic_write_bytes
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
@@ -35,8 +37,9 @@ except ImportError:
     from core.diagnostics import collect_diagnostics
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
-    from core.diff import DiffFile
-    from core.backups import BackupStore
+    from core.diff import DiffFile, unified_diff_text
+    from core.backups import BackupError, BackupStore
+    from core.writes import atomic_write_bytes
 
 
 
@@ -94,6 +97,9 @@ class Controller:
             "application.diagnostics": self._diagnostics,
             "output.location": self._output_location,
             "text.open": self._open, "text.save": self._save, "file.delete": self._delete,
+            "backup.list": self._backup_list, "backup.preview": self._backup_preview,
+            "backup.restore": self._backup_restore, "backup.prune_preview": self._backup_prune_preview,
+            "backup.prune": self._backup_prune,
         }.items():
             self.dispatcher.register(name, handler)
 
@@ -188,6 +194,158 @@ class Controller:
         path = session.save(payload["text"], payload.get("suffix"), backup=backup)
         self._changed(path)
         return {"path": str(path), "paths": [str(path)], "sha256": fingerprint(session.original_bytes)}
+
+    # --- backups: list, preview, restore, retention ------------------------
+
+    def _backup_store(self, scope):
+        if scope == "project":
+            return BackupStore.for_project(self.state.root)
+        if scope == "user":
+            return BackupStore.for_user()
+        raise ActionError("invalid_input", "Backup scope must be 'project' or 'user'.")
+
+    @staticmethod
+    def _bytes_diff(key, current, backup):
+        try:
+            before = "" if current is None else current.decode("utf-8-sig")
+            after = backup.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return f"(Not UTF-8 text; current {len(current or b'')} bytes, backup {len(backup)} bytes.)"
+        return unified_diff_text([DiffFile(key, before, after)])
+
+    def _backup_list(self, payload, context):
+        inputs(payload, (), ("scope",))
+        scopes = [payload["scope"]] if payload.get("scope") else ["project", "user"]
+        generations = [g.to_dict() for scope in scopes for g in self._backup_store(scope).list()]
+        return {"generations": generations, "count": len(generations)}
+
+    def _backup_preview(self, payload, context):
+        inputs(payload, ("scope", "generation"), ("targets",))
+        store = self._backup_store(payload["scope"])
+        try:
+            generation = store.get(payload["generation"])
+        except BackupError as exc:
+            raise ActionError("not_found", str(exc)) from exc
+        if generation.status != "ok":
+            raise ActionError("backup_invalid", f"Backup {generation.id} is {generation.status}: {generation.problem}")
+        recorded = {item["target"]: item for item in generation.files}
+        targets = payload.get("targets") or list(recorded)
+        if not isinstance(targets, list) or not all(key in recorded for key in targets):
+            raise ActionError("invalid_input", "Choose files recorded in this backup.")
+        files, bound = [], []
+        for key in targets:
+            data = store.read(generation.id, key)
+            path = validate_target(store.target_path(key))
+            if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in path.parts):
+                raise ActionError("unsafe_path", f"{key} is inside {OUTPUT_ROOT_NAME}; it cannot be restored.")
+            current = path.read_bytes() if path.is_file() else None
+            files.append({"target": key, "path": str(path), "current_exists": current is not None,
+                          "identical": current == data, "diff": self._bytes_diff(key, current, data),
+                          "backup_size": len(data), "current_size": None if current is None else len(current)})
+            bound.append({"key": key, "path": str(path), "backup_sha256": recorded[key]["sha256"],
+                          "current_sha256": None if current is None else fingerprint(current),
+                          "mode": recorded[key]["mode"]})
+        plan = {"scope": payload["scope"], "generation": generation.id, "files": bound}
+        return {"plan_id": self._store_plan("restore", plan), "generation": generation.id, "files": files}
+
+    def _backup_restore(self, payload, context):
+        inputs(payload, ("plan_id",))
+        plan = self._plan(payload["plan_id"], "restore")
+        store = self._backup_store(plan["scope"])
+
+        def approved(ctx):
+            ctx.check_cancelled()
+            self._plan(payload["plan_id"], "restore")
+            self.plans.pop(payload["plan_id"], None)  # single use: any failure needs a new preview
+            checked = []
+            for item in plan["files"]:
+                path = validate_target(item["path"])
+                current = path.read_bytes() if path.is_file() else None
+                if (None if current is None else fingerprint(current)) != item["current_sha256"]:
+                    raise ActionError("source_changed", f"{item['key']} changed after the preview. Preview again.")
+                try:
+                    data = store.read(plan["generation"], item["key"])
+                except BackupError as exc:
+                    raise ActionError("backup_invalid", str(exc)) from exc
+                if fingerprint(data) != item["backup_sha256"]:
+                    raise ActionError("backup_invalid", f"Backup of {item['key']} changed after the preview.")
+                checked.append((item, path, current, data))
+            existing = [(path, current, stat.S_IMODE(path.stat().st_mode))
+                        for _, path, current, _ in checked if current is not None]
+            saved = self._generation_writer("pre-restore", "backup.restore", ctx)(existing) if existing else None
+            restored = []
+            for item, path, _, data in checked:
+                try:
+                    atomic_write_bytes(path, data, mode=item["mode"])
+                except OSError as exc:
+                    detail = (f"Restore stopped at {item['key']}: {exc}. "
+                              + (f"Already restored {', '.join(restored)}. " if restored else "No file was restored. ")
+                              + (f"Previous contents are in pre-restore backup {saved}." if saved else ""))
+                    raise ActionError("recovery_required" if restored else "io_error", detail) from exc
+                restored.append(f"restored {item['key']}")
+                self._changed(path)
+            return {"paths": [str(path) for _, path, _, _ in checked], "count": len(checked), "pre_restore": saved}
+
+        names = "\n".join(item["key"] for item in plan["files"][:20])
+        more = f"\n… and {len(plan['files']) - 20} more" if len(plan["files"]) > 20 else ""
+        return ApprovalPlan({"title": "Restore from backup?",
+                             "message": f"Replace {len(plan['files'])} file(s) with their contents in backup "
+                                        f"{plan['generation']}?\n\n{names}{more}\n\nCurrent contents are saved "
+                                        "first as a pre-restore backup.",
+                             "paths": [item["path"] for item in plan["files"]]}, approved)
+
+    def _backup_prune_preview(self, payload, context):
+        inputs(payload, ("scope", "keep"), ("include",))
+        keep, include = payload["keep"], payload.get("include") or []
+        if not isinstance(keep, int) or isinstance(keep, bool) or keep < 0:
+            raise ActionError("invalid_input", "Keep must be a whole number of generations, 0 or more.")
+        if not isinstance(include, list) or not all(isinstance(item, str) for item in include):
+            raise ActionError("invalid_input", "Include must be a list of generation ids.")
+        store = self._backup_store(payload["scope"])
+        listed = store.list()
+        verified = [g for g in listed if g.status == "ok"]
+        unknown = set(include) - {g.id for g in verified}
+        if unknown:
+            raise ActionError("invalid_input", f"Only verified generations can be removed: {', '.join(sorted(unknown))}")
+        # Recovery generations are never chosen by the keep rule, only by explicit id.
+        routine = [g for g in verified if g.kind in ("backup", "pre-restore")]
+        chosen = {g.id for g in routine[keep:]} | set(include)
+        candidates = [g for g in verified if g.id in chosen]
+        bound = [{"id": g.id, "fingerprint": store.fingerprint(g.id)} for g in candidates]
+        plan_id = self._store_plan("prune", {"scope": payload["scope"], "candidates": bound}) if candidates else None
+        return {"plan_id": plan_id, "bytes": sum(g.size for g in candidates),
+                "candidates": [{"id": g.id, "kind": g.kind, "size": g.size, "created_at": g.created_at,
+                                "files": len(g.files)} for g in candidates],
+                "not_eligible": [{"id": g.id, "status": g.status, "problem": g.problem}
+                                 for g in listed if g.status != "ok"]}
+
+    def _backup_prune(self, payload, context):
+        inputs(payload, ("plan_id",))
+        plan = self._plan(payload["plan_id"], "prune")
+        store = self._backup_store(plan["scope"])
+
+        def approved(ctx):
+            ctx.check_cancelled()
+            self._plan(payload["plan_id"], "prune")
+            self.plans.pop(payload["plan_id"], None)
+            removed, problems = [], []
+            for candidate in plan["candidates"]:
+                try:
+                    store.remove(candidate["id"], candidate["fingerprint"])
+                    removed.append(candidate["id"])
+                except (BackupError, OSError) as exc:
+                    problems.append(f"{candidate['id']}: {exc}")
+            if problems:
+                raise ActionError("prune_incomplete", f"Removed {len(removed)} of {len(plan['candidates'])} "
+                                  "generation(s). Not removed: " + "; ".join(problems))
+            return {"removed": removed, "count": len(removed)}
+
+        ids = "\n".join(candidate["id"] for candidate in plan["candidates"][:20])
+        more = f"\n… and {len(plan['candidates']) - 20} more" if len(plan["candidates"]) > 20 else ""
+        return ApprovalPlan({"title": "Delete backup generations?",
+                             "message": f"Permanently delete {len(plan['candidates'])} backup generation(s) "
+                                        f"from the {plan['scope']} store?\n\n{ids}{more}",
+                             "paths": [str(store.directory / c["id"]) for c in plan["candidates"]]}, approved)
 
     def _delete(self, payload, context):
         inputs(payload, ("path",))

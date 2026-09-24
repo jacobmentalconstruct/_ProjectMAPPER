@@ -30,6 +30,8 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
   per-user store. The options are now labelled **Keep backup** / **Keep backups**.
   Existing `.bak` files are never touched.
 - Files inside `_projectmapper/` can no longer be project-patch targets.
+- Headless backup actions: list, preview (current vs backup), restore with approval
+  (saving a pre-restore copy first), and approval-bound clean-up of old generations.
 
 ### Fixed
 

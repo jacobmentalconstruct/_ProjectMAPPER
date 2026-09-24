@@ -247,6 +247,32 @@ class BackupStore:
             if item.get("mode") is not None and not isinstance(item["mode"], int):
                 raise ValueError("invalid mode")
 
+    def fingerprint(self, generation_id):
+        """sha256 of the manifest bytes, used to bind a clean-up plan to what was reviewed."""
+        return _sha256((self.get(generation_id).path / MANIFEST).read_bytes())
+
+    def remove(self, generation_id, expected_fingerprint):
+        """Delete one verified generation that still matches its reviewed manifest.
+
+        Only the manifest and its recorded blobs are unlinked, then the empty directory is
+        removed. Links, unexpected entries or any mismatch leave the directory in place.
+        """
+        generation = self.get(generation_id)
+        if generation.status != "ok":
+            raise BackupError(f"{generation_id} is {generation.status}; only verified generations are removed.")
+        if self.fingerprint(generation_id) != expected_fingerprint:
+            raise BackupError(f"{generation_id} changed after it was reviewed.")
+        expected = {MANIFEST, *(item["stored"] for item in generation.files)}
+        entries = list(os.scandir(generation.path))
+        unexpected = sorted(entry.name for entry in entries
+                            if entry.name not in expected or _is_link(entry.path) or not entry.is_file(follow_symlinks=False))
+        if unexpected:
+            raise BackupError(f"{generation_id} contains unexpected entries ({', '.join(unexpected)}); left in place.")
+        # Manifest first: an interrupted removal leaves an "incomplete" generation, never a usable one.
+        for name in [MANIFEST] + sorted(expected - {MANIFEST}):
+            (generation.path / name).unlink()
+        generation.path.rmdir()
+
     def read(self, generation_id, target):
         """Return the verified bytes of ``target`` from an ``ok`` generation."""
         generation = self.get(generation_id)
