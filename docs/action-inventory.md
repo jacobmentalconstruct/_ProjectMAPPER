@@ -53,6 +53,16 @@ Phase 6 contract notes (2026-09-24):
   | `backup.prune_preview` | `{scope, keep, include?}` → candidates (ok `backup`/`pre-restore` generations beyond the newest `keep`, plus explicitly included verified ids, including `recovery`) and `not_eligible` (incomplete/corrupt). |
   | `backup.prune` | `{plan_id}` → trusted approval. Removes each candidate only if it is still verified, its manifest fingerprint matches the preview, and it contains only its recorded files. Anything else is reported and left in place. |
 
+Phase 7 contract notes (2026-09-24):
+- `history.query` `{category?, outcome?, text?, limit? (1–1000, default 200)}` → read-only
+  `operations`, newest first. One record per operation: id, action, category, origin,
+  status, accepted/started/finished times, `duration_ms`, approval
+  (`requested`/`approved`/`denied`) with title and message, `progress_count` and
+  `last_progress`, `paths` (≤50), `count`, `error` `{code, message}`, `generations`
+  named. The history keeps 500 operations in the session, never evicts unfinished
+  ones, stores no file contents, and does not record its own queries.
+- `create_application(root, dispatcher=None)` optionally accepts a dispatcher (additive).
+
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.
 

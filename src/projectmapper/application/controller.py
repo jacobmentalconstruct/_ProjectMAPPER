@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 from .contracts import ActionError, ApprovalPlan, Request
 from .dispatcher import Dispatcher
+from .history import OperationHistory
 try:
     from ..core.state import ProjectState
     from ..core.tree import scan_project_tree
@@ -76,6 +77,9 @@ class Controller:
         self.skipped = []
         self.tree_model = LogicalTree()
         self.dispatcher = dispatcher or Dispatcher()
+        # Subscribed before any action exists, so every operation is recorded from its first event.
+        self.history = OperationHistory()
+        self.dispatcher.subscribe(self.history.observe)
         self.lock = threading.RLock()
         self.scan_fn = scan_project_tree
         self.plans = {}
@@ -99,7 +103,7 @@ class Controller:
             "text.open": self._open, "text.save": self._save, "file.delete": self._delete,
             "backup.list": self._backup_list, "backup.preview": self._backup_preview,
             "backup.restore": self._backup_restore, "backup.prune_preview": self._backup_prune_preview,
-            "backup.prune": self._backup_prune,
+            "backup.prune": self._backup_prune, "history.query": self._history_query,
         }.items():
             self.dispatcher.register(name, handler)
 
@@ -194,6 +198,21 @@ class Controller:
         path = session.save(payload["text"], payload.get("suffix"), backup=backup)
         self._changed(path)
         return {"path": str(path), "paths": [str(path)], "sha256": fingerprint(session.original_bytes)}
+
+    def _history_query(self, payload, context):
+        inputs(payload, (), ("category", "outcome", "text", "limit"))
+        limit = payload.get("limit", 200)
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 1000:
+            raise ActionError("invalid_input", "Limit must be a whole number from 1 to 1000.")
+        for key in ("category", "outcome", "text"):
+            if payload.get(key) is not None and not isinstance(payload[key], str):
+                raise ActionError("invalid_input", f"{key} must be text.")
+        try:
+            operations = self.history.query(payload.get("category"), payload.get("outcome"),
+                                            payload.get("text"), limit)
+        except ValueError as exc:
+            raise ActionError("invalid_input", str(exc)) from exc
+        return {"operations": operations}
 
     # --- backups: list, preview, restore, retention ------------------------
 
@@ -660,11 +679,11 @@ class Controller:
         self.dispatcher.close()
 
 
-def create_application(root):
+def create_application(root, dispatcher=None):
     """Return the public controller and a separate trusted approval capability.
 
     Code in the same interpreter is trusted. Future transport adapters must expose
     named actions only; never publish the approval resolver to an agent.
     """
-    controller = Controller(root)
+    controller = Controller(root, dispatcher)
     return controller, controller.dispatcher._resolve_approval
