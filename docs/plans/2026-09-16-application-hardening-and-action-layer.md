@@ -8,7 +8,7 @@ scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
 2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
 tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review,
 completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
-Next: Phase 6, backup generations, restore and retention.
+Phase 6, backup generations, restore and retention, is open (entry awaiting owner review).
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -53,7 +53,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | Phase 5 complete: all-files validation with per-file errors, review list, Source/Diff/Result views, hunk navigation, keyboard shortcuts, approval with per-file counts. | Keep complete-manifest application; per-hunk apply stays deferred. |
-| Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
+| Recovery | Optional sibling `<file>.bak`, created exclusively (never overwritten). Reproduced at Phase 6 entry: a second backed-up save fails with a raw `WinError 183`; any existing `.bak` blocks a whole project apply; after a rollback conflict the message claims the original is "retained in this session", but the plan is discarded and the original bytes exist nowhere. | Identifiable managed generations; durable recovery material with truthful messages; restoration preview/approval; ownership-aware retention. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
 | Testing | Phase 5 acceptance: 175 regressions pass on Python 3.10, 3.13 and 3.14, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Extend coverage for Phases 6–7 and 9; whole-application acceptance in Phase 8. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
