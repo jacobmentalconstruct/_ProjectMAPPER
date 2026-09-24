@@ -32,6 +32,9 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 - Files inside `_projectmapper/` can no longer be project-patch targets.
 - Headless backup actions: list, preview (current vs backup), restore with approval
   (saving a pre-restore copy first), and approval-bound clean-up of old generations.
+- **Backups window** (main window → **Backups…**): generation list with integrity
+  status, Current / Diff / Backup comparison, Restore File / Restore All Files,
+  Clean Up (keep newest N) and Delete Selected. Recovery messages point to it.
 
 ### Fixed
 

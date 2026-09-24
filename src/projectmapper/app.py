@@ -29,12 +29,12 @@ import tkinter.font as tkFont
 if __package__:
     from .tree_view import TreeProjection
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                        TextToucherWindow, ProjectPatcherWindow)
+                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow)
     from .core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
 else:
     from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                       TextToucherWindow, ProjectPatcherWindow)
+                       TextToucherWindow, ProjectPatcherWindow, BackupsWindow)
     from core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
 # === [SECTION: IMPORTS] END ===
 
@@ -498,6 +498,8 @@ class ProjectMapperApp:
                     self.syncing_controls = False
         if event.type in ("failed", "recovery_required"):
             self.log_message(event.payload.get("error", {}).get("message", event.type), "ERROR")
+        if event.type == "recovery_required":
+            self.log_message("Open Backups… to review recovery and pre-restore generations.", "WARNING")
 
     def run_diagnostics(self):
         report = self.action("application.diagnostics")
@@ -633,6 +635,9 @@ class ProjectMapperApp:
         vendor_button.pack(side=tk.LEFT, padx=4)
         self.widgets["vendor_export_button"] = vendor_button
         self._make_button(btn_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=4)
+        self.widgets["backups_button"] = self._make_button(btn_row, "Backups…", self.open_backups,
+                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"])
+        self.widgets["backups_button"].pack(side=tk.RIGHT, padx=4)
         self._make_button(btn_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=4)
 
         control_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
@@ -803,6 +808,17 @@ class ProjectMapperApp:
         except (OSError, PatchError) as exc:
             self.report_error("Cannot open text editor", exc)
             return None
+
+    def open_backups(self):
+        """One Backups window at a time; raise the existing one."""
+        existing = getattr(self, "backups_window", None)
+        if existing is not None and existing.top.winfo_exists():
+            existing.top.deiconify()
+            existing.top.lift()
+            existing.refresh()
+            return existing
+        self.backups_window = BackupsWindow(self)
+        return self.backups_window
 
     def open_project_patcher(self, folder):
         try:

@@ -284,6 +284,21 @@ written last, so an interrupted backup is never mistaken for a usable one.
   its recorded SHA-256. Anything else in the store is ignored and never modified.
 - ProjectMapper no longer writes sibling `.bak` files, and it never touches existing ones.
 
+Click **Backups…** in the main window to open the Backups window (F5 refreshes):
+
+- The list shows every generation in the project and user stores, with its time,
+  scope, kind, file count, size and status. Recovery generations are highlighted;
+  incomplete or corrupt ones are shown in red and can never be restored or deleted.
+- Select a generation, then a file, to compare the **Current** file with the
+  **Backup** (and a coloured **Diff**).
+- **Restore File…** or **Restore All Files…** asks for approval. The current contents
+  are saved first as a `pre-restore` generation. If a file changed since you
+  selected it, or the backup no longer verifies, nothing is written.
+- **Clean Up…** deletes, after approval, all but the newest N `backup` and
+  `pre-restore` generations of the chosen store. Recovery generations are never
+  included; remove one only by selecting it and choosing **Delete Selected…**.
+  Nothing is ever deleted automatically.
+
 ## State, diagnostics, and maintenance
 
 Freshness is tracked in one project-state record shared by scans, exclusions,

@@ -205,6 +205,15 @@ class Controller:
         raise ActionError("invalid_input", "Backup scope must be 'project' or 'user'.")
 
     @staticmethod
+    def _as_text(data):
+        if data is None:
+            return None
+        try:
+            return data.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return None
+
+    @staticmethod
     def _bytes_diff(key, current, backup):
         try:
             before = "" if current is None else current.decode("utf-8-sig")
@@ -241,6 +250,7 @@ class Controller:
             current = path.read_bytes() if path.is_file() else None
             files.append({"target": key, "path": str(path), "current_exists": current is not None,
                           "identical": current == data, "diff": self._bytes_diff(key, current, data),
+                          "current_text": self._as_text(current), "backup_text": self._as_text(data),
                           "backup_size": len(data), "current_size": None if current is None else len(current)})
             bound.append({"key": key, "path": str(path), "backup_sha256": recorded[key]["sha256"],
                           "current_sha256": None if current is None else fingerprint(current),
@@ -312,7 +322,8 @@ class Controller:
         chosen = {g.id for g in routine[keep:]} | set(include)
         candidates = [g for g in verified if g.id in chosen]
         bound = [{"id": g.id, "fingerprint": store.fingerprint(g.id)} for g in candidates]
-        plan_id = self._store_plan("prune", {"scope": payload["scope"], "candidates": bound}) if candidates else None
+        plan_id = (self._store_plan("prune", {"scope": payload["scope"], "candidates": bound,
+                                              "bytes": sum(g.size for g in candidates)}) if candidates else None)
         return {"plan_id": plan_id, "bytes": sum(g.size for g in candidates),
                 "candidates": [{"id": g.id, "kind": g.kind, "size": g.size, "created_at": g.created_at,
                                 "files": len(g.files)} for g in candidates],
@@ -344,7 +355,7 @@ class Controller:
         more = f"\n… and {len(plan['candidates']) - 20} more" if len(plan["candidates"]) > 20 else ""
         return ApprovalPlan({"title": "Delete backup generations?",
                              "message": f"Permanently delete {len(plan['candidates'])} backup generation(s) "
-                                        f"from the {plan['scope']} store?\n\n{ids}{more}",
+                                        f"({plan['bytes']:,} bytes) from the {plan['scope']} store?\n\n{ids}{more}",
                              "paths": [str(store.directory / c["id"]) for c in plan["candidates"]]}, approved)
 
     def _delete(self, payload, context):

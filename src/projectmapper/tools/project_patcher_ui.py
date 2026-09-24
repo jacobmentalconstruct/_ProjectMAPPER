@@ -366,7 +366,8 @@ class ProjectPatcherWindow(ToolWindowMixin):
                 approval_guard=lambda: self.session == plan_id and self.inputs() == reviewed and self.backup.get() == backup)
             count = len(result.get("paths", []))
         except (OSError, PatchError) as exc:
-            self.status.set(f"Apply failed: {exc}")
+            hint = " Open Backups… in the main window to review the recovery backup." if "recovery backup" in str(exc) else ""
+            self.status.set(f"Apply failed: {exc}{hint}")
             self.set_button_enabled(self.apply_button, False, "accent")
             return
         self.app.log_message(f"Applied project patch to {count} file(s). Compile a new snapshot before exporting.")
