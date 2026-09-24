@@ -25,8 +25,8 @@ completed and parked (175 tests on Python 3.10/3.13/3.14); its record is
 retention, is completed and parked (233 tests on Python 3.10/3.13/3.14); its record
 is `.dev-log/06-backup-generations.md`. Phase 7, history and operational clarity, is
 completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
-`.dev-log/07-history-and-clarity.md`. Next is Phase 8, full acceptance, documentation
-and v1.0.0; it has not been opened yet.
+`.dev-log/07-history-and-clarity.md`. Phase 8, full acceptance, documentation and
+v1.0.0, is open; its entry record is `.dev-log/08-acceptance-and-v1.md` (awaiting owner review).
 
 ## Conventions
 

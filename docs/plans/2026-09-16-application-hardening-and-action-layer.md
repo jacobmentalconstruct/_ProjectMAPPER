@@ -11,7 +11,8 @@ completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
 Phase 6, backup generations, restore and retention, completed and parked 2026-09-24
 with 233 passing tests on Python 3.10/3.13/3.14. Phase 7, history and
 operational clarity, completed and parked 2026-09-24 with 271 passing tests on
-Python 3.10/3.13/3.14. Next: Phase 8, full acceptance, documentation and v1.0.0.
+Python 3.10/3.13/3.14. Phase 8, full acceptance, documentation and v1.0.0, is open
+(entry awaiting owner review).
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -63,6 +64,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | Phase 4 complete: clean repository; installable `projectmapper` package (`src/projectmapper/`, pyproject, gui-script entry point, no runtime dependencies); changelog; `v0.4.0` tagged and `main` pushed 2026-09-23. The pre-Phase-4 residue is recorded in `.dev-log/04-release-readiness.md`. macOS/Linux launch untested. | GitHub release/PyPI only with owner approval; v1.0.0 at Phase 8; consider cross-platform CI. |
 | Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
+| Acceptance evidence | Audited at Phase 8 entry against section 14. There is direct test evidence for most rows. Gaps with no direct evidence:<br>- G1: headless `snapshot.export`<br>- G2: recapture required after external file edits, additions or deletions<br>- G3: stale or incompatible snapshots refused as current<br>- G4: read, chmod and scratch-cleanup failure injection<br>- G5: cancellation during a project apply<br>- G6: diagnostics failure reporting<br>The UI-operation smoke map and the tracked final acceptance report do not exist yet. Unexplained test-environment events remain: the intermittent Tk start-up read failure, one silent 3.10 run, and one baseline-copy layout failure. | Close G1–G6 with tests; map every UI entry point to a check; explain or record the unexplained events; write `docs/acceptance/v1.0.0.md`. |
 
 ### Historical baseline issues — resolved, retained for context only
 
