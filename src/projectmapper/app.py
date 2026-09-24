@@ -48,6 +48,9 @@ else:
 
 
 
+MAX_LOG_LINES = 2000  # the main log keeps only recent lines; History keeps operations
+
+
 # === [SECTION: THEME] BEGIN ===
 THEME = {
     "app_bg": "#161A1F",
@@ -433,6 +436,11 @@ class ProjectMapperApp:
         self.editor_windows = weakref.WeakSet()
         self.syncing_controls = False
         self.controller.dispatcher.subscribe(lambda event: self.gui_queue.put(lambda: self.on_action_event(event)))
+        # Hidden failures (decision D): one concise log line; the traceback stays in History.
+        self.controller.history.subscribe(
+            lambda record: self.gui_queue.put(lambda: self._announce_problem(record))
+            if record["category"] == "internal" else None)
+        self.root.report_callback_exception = self._report_callback_exception
         self.root.bind("<Destroy>", self._destroy_actions, add="+")
         self.latest_snapshot_path = None
         self.latest_source_mtime = 0.0
@@ -469,7 +477,11 @@ class ProjectMapperApp:
 
     def on_action_event(self, event):
         if event.type == "progress":
-            self.log_message(event.payload.get("message", "Working"))
+            # Progress is counted in History; the log is not flooded with one line per update.
+            message = event.payload.get("message", "Working")
+            self.widgets["status_var"].set(message)
+            if self.current_progress_popup:
+                self.current_progress_popup.update_text(message)
         if event.type == "succeeded" and event.payload.get("paths"):
             for editor in tuple(self.editor_windows):
                 if editor.top.winfo_exists():
@@ -500,6 +512,18 @@ class ProjectMapperApp:
             self.log_message(event.payload.get("error", {}).get("message", event.type), "ERROR")
         if event.type == "recovery_required":
             self.log_message("Open Backups… to review recovery and pre-restore generations.", "WARNING")
+
+    def _report_callback_exception(self, exc_type, exc, tb):
+        """Tk-wide: button and event callbacks in every window of this interpreter."""
+        trace = "".join(traceback.format_exception(exc_type, exc, tb))
+        self.controller.history.record_problem("ui_callback", f"{exc_type.__name__}: {exc}", trace)
+
+    def _announce_problem(self, record):
+        try:
+            source = record["action"].split(".", 1)[1]
+            self.log_message(f"Internal problem ({source}): {record['error']['message']} — see History", "ERROR")
+        except Exception:
+            pass  # announcing must never raise back into the queue that reports failures
 
     def run_diagnostics(self):
         report = self.action("application.diagnostics")
@@ -1192,8 +1216,11 @@ class ProjectMapperApp:
         def runner():
             try:
                 target_function()
+            except PatchError as exc:
+                # A routine action failure; the operation itself is already in History.
+                self.schedule_log_message(f"{task_id}: {exc}", "ERROR")
             except Exception as exc:
-                self.schedule_log_message(f"CRASH in {task_id}: {exc}\n{traceback.format_exc()}", "CRITICAL")
+                self.controller.history.record_problem("worker", f"{task_id} failed: {exc}", traceback.format_exc())
             finally:
                 self.running_tasks.discard(task_id)
                 self.project_state.operation_finished(task_id)
@@ -1217,6 +1244,9 @@ class ProjectMapperApp:
         if log_box:
             log_box.config(state=tk.NORMAL)
             log_box.insert(tk.END, full_msg)
+            excess = int(log_box.index("end-1c").split(".")[0]) - 1 - MAX_LOG_LINES
+            if excess > 0:
+                log_box.delete("1.0", f"{excess + 1}.0")
             log_box.config(state=tk.DISABLED)
             log_box.see(tk.END)
         status = self.widgets.get("status_var")
@@ -1232,7 +1262,8 @@ class ProjectMapperApp:
             try:
                 callback()
             except Exception as exc:
-                self.log_message(f"UI callback failed: {exc}", "ERROR")
+                self.controller.history.record_problem("ui_queue", f"{type(exc).__name__}: {exc}",
+                                                       traceback.format_exc())
         self.root.after(100, self.process_gui_queue)
 # === [SECTION: THREADING_AND_LOGGING] END ===
 

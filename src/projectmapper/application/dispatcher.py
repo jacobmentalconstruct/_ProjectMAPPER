@@ -27,6 +27,7 @@ class Dispatcher:
         self._closed = False
         self._operation_limit = operation_limit
         self.observer_errors = deque(maxlen=32)
+        self.on_observer_error = None  # optional hook(trace), e.g. to record an internal problem
         self._local = threading.local()
 
     def register(self, name, handler):
@@ -75,7 +76,14 @@ class Dispatcher:
                     self._local.in_listener = True
                     listener(copy.deepcopy(event))
                 except Exception:
-                    self.observer_errors.append(traceback.format_exc())
+                    trace = traceback.format_exc()
+                    self.observer_errors.append(trace)
+                    hook = self.on_observer_error
+                    if hook is not None:
+                        try:
+                            hook(trace)
+                        except Exception:
+                            pass  # reporting must never break event delivery
                 finally:
                     self._local.in_listener = False
 

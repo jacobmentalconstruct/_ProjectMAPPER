@@ -80,6 +80,8 @@ class Controller:
         # Subscribed before any action exists, so every operation is recorded from its first event.
         self.history = OperationHistory()
         self.dispatcher.subscribe(self.history.observe)
+        self.dispatcher.on_observer_error = lambda trace: self.history.record_problem(
+            "listener", "An event listener failed", trace)
         self.lock = threading.RLock()
         self.scan_fn = scan_project_tree
         self.plans = {}

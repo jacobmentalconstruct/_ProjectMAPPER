@@ -16,6 +16,7 @@ TERMINAL = ("succeeded", "failed", "cancelled", "recovery_required")
 OUTCOMES = frozenset(TERMINAL + ("running", "awaiting_approval", "queued"))
 MAX_PATHS = 50
 MAX_TEXT = 2000
+MAX_TRACE = 8000
 _GENERATION = re.compile(r"\b\d{8}T\d{12}Z-[0-9a-z]{1,16}\b")
 # The history never records reading itself; a refreshing window would otherwise flood it.
 UNRECORDED = frozenset({"history.query"})
@@ -43,6 +44,7 @@ class OperationHistory:
         self._records = OrderedDict()
         self._lock = threading.Lock()
         self._listeners = []
+        self._problem_count = 0
 
     # --- recording -----------------------------------------------------
 
@@ -63,7 +65,7 @@ class OperationHistory:
             self._evict()
             snapshot = copy.deepcopy(record)
         for listener in tuple(self._listeners):
-            listener(snapshot)
+            self._notify(listener, snapshot)
 
     def _apply(self, record, event):
         payload = event.payload or {}
@@ -102,6 +104,37 @@ class OperationHistory:
             if error:
                 record["error"] = {"code": str(error.get("code", "")), "message": _clip(error.get("message", ""))}
                 self._add_generations(record, record["error"]["message"])
+
+    def record_problem(self, source, message, trace=""):
+        """Record an application-internal failure (listener, UI callback, worker) as a failed record.
+
+        The traceback is kept in ``detail`` for the History window; logs stay concise.
+        """
+        now = datetime.now().astimezone().isoformat()
+        with self._lock:
+            self._problem_count += 1
+            record = {
+                "id": f"internal-{self._problem_count}", "action": f"internal.{source}", "category": "internal",
+                "origin": "application", "status": "failed", "accepted_at": now, "started_at": now,
+                "finished_at": now, "duration_ms": 0, "approval": None, "approval_title": None,
+                "approval_message": None, "progress_count": 0, "last_progress": None, "paths": [], "count": None,
+                "error": {"code": "internal_error", "message": _clip(message)}, "generations": [],
+                "detail": str(trace)[-MAX_TRACE:]}
+            self._records[record["id"]] = record
+            self._evict()
+            snapshot = copy.deepcopy(record)
+        for listener in tuple(self._listeners):
+            self._notify(listener, snapshot)
+        return snapshot
+
+    @staticmethod
+    def _notify(listener, record):
+        # A failing presentation listener must not re-enter the dispatcher's error path,
+        # which would record a problem and notify the same listener again.
+        try:
+            listener(record)
+        except Exception:
+            pass
 
     @staticmethod
     def _add_paths(record, paths):

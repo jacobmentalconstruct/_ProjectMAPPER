@@ -39,8 +39,18 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
   status, Current / Diff / Backup comparison, Restore File / Restore All Files,
   Clean Up (keep newest N) and Delete Selected. Recovery messages point to it.
 
+- The main log keeps its most recent 2,000 lines, and progress updates go to the
+  status bar instead of one log line each.
+
 ### Fixed
 
+- Errors raised inside window callbacks were written to stderr, which the installed
+  app (`pythonw`) discards. They are now logged in one line and recorded in History
+  with the traceback. Event-listener failures and worker crashes are handled the
+  same way.
+- Routine action failures in background tasks (for example a compile refused
+  because a file changed) were logged as `CRASH` with a full traceback; they are now
+  one concise line.
 - A second backed-up save of the same file failed (`WinError 183`, `.bak` exists).
 - Any existing `.bak` file, even one the user made, blocked a whole project apply
   with backups on.
