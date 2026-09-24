@@ -220,22 +220,44 @@ paths:
 }
 ```
 
-Every file is validated against its original content first. The complete multi-file
-diff is shown before a blocking approval dialog. Missing, ambiguous, overlapping,
-duplicate, outside-root, `.parts/`, changed-hash, non-UTF-8, and binary targets stop
-the operation before any file is written. All validated files are rechecked before
-apply; a write failure triggers rollback of files already replaced. Project patches
-currently transform existing text files only. New files, deletions, renames, and
-binary operations remain separate tools.
+A new window starts with an empty manifest. **Copy Schema** copies a complete example
+to give a model or reviewer. **Add File…** inserts a safe relative entry with the
+file's current hash and a starter hunk (a line that occurs once in the file). If the
+untouched example is still in the manifest, it is replaced.
+
+**Validate / Preview** checks every file against its original content and reports all
+problems at once. Each message names its file and hunk, such as
+`c.py: Hunk 1: Search block not found.` Ambiguous, overlapping, changed-hash,
+non-UTF-8 and binary targets are reported per file. Malformed JSON, duplicate entries,
+missing files, and outside-root or `.parts/` paths reject the whole manifest.
+
+The review panel lists every file with its status (changed, no change, or error, plus
+"empty result" and "final newline" notes), additions, deletions and hunk count.
+Select a file to see its **Source**, colour-highlighted **Diff** and full **Result**.
+The current diff hunk is highlighted in all three views. Move with the ◀/▶ buttons or
+the keyboard, and the header shows your position, such as "File 2/5 · Hunk 1/3":
+
+| Key | Action |
+| --- | --- |
+| Alt+↓ / Alt+↑ | Next / previous file |
+| F8 / Shift+F8 | Next / previous hunk |
+| Ctrl+Enter | Validate |
+| Ctrl+Tab | Leave the manifest editor (Tab inserts a tab character there) |
+
+**Apply Project Patch** is available only when every file is valid, and it applies
+exactly the reviewed plan. The blocking approval dialog lists each file's +/− counts
+and the totals. Editing the manifest or options clears the review. All files are
+rechecked before writing; a write failure rolls back the files already replaced.
+Application is all-or-nothing: to leave out one change, remove it from the manifest
+and validate again. Project patches transform existing text files only. New files,
+deletions, renames and binary operations remain separate tools.
 
 The project patcher uses the same linked **&** action group as the single-file
 patcher. Unlinked, **Validate / Preview** and **Apply Project Patch** are separate
-steps. Linked, either button validates the complete manifest, displays the current
-diff, and proceeds to the approval dialog; a failed validation stops the chain.
-**Add File…** inserts a safe relative file entry into the manifest so larger patches
-can be authored incrementally without hand-writing every path.
-Enable **Keep .bak backups** when applying to retain the original bytes beside each
-changed file. Backups are created only after validation and before replacement.
+steps. Linked, either button validates the complete manifest and proceeds to the
+approval dialog; a failed validation stops the chain. Enable **Keep .bak backups**
+(beside Apply) to retain the original bytes beside each changed file. Backups are
+created only after validation and before replacement.
 
 ## State, diagnostics, and maintenance
 

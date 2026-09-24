@@ -1,5 +1,6 @@
 """Headless services exposed through named application actions."""
 
+from collections import Counter
 import hashlib
 from pathlib import Path
 import threading
@@ -349,9 +350,10 @@ class Controller:
         # An untouched copied example would otherwise make the first validation fail.
         manifest["files"] = [item for item in manifest["files"] if item != EXAMPLE_ENTRY]
         # Template: the first line that matches exactly once (as the engine matches); else the whole file.
-        contents = [line.strip(" \t") for line in session.source.splitlines()]
-        anchor = next((line for line, content in zip(session.source.splitlines(), contents)
-                       if content and contents.count(content) == 1), session.source)
+        lines = session.source.splitlines()
+        counts = Counter(line.strip(" \t") for line in lines)
+        anchor = next((line for line in lines if line.strip(" \t") and counts[line.strip(" \t")] == 1),
+                      session.source)
         manifest["files"].append({"path": relative, "sha256": fingerprint(session.original_bytes),
                                   "hunks": [{"description": "Describe the change", "search_block": anchor,
                                              "replace_block": anchor, "use_patch_indent": False}]})

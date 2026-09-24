@@ -19,8 +19,10 @@ acceptance record is `.dev-log/03-logical-tree-and-rendering.md`. The plan was
 revised on 2026-09-23 for public release: former Phases 4–7 are renumbered 5–8, with
 v1.0.0 at Phase 8, and Phase 9 adds CLI and MCP adapters. Phase 4, release readiness,
 is completed and parked (142 tests; tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23). Its
-record is `.dev-log/04-release-readiness.md`. Phase 5, project patch review, is open;
-its entry record is `.dev-log/05-project-patch-review.md`.
+record is `.dev-log/04-release-readiness.md`. Phase 5, project patch review, is
+completed and parked (175 tests on Python 3.10/3.13/3.14); its record is
+`.dev-log/05-project-patch-review.md`. Next is Phase 6, backup generations, restore
+and retention; it has not been opened yet.
 
 ## Conventions
 

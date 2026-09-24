@@ -6,9 +6,11 @@ Status: **Phases 0–3 completed and parked (Phase 3: 124 passing tests, measure
 scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
 2026-09-23 for release. Phase 4, release readiness, completed and parked
 2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
-tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review, is open.
+tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review,
+completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
+Next: Phase 6, backup generations, restore and retention.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
-acceptance. See the decision log (section 17) and `.dev-log/04-release-readiness.md`.**
+acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
 Implementation was authorized after the initial planning review. Later tranches remain
 subject to their entry records, implementation/review cycles and acceptance gates.
@@ -50,7 +52,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Add later backup/history operations through the same seam. CLI/MCP adapters follow in Phase 9. |
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
-| Project patches | The UI has JSON authoring, Add File, combined diff, linked actions, and apply approval. | Add per-file status and source/diff/result views with hunk navigation. |
+| Project patches | Phase 5 complete: all-files validation with per-file errors, review list, Source/Diff/Result views, hunk navigation, keyboard shortcuts, approval with per-file counts. | Keep complete-manifest application; per-hunk apply stays deferred. |
 | Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
 | Testing | Phase 4 acceptance: 142 regressions pass on Python 3.10, 3.13 and 3.14, plus two explicit benchmarks. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Extend coverage for Phases 5–7 and 9; whole-application acceptance in Phase 8. |
@@ -631,13 +633,24 @@ artifacts verified in clean locations. No outward publication without approval.
 
 ### Phase 5 — Patch review
 
-- [ ] Implement file review list, shared view components and hunk navigation.
-- [ ] Improve manifest initialization/Add File and per-file validation feedback.
-- [ ] Connect linked controls and approval to immutable validated plans.
-- [ ] Test stale edits, empty replacements, no-ops and multi-file failures.
-- [ ] Verify minimum-size layout, keyboard navigation and dark theme.
+- [x] Implement file review list, shared view components and hunk navigation.
+- [x] Improve manifest initialization/Add File and per-file validation feedback.
+- [x] Connect linked controls and approval to immutable validated plans.
+- [x] Test stale edits, empty replacements, no-ops and multi-file failures.
+- [x] Verify minimum-size layout, keyboard navigation and dark theme.
 
 Gate: users can inspect every file/hunk and apply only the exact current approved plan.
+
+Accepted 2026-09-23: 175 regression tests passed on Python 3.14.2, 3.13.6 and 3.10.6.
+- **Validation:** every file is validated together; errors name file and hunk; a
+  plan is issued only for a fully valid manifest.
+- **Review:** per-file list, Source/Diff/Result views with highlighted diffs, and
+  keyboard hunk/file navigation.
+- **Layout:** a measured minimum-size check shows 0 problems in both patcher windows;
+  screenshots were inspected on screen, and theme defects found there were fixed.
+- **Unchanged:** all pre-existing apply, approval and rollback tests pass unchanged.
+
+Evidence and residual limits are in `.dev-log/05-project-patch-review.md`.
 
 ### Phase 6 — Backup generations, restore and retention
 

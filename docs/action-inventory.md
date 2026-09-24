@@ -24,6 +24,16 @@ headless in-process clients. This is not a CLI/MCP transport or a process sandbo
 | Single-file preview / Apply to Result / Save | patch.validate / patch.result / patch.save |
 | Project Add File / preview / Apply | project_patch.add_entry / project_patch.validate / project_patch.apply |
 
+Phase 5 contract notes (2026-09-23):
+- `project_patch.validate` succeeds whenever the manifest itself is well formed and
+  returns `valid`, `errors` and per-file outcomes (status, error, counts, diff hunks,
+  flags). `plan_id` is `null` unless every file is valid. Manifest-level errors
+  (JSON, duplicates, unsafe or missing paths) still fail the action.
+- `patch.schema` with `project: true` returns the full example manifest.
+- `project_patch.apply` approval summaries include per-file and total +/− counts.
+- Review selection, hunk navigation and highlighting are presentation-only; they
+  never change the plan.
+
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.
 

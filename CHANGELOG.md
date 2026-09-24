@@ -2,6 +2,35 @@
 
 All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.python.org/pep-0440/).
 
+## Unreleased
+
+### Added
+
+- **Project patch review**: a per-file list with status, +/− and hunk counts;
+  Source / Diff / Result views; diff-hunk navigation with a position indicator and
+  highlighting in all three views; keyboard shortcuts (Alt+↑/↓, F8/Shift+F8, Ctrl+Enter).
+- Colour-highlighted diffs in both patchers. Lines are classified by hunk line counts,
+  so content such as `--- comment` is never shown as a file header.
+
+### Changed
+
+- Project patch validation reports every file's problems at once, each naming its
+  file and hunk; Apply is still available only when the whole manifest is valid.
+  `project_patch.validate` returns the full review (`valid`, `errors`, per-file
+  outcomes) and issues a plan only when valid.
+- The approval dialog lists per-file and total +/− counts.
+- New Project Patcher windows start with an empty manifest; **Copy Schema** copies the
+  full example; **Add File…** replaces an untouched example and uses a unique-line
+  hunk template instead of the whole file.
+- **Keep .bak backups** moved beside Apply. Disabled action buttons are greyed, and
+  editor scrollbars follow the dark theme.
+
+### Fixed
+
+- **Add File…** on a new Project Patcher window produced a manifest that failed
+  validation on the built-in example entry.
+- **Keep .bak backups** and the review position were cut off at the minimum window size.
+
 ## 0.4.0 — 2026-09-23
 
 The first release since the single-file 0.3.0 snapshot compiler. ProjectMapper now
