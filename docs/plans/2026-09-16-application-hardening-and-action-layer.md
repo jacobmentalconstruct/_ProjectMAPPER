@@ -10,7 +10,8 @@ tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch revi
 completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
 Phase 6, backup generations, restore and retention, completed and parked 2026-09-24
 with 233 passing tests on Python 3.10/3.13/3.14. Phase 7, history and
-operational clarity, is open (entry approved 2026-09-24; in progress).
+operational clarity, completed and parked 2026-09-24 with 271 passing tests on
+Python 3.10/3.13/3.14. Next: Phase 8, full acceptance, documentation and v1.0.0.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -56,9 +57,9 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | Phase 5 complete: all-files validation with per-file errors, review list, Source/Diff/Result views, hunk navigation, keyboard shortcuts, approval with per-file counts. | Keep complete-manifest application; per-hunk apply stays deferred. |
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Text editor saves and Save As offer no backup yet; consider in Phase 8. |
-| History | Dispatcher emits ordered events into a raw 1,000-event buffer; the desktop presents a free-text log. Reproduced at Phase 7 entry: a 12,000-file compile leaves 999 progress events of 1,000 retained, evicting every earlier operation; listener exceptions are collected but never surfaced; Tk callback exceptions go only to stderr (lost under `pythonw`); errors use 16 codes plus raw `action_failed` text, formatted differently per window. | Per-operation bounded history with coalesced progress; surfaced internal failures; one error-wording catalogue; a History window. |
+| History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | No minimum size and non-wrapping control rows. Measured 2026-09-24: all controls fit at the default 1200×850; Open Output Folder, Exclusions and Rescan are clipped at 1024×700 (more at 900×650). The tool windows pass their own minimum-size checks. | Fix in the Phase 8 layout checks: wrapping rows or a justified minimum size, with a measured test like the tool windows'. |
-| Testing | Phase 6 acceptance: 233 regressions pass on Python 3.10, 3.13 and 3.14 (exit codes captured), plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Extend coverage for Phases 7 and 9; whole-application acceptance in Phase 8. |
+| Testing | Phase 7 acceptance: 271 regressions pass on Python 3.10, 3.13 and 3.14 (exit codes captured), plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Whole-application acceptance in Phase 8; coverage for Phase 9. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | Phase 4 complete: clean repository; installable `projectmapper` package (`src/projectmapper/`, pyproject, gui-script entry point, no runtime dependencies); changelog; `v0.4.0` tagged and `main` pushed 2026-09-23. The pre-Phase-4 residue is recorded in `.dev-log/04-release-readiness.md`. macOS/Linux launch untested. | GitHub release/PyPI only with owner approval; v1.0.0 at Phase 8; consider cross-platform CI. |
 | Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
@@ -684,13 +685,27 @@ Evidence and residual limits are in `.dev-log/06-backup-generations.md`.
 
 ### Phase 7 — History and operational clarity
 
-- [ ] Add bounded event-backed history and filters/detail view.
-- [ ] Connect validation, apply, restore, rollback, capture and export events.
-- [ ] Standardize error display and surface observer/callback failures.
-- [ ] Verify two clients see the same operation and state transitions.
+- [x] Add bounded event-backed history and filters/detail view.
+- [x] Connect validation, apply, restore, rollback, capture and export events.
+- [x] Standardize error display and surface observer/callback failures.
+- [x] Verify two clients see the same operation and state transitions.
 
 Gate: history explains what happened and what needs attention without exposing
 file contents or duplicating authoritative state.
+
+Accepted 2026-09-24: 271 regression tests passed on Python 3.14.2, 3.13.6 and 3.10.6
+(exit codes captured).
+- **History:** a per-operation, bounded, content-free session history that progress
+  floods cannot evict (`history.query`).
+- **Hidden failures surfaced:** listener failures, Tk callback exceptions,
+  GUI-queue failures and worker crashes produce a log line plus an internal record.
+- **Error wording:** one catalogue, with a test that scans the source syntax tree.
+- **History window:** filters, details, a Backups link and live updates, checked by
+  measurement, keyboard traversal and pixel-verified screenshots.
+- **Cost:** no measurable overhead (a 3,000-file compile took 3.37s with the history
+  versus 3.47s without).
+
+Evidence and residual limits are in `.dev-log/07-history-and-clarity.md`.
 
 ### Phase 8 — Full acceptance, documentation and v1.0.0
 
