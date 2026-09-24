@@ -71,6 +71,10 @@ Phase 7 contract notes (2026-09-24):
   instead of `action_failed`. `OSError` stays `io_error`; everything else stays
   `action_failed`.
 - Internal problems recorded in History use `internal_error`.
+- Event addition: an `accepted` event now carries `{"target": {...}}` holding only the
+  whitelisted string request fields `path`, `root`, `folder`, `generation` and `scope`
+  (each ≤4,096 characters), so failed operations still show their target. Text,
+  manifests and patches never appear in events.
 
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.

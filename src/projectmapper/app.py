@@ -29,12 +29,12 @@ import tkinter.font as tkFont
 if __package__:
     from .tree_view import TreeProjection
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow)
+                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
     from .core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
 else:
     from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                       TextToucherWindow, ProjectPatcherWindow, BackupsWindow)
+                       TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
     from core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
 # === [SECTION: IMPORTS] END ===
 
@@ -719,6 +719,14 @@ class ProjectMapperApp:
         self._make_button(control_row, "Exclusions", self.manage_exclusions_popup, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=2)
         self._make_button(control_row, "Rescan", self.request_rescan_tree, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.RIGHT, padx=2)
 
+        log_header = tk.Frame(action_frame, bg=THEME["panel_bg"])
+        log_header.pack(fill=tk.X, padx=5, pady=(4, 0))
+        tk.Label(log_header, text="LOG (recent lines; operations are kept in History)", bg=THEME["panel_bg"],
+                 fg=THEME["muted_text"], font=("Arial", 9)).pack(side=tk.LEFT)
+        self.widgets["history_button"] = self._make_button(log_header, "History…", self.open_history,
+                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"])
+        self.widgets["history_button"].pack(side=tk.RIGHT)
+
         self.widgets["log_box"] = scrolledtext.ScrolledText(
             action_frame,
             bg=THEME["log_bg"],
@@ -845,6 +853,17 @@ class ProjectMapperApp:
             return existing
         self.backups_window = BackupsWindow(self)
         return self.backups_window
+
+    def open_history(self):
+        """One History window at a time; raise the existing one."""
+        existing = getattr(self, "history_window", None)
+        if existing is not None and existing.top.winfo_exists():
+            existing.top.deiconify()
+            existing.top.lift()
+            existing.refresh()
+            return existing
+        self.history_window = HistoryWindow(self)
+        return self.history_window
 
     def open_project_patcher(self, folder):
         try:

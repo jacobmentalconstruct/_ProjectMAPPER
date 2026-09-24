@@ -59,6 +59,12 @@ class ToolWindowMixin:
         style.map("Review.TNotebook.Tab",
                   background=[("selected", colors["secondary"]), ("active", colors["heading_bg"])],
                   foreground=[("selected", colors["text"]), ("active", colors["text"])])
+        # clam draws the arrow box and frame with its own light/border colours unless set here.
+        style.configure("Review.TCombobox", fieldbackground=colors["field_bg"], background=colors["panel_alt_bg"],
+                        foreground=colors["text"], arrowcolor=colors["text"], bordercolor=colors["panel_alt_bg"],
+                        lightcolor=colors["panel_alt_bg"], darkcolor=colors["panel_alt_bg"])
+        style.map("Review.TCombobox", fieldbackground=[("readonly", colors["field_bg"])],
+                  foreground=[("readonly", colors["text"])], selectbackground=[("readonly", colors["selection"])])
 
     def add_view(self, notebook, name):
         """Add a read-only text tab to a review notebook and return its text box."""

@@ -35,6 +35,9 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 - Session **operation history** (`history.query`): one record per operation from any
   client, with outcome, duration, approval, affected paths, errors and backup
   references; progress is counted, not listed, so it cannot push other operations out.
+- **History window** (log panel → **History…**): filter by category, outcome and
+  text; live updates; details with the labelled error, approval, paths, backup
+  references (with **Open Backups…**) and tracebacks for internal problems.
 - **Backups window** (main window → **Backups…**): generation list with integrity
   status, Current / Diff / Backup comparison, Restore File / Restore All Files,
   Clean Up (keep newest N) and Delete Selected. Recovery messages point to it.

@@ -10,6 +10,9 @@ from uuid import uuid4
 
 from .contracts import ActionError, ApprovalPlan, Context, Event, Request, Result, TERMINAL
 
+# Request fields that may appear in events: they name a target and never carry file content.
+TARGET_KEYS = ("path", "root", "folder", "generation", "scope")
+
 
 class Dispatcher:
     def __init__(self, *, history_limit=1000, operation_limit=4096):
@@ -116,7 +119,10 @@ class Dispatcher:
                          "cancel": threading.Event(), "plan": None, "settled": False}
             self._operations[operation_id] = operation
             self._requests[request.request_id] = operation_id, signature
-        self._emit(operation, "accepted")
+        # Only whitelisted, content-free request fields identify the target (never text or manifests).
+        target = {key: request.payload[key] for key in TARGET_KEYS
+                  if isinstance(request.payload.get(key), str) and len(request.payload[key]) <= 4096}
+        self._emit(operation, "accepted", {"target": target} if target else {})
         with self._lock:
             closed = self._closed
             if not closed:

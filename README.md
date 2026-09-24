@@ -299,6 +299,32 @@ Click **Backups…** in the main window to open the Backups window (F5 refreshes
   included; remove one only by selecting it and choosing **Delete Selected…**.
   Nothing is ever deleted automatically.
 
+## History and errors
+
+Click **History…** in the log panel header to see what happened this session. Every
+operation is listed once, newest first, whether it came from the desktop or another
+client. Each row shows its time, action, origin, status (including whether an approval
+was approved or denied), duration and target. Failed and recovery-required operations
+are highlighted, and the status line counts those that need attention.
+
+- Filter by **Category**, **Outcome** or text (**Contains** matches the action, paths,
+  origin, error text and backup names). F5 or **Refresh** reloads; **Clear** resets
+  the filters. The list also updates by itself while the window is open.
+- Select an operation to see its details: the labelled error and its code, approval,
+  progress count, affected paths, and any backup generations named. **Open Backups…**
+  jumps to the Backups window when a generation is named.
+- History is kept for the session only (the most recent 500 operations; unfinished
+  ones are never dropped). It records outcomes and paths, never file contents. A long
+  operation's progress is counted rather than listed, so it cannot push other
+  operations out.
+- Unexpected internal failures (a window callback, a background task, an event
+  listener) appear as `internal` operations with the traceback in their details, plus
+  one log line; nothing pops up.
+
+Error messages read "Label: detail", for example "The file changed on disk: …", with
+one label per error code. The main log keeps its most recent 2,000 lines; progress is
+shown in the status bar rather than the log.
+
 ## State, diagnostics, and maintenance
 
 Freshness is tracked in one project-state record shared by scans, exclusions,

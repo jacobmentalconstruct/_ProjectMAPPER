@@ -72,6 +72,10 @@ class OperationHistory:
         kind = event.type
         if kind == "accepted":
             record["accepted_at"] = event.time
+            target = payload.get("target") or {}
+            self._add_paths(record, [target[key] for key in ("path", "folder", "root") if target.get(key)])
+            if target.get("generation"):
+                self._add_generations(record, target["generation"])
         elif kind == "started":
             record["status"] = "running"
             record["started_at"] = record["started_at"] or event.time
@@ -120,6 +124,7 @@ class OperationHistory:
                 "approval_message": None, "progress_count": 0, "last_progress": None, "paths": [], "count": None,
                 "error": {"code": "internal_error", "message": _clip(message)}, "generations": [],
                 "detail": str(trace)[-MAX_TRACE:]}
+            self._add_generations(record, record["error"]["message"])
             self._records[record["id"]] = record
             self._evict()
             snapshot = copy.deepcopy(record)

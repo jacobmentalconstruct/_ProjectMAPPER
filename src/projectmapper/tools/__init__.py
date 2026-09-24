@@ -8,7 +8,7 @@ _MODULES = {
     "ProjectPatchSession": "project_patcher", "project_patch_diff": "project_patcher",
     "ProjectPatcherWindow": "project_patcher_ui", "TextEditorWindow": "text_editor",
     "TextToucherWindow": "text_toucher", "create_text_file": "text_toucher", "file_name": "text_toucher",
-    "BackupsWindow": "backups_ui",
+    "BackupsWindow": "backups_ui", "HistoryWindow": "history_ui",
 }
 
 
@@ -21,6 +21,6 @@ def __getattr__(name):
 
 __all__ = [
     "PatchError", "PatchSession", "PatcherWindow", "ProjectPatchSession", "ProjectPatcherWindow",
-    "TextEditorWindow", "TextToucherWindow", "BackupsWindow",
+    "TextEditorWindow", "TextToucherWindow", "BackupsWindow", "HistoryWindow",
     "apply_patch_text", "create_text_file", "file_name", "project_patch_diff", "validate_target",
 ]
