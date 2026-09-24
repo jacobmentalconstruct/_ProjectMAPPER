@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import difflib
+import re
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,38 @@ class DiffFile:
         return [{"original_start": group[0][1], "original_end": group[-1][2],
                  "patched_start": group[0][3], "patched_end": group[-1][4]}
                 for group in matcher.get_grouped_opcodes(3)] if self.changed else []
+
+
+_HUNK_HEADER = re.compile(r"@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@")
+
+
+def diff_line_kinds(text):
+    """Classify unified-diff lines as header, hunk, add, remove or None (context).
+
+    Lines inside a hunk are classified by the hunk's line counts, so content such as
+    a removed "-- comment" (shown as "--- comment") is never mistaken for a file header.
+    """
+    kinds, old, new = [], 0, 0
+    for line in text.split("\n"):
+        if old > 0 or new > 0:
+            if line.startswith("-"):
+                kinds.append("remove")
+                old -= 1
+            elif line.startswith("+"):
+                kinds.append("add")
+                new -= 1
+            else:
+                kinds.append(None)
+                old, new = old - 1, new - 1
+            continue
+        match = _HUNK_HEADER.match(line)
+        if match:
+            old = 1 if match[1] is None else int(match[1])
+            new = 1 if match[2] is None else int(match[2])
+            kinds.append("hunk")
+        else:
+            kinds.append("header" if line.startswith(("--- ", "+++ ")) else None)
+    return kinds
 
 
 def unified_diff_text(files):

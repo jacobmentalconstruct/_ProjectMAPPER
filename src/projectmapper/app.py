@@ -79,6 +79,11 @@ THEME = {
     "checkbox_border": "#728195",
     "log_text": "#E1E7EE",
     "log_accent": "#89D6A0",
+    # Diff highlighting on tree_bg; each is at least 7:1 contrast (WCAG AAA).
+    "diff_header": "#9DB7D5",
+    "diff_hunk": "#C4A5EA",
+    "diff_add": "#8FD6A8",
+    "diff_remove": "#F0A096",
 }
 # === [SECTION: THEME] END ===
 

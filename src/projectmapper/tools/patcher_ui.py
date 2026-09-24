@@ -41,7 +41,7 @@ class PatcherWindow(ToolWindowMixin):
         self.actions_linked = False
         self.top = tk.Toplevel(app.root)
         self.configure_tool_window(f"Tokenizing Patcher — {self.session.path.name}", "1100x780", (760, 550))
-        self.setup_styles()
+        self.setup_review_styles()
         self.top.protocol("WM_DELETE_WINDOW", self.close)
         self.path_label = self.label(self.top, text=str(self.session.path), wraplength=1000)
         self.path_label.pack(fill="x", padx=12, pady=8)
@@ -53,13 +53,13 @@ class PatcherWindow(ToolWindowMixin):
         self.force_indent = tk.BooleanVar(self.top, False)
         self.checkbutton(toolbar, "Force patch indentation", self.force_indent,
                          self.invalidate).pack(side="left", padx=12)
-        panes = ttk.Panedwindow(self.top, orient="horizontal", style="Patcher.TPanedwindow")
+        panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=10)
-        self.views = ttk.Notebook(panes, style="Patcher.TNotebook")
+        self.views = ttk.Notebook(panes, style="Review.TNotebook")
         panes.add(self.views, weight=1)
-        self.source_box = self.add_view("Source")
-        self.diff_box = self.add_view("Diff preview")
-        self.result_box = self.add_view("Result")
+        self.source_box = self.add_view(self.views, "Source")
+        self.diff_box = self.add_view(self.views, "Diff preview")
+        self.result_box = self.add_view(self.views, "Result")
         right = self.frame(panes)
         panes.add(right, weight=1)
         self.label(right, text="JSON PATCH", panel=True).pack(anchor="w", padx=8, pady=(6, 2))
@@ -102,37 +102,6 @@ class PatcherWindow(ToolWindowMixin):
                  font=("Arial", 10), padx=10, pady=8).pack(
             side="bottom", fill="x", padx=12, pady=10, before=footer)
         self.show_text(self.source_box, self.session.source)
-
-    def add_view(self, name):
-        frame = self.frame(self.views)
-        box = self.editor(frame)
-        box.pack(fill="both", expand=True)
-        self.views.add(frame, text=name)
-        return box
-
-    def setup_styles(self):
-        colors = self.colors
-        style = ttk.Style(self.top)
-        # Scoped styles leave ProjectMapper and other windows' ttk defaults alone.
-        style.configure("Patcher.TPanedwindow", background=colors["app_bg"])
-        style.configure("Patcher.TNotebook", background=colors["panel_bg"], borderwidth=0)
-        style.configure("Patcher.TNotebook.Tab", background=colors["panel_alt_bg"],
-                        foreground=colors["muted_text"], padding=(12, 7), font=("Arial", 10))
-        style.map("Patcher.TNotebook.Tab",
-                  background=[("selected", colors["secondary"]), ("active", colors["heading_bg"])],
-                  foreground=[("selected", colors["text"]), ("active", colors["text"])])
-        style.configure("Patcher.Vertical.TScrollbar", background=colors["panel_alt_bg"],
-                        troughcolor=colors["log_bg"], arrowcolor=colors["muted_text"],
-                        bordercolor=colors["panel_bg"], lightcolor=colors["panel_alt_bg"],
-                        darkcolor=colors["panel_alt_bg"])
-        style.map("Patcher.Vertical.TScrollbar", background=[("active", colors["secondary"])])
-
-    @staticmethod
-    def show_text(box, text):
-        box.config(state="normal")
-        box.delete("1.0", "end")
-        box.insert("1.0", text)
-        box.config(state="disabled")
 
     def inputs(self):
         return self.patch_box.get("1.0", "end-1c"), self.force_indent.get()
@@ -192,7 +161,7 @@ class PatcherWindow(ToolWindowMixin):
             diff = "\n".join(difflib.unified_diff(
                 self.session.source.splitlines(), self.preview.splitlines(),
                 fromfile=str(self.session.path), tofile="patched result", lineterm=""))
-            self.show_text(self.diff_box, diff or "(No differences)")
+            self.show_diff(self.diff_box, diff or "(No differences)")
             self.views.select(1)
             self.refresh_action_group()
             summary = diff_summary((DiffFile(str(self.session.path), self.session.source, self.preview),))

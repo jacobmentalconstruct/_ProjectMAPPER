@@ -3,6 +3,13 @@
 import tkinter as tk
 from tkinter import scrolledtext, ttk
 
+try:
+    from ..core.diff import diff_line_kinds
+except ImportError:
+    from core.diff import diff_line_kinds
+
+DIFF_KINDS = ("header", "hunk", "add", "remove")  # Theme tokens are "diff_<kind>".
+
 
 class ToolWindowMixin:
     def configure_tool_window(self, title, geometry, minimum):
@@ -34,6 +41,42 @@ class ToolWindowMixin:
                               bg=self.colors["panel_bg"], fg=self.colors["text"],
                               selectcolor=self.colors["tree_bg"], activebackground=self.colors["panel_bg"],
                               activeforeground=self.colors["text"], font=("Arial", 10))
+
+    def setup_review_styles(self):
+        """Scoped styles for review panes and tabs; other windows' ttk defaults are untouched."""
+        colors = self.colors
+        style = ttk.Style(self.top)
+        style.configure("Review.TPanedwindow", background=colors["app_bg"])
+        style.configure("Review.TNotebook", background=colors["panel_bg"], borderwidth=0)
+        style.configure("Review.TNotebook.Tab", background=colors["panel_alt_bg"],
+                        foreground=colors["muted_text"], padding=(12, 7), font=("Arial", 10))
+        style.map("Review.TNotebook.Tab",
+                  background=[("selected", colors["secondary"]), ("active", colors["heading_bg"])],
+                  foreground=[("selected", colors["text"]), ("active", colors["text"])])
+
+    def add_view(self, notebook, name):
+        """Add a read-only text tab to a review notebook and return its text box."""
+        frame = self.frame(notebook)
+        box = self.editor(frame)
+        box.pack(fill="both", expand=True)
+        notebook.add(frame, text=name)
+        return box
+
+    @staticmethod
+    def show_text(box, text):
+        box.config(state="normal")
+        box.delete("1.0", "end")
+        box.insert("1.0", text)
+        box.config(state="disabled")
+
+    def show_diff(self, box, text):
+        """Show unified-diff text with file headers, hunk headers, additions and removals tagged."""
+        self.show_text(box, text)
+        for kind in DIFF_KINDS:
+            box.tag_configure(f"diff_{kind}", foreground=self.colors[f"diff_{kind}"])
+        for number, kind in enumerate(diff_line_kinds(text), 1):
+            if kind:
+                box.tag_add(f"diff_{kind}", f"{number}.0", f"{number}.end")
 
     def editor(self, parent, editable=False, background=None):
         box = scrolledtext.ScrolledText(
