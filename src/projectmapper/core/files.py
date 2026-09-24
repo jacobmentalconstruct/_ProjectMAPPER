@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 import os
-from .writes import stage_bytes
+from .writes import discard_scratch, stage_bytes
 from .paths import PathSafetyError as PatchError, validate_target
 
 EXTENSIONS = (".txt", ".py", ".md", ".json", ".csv", ".log", ".bat", ".sh", ".yaml", "(None)")
@@ -38,7 +38,7 @@ def create_text_file(folder, name, content, extension=".txt", timestamp=False):
     try:
         os.link(scratch, path)
     finally:
-        scratch.unlink(missing_ok=True)
+        discard_scratch(scratch)
     return path
 
 

@@ -641,6 +641,12 @@ class Controller:
             raise ActionError("stale_snapshot", self.state.explain_export_block())
         path = self.state.snapshot_path or self.state.root / OUTPUT_ROOT_NAME / f"{self.state.root.name}_{snapshots.SNAPSHOT_DB_SUFFIX}"
         metadata = snapshots.load_snapshot_metadata(path)
+        if not metadata:
+            raise ActionError("stale_snapshot", "No readable snapshot for this project. Compile one first.")
+        found = metadata.get("snapshot_schema_version")
+        if found != snapshots.SNAPSHOT_SCHEMA_VERSION:
+            raise ActionError("stale_snapshot", f"Snapshot format {found or 'unknown'} is not supported by this "
+                              f"version of ProjectMapper (expects {snapshots.SNAPSHOT_SCHEMA_VERSION}). Compile again.")
         if Path(metadata.get("source_root_absolute_path", "")) != self.state.root:
             raise ActionError("stale_snapshot", "Snapshot belongs to another project.")
         if not snapshots.snapshot_matches(path, self.state.root, self.policy, self.selection, self.include_binary):

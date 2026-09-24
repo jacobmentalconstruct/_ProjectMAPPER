@@ -6,6 +6,16 @@ import stat
 import tempfile
 
 
+def discard_scratch(path):
+    """Remove a scratch file if present. Never raises: a cleanup failure must not mask
+    the outcome it follows. Returns False when the file could not be removed."""
+    try:
+        Path(path).unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
 def stage_bytes(destination, data, mode=None, prefix=".projectmapper-"):
     destination = Path(destination)
     scratch = None
@@ -21,8 +31,8 @@ def stage_bytes(destination, data, mode=None, prefix=".projectmapper-"):
             os.chmod(scratch, mode)
         return scratch
     except Exception:
-        if scratch is not None and scratch.exists():
-            scratch.unlink()
+        if scratch is not None:
+            discard_scratch(scratch)
         raise
 
 
@@ -33,5 +43,4 @@ def atomic_write_bytes(destination, data, mode=None, prefix=".projectmapper-"):
         os.replace(scratch, destination)
         return destination
     finally:
-        if scratch.exists():
-            scratch.unlink()
+        discard_scratch(scratch)

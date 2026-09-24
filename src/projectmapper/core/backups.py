@@ -19,7 +19,7 @@ import sys
 from uuid import uuid4
 
 from .config import OUTPUT_ROOT_NAME
-from .writes import stage_bytes
+from .writes import discard_scratch, stage_bytes
 
 FORMAT = "projectmapper-backup"
 VERSION = 1
@@ -90,7 +90,7 @@ def _write_blob(path, data, mode):
     try:
         os.link(scratch, path)  # exclusive: never replaces an existing name
     finally:
-        scratch.unlink(missing_ok=True)
+        discard_scratch(scratch)
 
 
 class BackupStore:

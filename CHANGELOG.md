@@ -51,6 +51,12 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 
 ### Fixed
 
+- A snapshot written in an unsupported format version (`snapshot_schema_version`)
+  could be exported as current; it is now refused as out of date. A missing or
+  unreadable snapshot now says so, instead of claiming it belongs to another project.
+- When a write failed and removing its temporary file also failed, the cleanup error
+  was reported instead of the real cause. Cleanup failures no longer mask the outcome
+  (single-file saves, atomic writes, staging, backup blobs, new files).
 - Errors raised inside window callbacks were written to stderr, which the installed
   app (`pythonw`) discards. They are now logged in one line and recorded in History
   with the traceback. Event-listener failures and worker crashes are handled the

@@ -7,10 +7,10 @@ import re
 import stat
 
 try:
-    from ..core.writes import stage_bytes
+    from ..core.writes import discard_scratch, stage_bytes
     from ..core.paths import PathSafetyError as PatchError, validate_target
 except ImportError:
-    from core.writes import stage_bytes
+    from core.writes import discard_scratch, stage_bytes
     from core.paths import PathSafetyError as PatchError, validate_target
 
 
@@ -139,5 +139,5 @@ class PatchSession:
             self.source = result
             return destination
         finally:
-            if scratch is not None and scratch.exists():
-                scratch.unlink()
+            if scratch is not None:
+                discard_scratch(scratch)
