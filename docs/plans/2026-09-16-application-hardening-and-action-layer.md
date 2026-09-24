@@ -6,7 +6,7 @@ Status: **Phases 0–3 completed and parked (Phase 3: 124 passing tests, measure
 scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
 2026-09-23 for release. Phase 4, release readiness, completed and parked
 2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
-tagged `v0.4.0` locally (not published). Next: Phase 5, project patch review.
+tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review, is open.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and `.dev-log/04-release-readiness.md`.**
 
@@ -53,9 +53,9 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Project patches | The UI has JSON authoring, Add File, combined diff, linked actions, and apply approval. | Add per-file status and source/diff/result views with hunk navigation. |
 | Recovery | Optional `.bak` siblings exist; the fixed name can replace an earlier backup. | Provide identifiable generations, restoration preview/approval, and ownership-aware retention. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
-| Testing | Phase 3 acceptance passed 124 regressions and two explicit benchmarks; re-verified 2026-09-23 before commit. pytest is not installed in the project `.venv`. | Declare development dependencies; extend coverage for Phases 4–7 and 9; whole-application acceptance in Phase 8. |
+| Testing | Phase 4 acceptance: 142 regressions pass on Python 3.10, 3.13 and 3.14, plus two explicit benchmarks. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Extend coverage for Phases 5–7 and 9; whole-application acceptance in Phase 8. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
-| Repository/release | One pre-revival commit plus Tranche 3. `requirements.txt` names the unrelated PyPI `tk` package; Node `package-lock.json` residue; tracked ignored `manual-fixture/x.txt`; tracked `.parts/` file deleted in the working tree; `setup_env.bat` names a nonexistent `scripts_menu.py`. The top-level package is named `src`; launch is Windows `.bat` or `python -m src.app`. No pyproject, changelog or tagged release. | Clean repository, standard installable package and entry point, documented install, changelog, versioned releases. |
+| Repository/release | Phase 4 complete: clean repository; installable `projectmapper` package (`src/projectmapper/`, pyproject, gui-script entry point, no runtime dependencies); changelog; `v0.4.0` tagged and `main` pushed 2026-09-23. The pre-Phase-4 residue is recorded in `.dev-log/04-release-readiness.md`. macOS/Linux launch untested. | GitHub release/PyPI only with owner approval; v1.0.0 at Phase 8; consider cross-platform CI. |
 | Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
 
 ### Historical baseline issues — resolved, retained for context only
@@ -615,7 +615,7 @@ Design: section 12A. Inserted 2026-09-23; later phases renumbered.
 - [x] Changelog, README install/quick start, version 0.4.0.
 - [x] Full suite in the project environment, benchmark, both launch modes, fresh wheel
       install and fresh vendor export in clean directories.
-- [x] Local `v0.4.0` tag. Publication only with explicit owner approval (not yet given).
+- [x] Local `v0.4.0` tag. Publication only with explicit owner approval (owner pushed `main` 2026-09-23).
 
 Accepted 2026-09-23: 142 regression tests passed on Python 3.14.2 (`.venv`), 3.13.6 and
 3.10.6. Wheel and sdist were built without warnings. Fresh wheel installs on 3.10 and
