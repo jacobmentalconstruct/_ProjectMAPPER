@@ -352,11 +352,15 @@ class Controller:
     def _project_validate(self, payload, context):
         inputs(payload, ("root", "manifest"), ("force_indent",))
         session = ProjectPatchSession(payload["root"], payload["manifest"])
-        results = session.validate_all(payload.get("force_indent", False))
+        outcomes = session.review(payload.get("force_indent", False))
         context.check_cancelled()
-        key = self._store_plan("project_patch", session)
-        return {"plan_id": key, "count": len(results), "diff": project_patch_diff(results),
-                "files": [{k: str(v) if isinstance(v, Path) else v for k, v in r.items() if k != "original_bytes"} for r in results]}
+        errors = [item["error"] for item in outcomes if item["status"] == "error"]
+        # Every file is reviewed; only a completely valid manifest becomes an applicable plan.
+        key = None if errors else self._store_plan("project_patch", session)
+        return {"valid": not errors, "plan_id": key, "count": len(outcomes), "errors": errors,
+                "diff": project_patch_diff([item for item in outcomes if item["status"] != "error"]),
+                "files": [{k: str(v) if isinstance(v, Path) else v for k, v in item.items() if k != "original_bytes"}
+                          for item in outcomes]}
 
     def _project_apply(self, payload, context):
         inputs(payload, ("plan_id",), ("backup",))

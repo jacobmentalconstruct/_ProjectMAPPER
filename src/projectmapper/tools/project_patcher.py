@@ -20,6 +20,10 @@ def _sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def _ends_with_newline(text):
+    return text.endswith(("\n", "\r"))
+
+
 class ProjectPatchSession:
     def __init__(self, root, manifest):
         self.root = validate_target(root)
@@ -78,27 +82,52 @@ class ProjectPatchSession:
             if expected is not None and (not isinstance(expected, str) or len(expected) != 64):
                 raise PatchError(f"Invalid sha256 for {entry.get('path')}.")
 
-    def validate_all(self, force_indent=False):
+    def _evaluate(self, entry, force_indent):
+        path = self._resolve(entry["path"])
+        original_bytes = path.read_bytes()
+        actual_hash = _sha256(original_bytes)
+        expected = entry.get("sha256")
+        if expected and expected.casefold() != actual_hash:
+            raise PatchError(f"Source changed; expected sha256 {expected}, found {actual_hash}.")
+        try:
+            original = original_bytes.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise PatchError("Not valid UTF-8 text.") from exc
+        if "\x00" in original:
+            raise PatchError("Appears to be binary.")
+        patched = apply_patch_text(original, {"hunks": entry["hunks"]}, force_indent)
+        return {"path": path, "relative_path": entry["path"], "original_bytes": original_bytes,
+                "original": original, "patched": patched, "sha256": actual_hash}
+
+    def review(self, force_indent=False):
+        """Validate every file independently; plan results exist only when all are valid."""
         self.results = []
-        results = []
+        outcomes, results = [], []
         for entry in self.manifest["files"]:
-            path = self._resolve(entry["path"])
-            original_bytes = path.read_bytes()
-            actual_hash = _sha256(original_bytes)
-            expected = entry.get("sha256")
-            if expected and expected.casefold() != actual_hash:
-                raise PatchError(f"Source changed for {entry['path']}; expected sha256 {expected}, found {actual_hash}.")
             try:
-                original = original_bytes.decode("utf-8-sig")
-            except UnicodeDecodeError as exc:
-                raise PatchError(f"{entry['path']} is not valid UTF-8 text.") from exc
-            if "\x00" in original:
-                raise PatchError(f"{entry['path']} appears to be binary.")
-            patched = apply_patch_text(original, {"hunks": entry["hunks"]}, force_indent)
-            results.append({"path": path, "relative_path": entry["path"], "original_bytes": original_bytes,
-                            "original": original, "patched": patched, "sha256": actual_hash})
-        self.results = results
-        return results
+                result = self._evaluate(entry, force_indent)
+            except (PatchError, OSError) as exc:
+                outcomes.append({"relative_path": entry["path"], "status": "error", "error": f"{entry['path']}: {exc}",
+                                 "hunk_count": len(entry["hunks"])})
+                continue
+            results.append(result)
+            diff = DiffFile(entry["path"], result["original"], result["patched"])
+            outcomes.append({**result, "status": "changed" if diff.changed else "no_change", "error": None,
+                             "hunk_count": len(entry["hunks"]), "additions": diff.additions,
+                             "deletions": diff.deletions, "diff_hunks": diff.hunks,
+                             "empty_result": result["patched"] == "" and result["original"] != "",
+                             "final_newline_changed": bool(result["original"]) and bool(result["patched"])
+                             and _ends_with_newline(result["original"]) != _ends_with_newline(result["patched"])})
+        if len(results) == len(outcomes):
+            self.results = results
+        return outcomes
+
+    def validate_all(self, force_indent=False):
+        outcomes = self.review(force_indent)
+        errors = [outcome["error"] for outcome in outcomes if outcome["status"] == "error"]
+        if errors:
+            raise PatchError("; ".join(errors))
+        return self.results
 
     def apply_all(self, backup=False):
         if not self.results:

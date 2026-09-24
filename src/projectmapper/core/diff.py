@@ -28,6 +28,14 @@ class DiffFile:
     def changed(self):
         return self.original != self.patched
 
+    @property
+    def hunks(self):
+        """Changed regions as unified-diff groups (3 context lines), as 0-based line ranges."""
+        matcher = difflib.SequenceMatcher(None, self.original.splitlines(), self.patched.splitlines())
+        return [{"original_start": group[0][1], "original_end": group[-1][2],
+                 "patched_start": group[0][3], "patched_end": group[-1][4]}
+                for group in matcher.get_grouped_opcodes(3)] if self.changed else []
+
 
 def unified_diff_text(files):
     chunks = []

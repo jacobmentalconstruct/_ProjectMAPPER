@@ -170,6 +170,9 @@ class ProjectPatcherWindow(ToolWindowMixin):
             plan = self.app.action("project_patch.validate", {
                 "root": str(self.root_path), "manifest": self.inputs()[0],
                 "force_indent": self.force_indent.get()})
+            if not plan["valid"]:
+                self.status.set("Validation failed: " + "; ".join(plan["errors"]))
+                return False
             self.session = plan["plan_id"]
             self.results = plan["files"]
             self.validated_inputs = self.inputs()
