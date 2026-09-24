@@ -16,6 +16,12 @@ except ImportError:
     from core.writes import atomic_write_bytes, create_backup, stage_bytes
 
 
+EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
+    {"description": "Describe the change", "search_block": "old", "replace_block": "new", "use_patch_indent": False}]}
+EXAMPLE_MANIFEST = {"version": 1, "description": "Project patch", "files": [EXAMPLE_ENTRY]}
+SKELETON_MANIFEST = {"version": 1, "files": []}
+
+
 def _sha256(data):
     return hashlib.sha256(data).hexdigest()
 

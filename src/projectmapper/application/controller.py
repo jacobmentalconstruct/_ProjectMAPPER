@@ -20,7 +20,8 @@ try:
     from ..core.config import OUTPUT_ROOT_NAME
     from ..core.diagnostics import collect_diagnostics
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
-    from ..tools.project_patcher import ProjectPatchSession, project_patch_diff
+    from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
+    from ..core.diff import DiffFile
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
@@ -31,7 +32,8 @@ except ImportError:
     from core.config import OUTPUT_ROOT_NAME
     from core.diagnostics import collect_diagnostics
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
-    from tools.project_patcher import ProjectPatchSession, project_patch_diff
+    from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
+    from core.diff import DiffFile
 
 
 
@@ -291,7 +293,7 @@ class Controller:
 
     def _schema(self, payload, context):
         inputs(payload, (), ("project",))
-        schema = {"version": 1, "description": "Project patch", "files": []} if payload.get("project") else {
+        schema = EXAMPLE_MANIFEST if payload.get("project") else {
             "hunks": [{"description": "Describe the change", "search_block": "old", "replace_block": "new", "use_patch_indent": False}]}
         return {"text": json.dumps(schema, indent=2)}
 
@@ -344,9 +346,15 @@ class Controller:
             raise ActionError("invalid_input", "Expected a manifest with a files list.")
         if any(item.get("path", "").casefold() == relative.casefold() for item in manifest["files"]):
             raise ActionError("invalid_input", "File is already in the manifest.")
+        # An untouched copied example would otherwise make the first validation fail.
+        manifest["files"] = [item for item in manifest["files"] if item != EXAMPLE_ENTRY]
+        # Template: the first line that matches exactly once (as the engine matches); else the whole file.
+        contents = [line.strip(" \t") for line in session.source.splitlines()]
+        anchor = next((line for line, content in zip(session.source.splitlines(), contents)
+                       if content and contents.count(content) == 1), session.source)
         manifest["files"].append({"path": relative, "sha256": fingerprint(session.original_bytes),
-                                  "hunks": [{"description": "Describe the change", "search_block": session.source,
-                                             "replace_block": session.source, "use_patch_indent": False}]})
+                                  "hunks": [{"description": "Describe the change", "search_block": anchor,
+                                             "replace_block": anchor, "use_patch_indent": False}]})
         return {"text": json.dumps(manifest, indent=2)}
 
     def _project_validate(self, payload, context):
@@ -381,7 +389,14 @@ class Controller:
             for path in paths:
                 self._changed(path)
             return {"paths": [str(p) for p in paths], "count": len(paths)}
-        return ApprovalPlan({"title": "Apply project patch?", "message": f"Apply validated changes to {len(session.results)} file(s)?\n\nAll files will be rechecked before writing.",
+        stats = [DiffFile(r["relative_path"], r["original"], r["patched"]) for r in session.results]
+        lines = [f"+{d.additions} / -{d.deletions}   {d.relative_path}" for d in stats[:20]]
+        if len(stats) > 20:
+            lines.append(f"… and {len(stats) - 20} more file(s)")
+        total = f"+{sum(d.additions for d in stats)} / -{sum(d.deletions for d in stats)}"
+        message = (f"Apply validated changes to {len(stats)} file(s) ({total})?\n\n" + "\n".join(lines)
+                   + "\n\nAll files will be rechecked before writing.")
+        return ApprovalPlan({"title": "Apply project patch?", "message": message,
                              "paths": [str(r["path"]) for r in session.results]}, approved)
 
     def _compile(self, payload, context):
