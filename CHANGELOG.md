@@ -41,6 +41,10 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 
 - The main log keeps its most recent 2,000 lines, and progress updates go to the
   status bar instead of one log line each.
+- Error messages read "Label: detail" with one consistent label per error code, for
+  example "The file changed on disk: …". Rejected inputs from the patch engines
+  (invalid JSON, unsafe paths, undecodable text) report `invalid_input` ("Invalid
+  request") instead of the generic `action_failed`.
 
 ### Fixed
 

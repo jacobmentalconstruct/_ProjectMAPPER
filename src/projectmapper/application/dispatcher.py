@@ -161,7 +161,11 @@ class Dispatcher:
             status = "cancelled" if exc.code == "cancelled" else "recovery_required" if exc.code == "recovery_required" else "failed"
             self._finish(operation, status, error={"code": exc.code, "message": str(exc), "details": exc.details})
         except Exception as exc:
-            self._finish(operation, "failed", error={"code": "io_error" if isinstance(exc, OSError) else "action_failed", "message": str(exc)})
+            # Engines report rejected inputs as ValueError (PatchError, JSON/Unicode decode errors).
+            # Keep the code choice inline: the error-wording test reads every literal code here.
+            self._finish(operation, "failed", error={
+                "code": "io_error" if isinstance(exc, OSError) else "invalid_input" if isinstance(exc, ValueError)
+                else "action_failed", "message": str(exc)})
 
     def get(self, operation_id):
         with self._lock:

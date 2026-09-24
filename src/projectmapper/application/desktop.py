@@ -1,6 +1,7 @@
 """Thin desktop adapter; all file rules stay in headless action handlers."""
 from pathlib import Path
 from .contracts import Request, ActionError
+from .errors import describe
 try:
     from ..tools.patcher import PatchError
 except ImportError:
@@ -48,9 +49,9 @@ def perform(app, name, payload=None, parent=None, approval_guard=None):
                 app.approve_action(operation, approved)
                 result = app.controller.dispatcher.wait(operation, None)
             if result.status != "succeeded":
-                raise PatchError((result.error or {}).get("message", result.status))
+                raise PatchError(describe(result.error or {"code": result.status}))
             return result.data
         finally:
             app.action_operations.discard(operation)
     except ActionError as exc:
-        raise PatchError(str(exc)) from exc
+        raise PatchError(describe({"code": exc.code, "message": str(exc)})) from exc

@@ -62,6 +62,15 @@ Phase 7 contract notes (2026-09-24):
   named. The history keeps 500 operations in the session, never evicts unfinished
   ones, stores no file contents, and does not record its own queries.
 - `create_application(root, dispatcher=None)` optionally accepts a dispatcher (additive).
+- Error codes: the full set is 18 codes, each with a human label in
+  `application/errors.py` (`describe(error)` → "Label: detail"; unknown codes →
+  "Operation failed"). Clients should branch on codes and show labels. A test fails
+  if a new code appears without a label.
+- **Refinement:** an unexpected `ValueError` raised by a handler (engine rejections
+  such as `PatchError`, JSON or Unicode decode errors) now reports `invalid_input`
+  instead of `action_failed`. `OSError` stays `io_error`; everything else stays
+  `action_failed`.
+- Internal problems recorded in History use `internal_error`.
 
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.

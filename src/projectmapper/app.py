@@ -377,9 +377,11 @@ class ExclusionsPopup:
 if __package__:
     from .application.controller import create_application
     from .application.desktop import perform, Session
+    from .application.errors import describe
 else:
     from application.controller import create_application
     from application.desktop import perform, Session
+    from application.errors import describe
 
 
 class ProjectMapperApp:
@@ -509,7 +511,7 @@ class ProjectMapperApp:
                 finally:
                     self.syncing_controls = False
         if event.type in ("failed", "recovery_required"):
-            self.log_message(event.payload.get("error", {}).get("message", event.type), "ERROR")
+            self.log_message(describe(event.payload.get("error") or {"code": event.type}), "ERROR")
         if event.type == "recovery_required":
             self.log_message("Open Backups… to review recovery and pre-restore generations.", "WARNING")
 
