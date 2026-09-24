@@ -116,7 +116,7 @@ class BackupActionTests(unittest.TestCase):
         self.assertEqual(self.a.read_bytes(), b"v2\n")
 
     def test_restore_failure_is_reported_and_keeps_all_recovery_material(self):
-        b = self.write("b.txt", b"b1\n")
+        self.write("b.txt", b"b1\n")
         preview = self.app.execute("project_patch.validate", {"root": str(self.root), "manifest": json.dumps(
             {"files": [{"path": n, "hunks": [{"search_block": o, "replace_block": w}]}
                        for n, o, w in (("a.txt", "v1", "v2"), ("b.txt", "b1", "b2"))]})})

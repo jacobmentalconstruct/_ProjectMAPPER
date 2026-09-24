@@ -8,7 +8,9 @@ scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
 2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
 tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review,
 completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
-Phase 6, backup generations, restore and retention, is open (entry awaiting owner review).
+Phase 6, backup generations, restore and retention, completed and parked 2026-09-24
+with 233 passing tests on Python 3.10/3.13/3.14. Next: Phase 7, history and
+operational clarity.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -53,7 +55,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | Phase 5 complete: all-files validation with per-file errors, review list, Source/Diff/Result views, hunk navigation, keyboard shortcuts, approval with per-file counts. | Keep complete-manifest application; per-hunk apply stays deferred. |
-| Recovery | Optional sibling `<file>.bak`, created exclusively (never overwritten). Reproduced at Phase 6 entry: a second backed-up save fails with a raw `WinError 183`; any existing `.bak` blocks a whole project apply; after a rollback conflict the message claims the original is "retained in this session", but the plan is discarded and the original bytes exist nowhere. | Identifiable managed generations; durable recovery material with truthful messages; restoration preview/approval; ownership-aware retention. |
+| Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Text editor saves and Save As offer no backup yet; consider in Phase 8. |
 | History | Dispatcher emits ordered events; the desktop still presents a general log. | Add bounded, filterable session history and operation details. |
 | Main window layout | No minimum size and non-wrapping control rows. Measured 2026-09-24: all controls fit at the default 1200×850; Open Output Folder, Exclusions and Rescan are clipped at 1024×700 (more at 900×650). The tool windows pass their own minimum-size checks. | Fix in the Phase 8 layout checks: wrapping rows or a justified minimum size, with a measured test like the tool windows'. |
 | Testing | Phase 5 acceptance: 175 regressions pass on Python 3.10, 3.13 and 3.14, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Extend coverage for Phases 6–7 and 9; whole-application acceptance in Phase 8. |
@@ -655,14 +657,30 @@ Evidence and residual limits are in `.dev-log/05-project-patch-review.md`.
 
 ### Phase 6 — Backup generations, restore and retention
 
-- [ ] Define managed storage format, ownership and scope.
-- [ ] Create unique generations through shared write services.
-- [ ] Add list/preview/restore and approval-bound retention actions.
-- [ ] Add UI controls using the same action seam.
-- [ ] Verify collisions, corruption, external edits, restore failure and recovery protection.
+- [x] Define managed storage format, ownership and scope.
+- [x] Create unique generations through shared write services.
+- [x] Add list/preview/restore and approval-bound retention actions.
+- [x] Add UI controls using the same action seam.
+- [x] Verify collisions, corruption, external edits, restore failure and recovery protection.
 
 Gate: restoration is verified, retention only touches approved app-owned records,
 and failure never silently consumes the recovery material.
+
+Accepted 2026-09-24: 233 regression tests passed on Python 3.14.2, 3.13.6 and 3.10.6
+(exit codes captured).
+- **Entry defects fixed:** all three were reproduced before being fixed — repeated
+  backed-up saves failing, an existing `.bak` blocking apply, and recovery material
+  lost behind a false message.
+- **Store:** managed generations in project and per-user scopes, with verified
+  ownership and integrity.
+- **Recovery and restore:** durable recovery generations; restore with preview,
+  approval and a pre-restore copy.
+- **Clean-up:** approval-bound, verified, non-recursive.
+- **UI:** the Backups window was checked by measurement, keyboard traversal and an
+  on-screen capture.
+- **Carried forward:** the pre-existing main-window layout gap (section 2).
+
+Evidence and residual limits are in `.dev-log/06-backup-generations.md`.
 
 ### Phase 7 — History and operational clarity
 

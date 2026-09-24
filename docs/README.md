@@ -22,7 +22,9 @@ is completed and parked (142 tests; tagged `v0.4.0`; `main` pushed to GitHub 202
 record is `.dev-log/04-release-readiness.md`. Phase 5, project patch review, is
 completed and parked (175 tests on Python 3.10/3.13/3.14); its record is
 `.dev-log/05-project-patch-review.md`. Phase 6, backup generations, restore and
-retention, is open; its entry record is `.dev-log/06-backup-generations.md`.
+retention, is completed and parked (233 tests on Python 3.10/3.13/3.14); its record
+is `.dev-log/06-backup-generations.md`. Next is Phase 7, history and operational
+clarity; it has not been opened yet.
 
 ## Conventions
 

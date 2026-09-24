@@ -174,6 +174,36 @@ class IntegrationTests(unittest.TestCase):
         self.assertIn("not saved", str(raised.exception))
         self.assertNotIn("retained in this session", str(raised.exception))
 
+    # --- the store never leaks into snapshots or vendor exports --------
+
+    def test_snapshot_excludes_the_backup_store(self):
+        import contextlib
+        import sqlite3
+        path = self.write("a.txt", b"v1\n")
+        self.save(path, "v2\n")
+        self.assertEqual(len(self.store.list()), 1)
+        compiled = self.app.execute("snapshot.compile", {})
+        self.assertEqual(compiled.status, "succeeded", compiled.error)
+        with contextlib.closing(sqlite3.connect(compiled.data["path"])) as db:
+            paths = [row[0] for row in db.execute("SELECT relative_path FROM project_tree")]
+            paths += [row[0] for row in db.execute("SELECT relative_path FROM project_files")]
+        self.assertIn("a.txt", paths)
+        self.assertFalse([p for p in paths if "_projectmapper" in p], paths)
+
+    def test_vendor_export_excludes_the_backup_store(self):
+        from projectmapper.core.exports import create_vendor_export
+        source = Path(temporary_directory(self).name).resolve()
+        (source / "src").mkdir()
+        (source / "src" / "module.py").write_bytes(b"x = 1\n")
+        BackupStore.for_project(source).create("backup", "text.save", "op",
+                                               [(source / "src" / "module.py", b"x = 0\n", None)])
+        result = create_vendor_export(source_root=source, export_root=Path(temporary_directory(self).name),
+                                      make_zip=False)
+        exported = Path(result["export_dir"])
+        self.assertTrue((exported / "src" / "module.py").is_file())
+        self.assertFalse(list(exported.rglob("_projectmapper")))
+        self.assertFalse(list(exported.rglob("manifest.json")))
+
     # --- managed storage is not a patch target -------------------------
 
     def test_output_folder_is_not_a_project_patch_target(self):
