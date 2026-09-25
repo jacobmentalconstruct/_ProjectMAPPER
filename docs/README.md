@@ -7,6 +7,8 @@ verification records. End-user instructions remain in the root `README.md`.
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
 - [Verified desktop action inventory](action-inventory.md)
+- [UI entry-point map](ui-map.md)
+- [Deferred work (post-1.0 TODO)](TODO.md)
 
 The active plan includes the expected outcome, current gaps, action inventory,
 interface contracts, phased implementation checklist, and completion criteria.
