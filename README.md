@@ -17,6 +17,9 @@ and architecture notes are indexed in [docs/README.md](docs/README.md).
 
 Requires Python 3.10+ with Tkinter (included with the python.org installers).
 
+**Platform:** tested on Windows 10 with Python 3.10–3.14. macOS and Linux are expected
+to work (the app uses only the standard library and Tk) but have not been tested yet.
+
 ```bash
 pip install .                      # from a checkout or vendor export
 projectmapper path/to/your/project # or: python -m projectmapper path/to/your/project

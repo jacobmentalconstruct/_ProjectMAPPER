@@ -8,6 +8,7 @@ verification records. End-user instructions remain in the root `README.md`.
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
+- [Developer guide: actions, events, approvals and errors](developer-guide.md)
 - [Deferred work (post-1.0 TODO)](TODO.md)
 
 The active plan includes the expected outcome, current gaps, action inventory,
@@ -29,7 +30,7 @@ is `.dev-log/06-backup-generations.md`. Phase 7, history and operational clarity
 completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
 `.dev-log/07-history-and-clarity.md`. Phase 8, full acceptance, documentation and
 v1.0.0, is open; its entry record is `.dev-log/08-acceptance-and-v1.md` (approved; steps 8.1–8.3
-complete, 331 tests; 8.4 next). `ui-map.md` maps every desktop entry point to its test.
+complete; 8.4 implemented, owner decisions pending; 331 tests). `ui-map.md` maps every desktop entry point to its test.
 
 ## Conventions
 

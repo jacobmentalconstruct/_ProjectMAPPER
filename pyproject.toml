@@ -11,11 +11,19 @@ license = "MIT"
 license-files = ["LICENSE.md"]
 requires-python = ">=3.10"
 dependencies = []
+# Windows is the tested platform (decision E3); macOS/Linux are expected to work but untested,
+# so no POSIX or X11 classifiers are claimed. Python versions listed are those the suite passes on.
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Win32 (MS Windows)",
-    "Environment :: X11 Applications",
     "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development",
 ]
 

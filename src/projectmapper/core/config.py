@@ -2,7 +2,7 @@
 from pathlib import Path
 
 APP_NAME = "ProjectMapper Snapshot Compiler"
-APP_VERSION = "0.4.0"  # Single version source; pyproject.toml reads it.
+APP_VERSION = "1.0.0"  # Single version source; pyproject.toml reads it.
 SNAPSHOT_SCHEMA_VERSION = "0.1"
 SNAPSHOT_COMPILER_ID = "projectmapper.snapshot_compiler"
 

@@ -2,7 +2,11 @@
 
 All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.python.org/pep-0440/).
 
-## Unreleased
+## 1.0.0 — 2026-09-25
+
+The first stable release. Every shared action has a documented contract
+([docs/developer-guide.md](docs/developer-guide.md)), and every desktop control is covered by
+an automated test ([docs/ui-map.md](docs/ui-map.md)).
 
 ### Added
 
@@ -80,6 +84,11 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 - **Add File…** on a new Project Patcher window produced a manifest that failed
   validation on the built-in example entry.
 - **Keep .bak backups** and the review position were cut off at the minimum window size.
+
+### Requirements
+
+Python 3.10 or newer with Tkinter. Tested on Windows 10 with Python 3.10, 3.11, 3.12,
+3.13 and 3.14; macOS and Linux are expected to work but untested.
 
 ## 0.4.0 — 2026-09-23
 
