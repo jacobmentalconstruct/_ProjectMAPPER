@@ -3,6 +3,25 @@
 This folder contains development plans, architecture decisions, and implementation
 verification records. End-user instructions remain in the root `README.md`.
 
+## Current state (2026-09-25)
+
+- **Released:** v1.0.0 on GitHub (tag `v1.0.0` → `fb4ebc7`, wheel and sdist attached; not on
+  PyPI). Accepted against the plan's stop conditions 1–13:
+  [acceptance/v1.0.0.md](acceptance/v1.0.0.md).
+- **In progress:** Phase 9, CLI and MCP adapters. The entry record is written, with
+  findings and owner decisions F0–F6 pending. No Phase 9 code exists yet.
+- **Tested platform:** Windows 10, Python 3.10–3.14. macOS and Linux are untested.
+- **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
+  `python -m projectmapper <folder>`.
+- **Test:** `python -m pytest` (335 tests). `pytest.ini` sets `--capture=sys`; keep it
+  (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
+  `python -m pytest -q -s tests/benchmark_tree.py`.
+- **Deferred work:** [TODO.md](TODO.md): cross-platform CI, the Tcl mechanism behind E4,
+  two recorded test events, star-import notices.
+- **How work is done:** in gated tranches (entry record → steps with evidence → review →
+  park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's
+  decision log (section 17). Pushes and releases happen only with explicit owner approval.
+
 ## Active plan
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
@@ -11,6 +30,8 @@ verification records. End-user instructions remain in the root `README.md`.
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)
 - [v1.0.0 acceptance report](acceptance/v1.0.0.md)
 - [Deferred work (post-1.0 TODO)](TODO.md)
+
+## Phase history
 
 The active plan includes the expected outcome, current gaps, action inventory,
 interface contracts, phased implementation checklist, and completion criteria.
@@ -38,7 +59,8 @@ pushed and released on GitHub 2026-09-25). Its acceptance report is [acceptance/
 ## Conventions
 
 Current authority: root `README.md` for user behavior, the active plan for remaining
-scope, and `action-inventory.md` for implemented action names. Dated tranche journals
+scope, `action-inventory.md` for implemented action names, `developer-guide.md` for the
+action, approval, event and error-code contract, and `ui-map.md` for desktop entry points. Dated tranche journals
 are historical evidence for their recorded code states; their entry descriptions
 are not statements of current defects.
 

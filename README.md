@@ -195,7 +195,9 @@ It supports guarded open/save/save-as, undo/redo, read-only mode, find-next,
 confirmed replace-all, dirty-state tracking, and a direct **Tokenizing Patcher…**
 button. Saves preserve the existing UTF-8/BOM and newline protections and refresh
 the mapper snapshot state. Unsaved changes are confirmed before opening another
-file or closing the window.
+file or closing the window. Tick **Keep backup** to save the previous contents as a
+backup generation whenever Save, or Save As over an existing file, overwrites it (see
+**Backups…**).
 
 The editor is implemented in `src/projectmapper/tools/text_editor.py`. The integration keeps the
 reference editor's useful workflow while avoiding its external Qt/pywebview and
