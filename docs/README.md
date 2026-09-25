@@ -9,6 +9,7 @@ verification records. End-user instructions remain in the root `README.md`.
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)
+- [v1.0.0 acceptance report](acceptance/v1.0.0.md)
 - [Deferred work (post-1.0 TODO)](TODO.md)
 
 The active plan includes the expected outcome, current gaps, action inventory,
@@ -29,8 +30,9 @@ retention, is completed and parked (233 tests on Python 3.10/3.13/3.14); its rec
 is `.dev-log/06-backup-generations.md`. Phase 7, history and operational clarity, is
 completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
 `.dev-log/07-history-and-clarity.md`. Phase 8, full acceptance, documentation and
-v1.0.0, is open; its entry record is `.dev-log/08-acceptance-and-v1.md` (approved; steps 8.1–8.4
-complete, 334 tests; 8.5 next). `ui-map.md` maps every desktop entry point to its test.
+v1.0.0, is completed and parked (335 tests on Python 3.10/3.13/3.14; tagged `v1.0.0`
+locally). Its acceptance report is [acceptance/v1.0.0.md](acceptance/v1.0.0.md); its record is
+`.dev-log/08-acceptance-and-v1.md`. Phase 9, CLI and MCP adapters, is next. `ui-map.md` maps every desktop entry point to its test.
 
 ## Conventions
 

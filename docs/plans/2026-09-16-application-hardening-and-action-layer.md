@@ -11,9 +11,11 @@ completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
 Phase 6, backup generations, restore and retention, completed and parked 2026-09-24
 with 233 passing tests on Python 3.10/3.13/3.14. Phase 7, history and
 operational clarity, completed and parked 2026-09-24 with 271 passing tests on
-Python 3.10/3.13/3.14. Phase 8, full acceptance, documentation and v1.0.0, is open
-(entry approved 2026-09-24; steps 8.1–8.4 complete, 334 tests on Python 3.10–3.14;
-8.5 next).
+Python 3.10/3.13/3.14. Phase 8, full acceptance, documentation and v1.0.0, completed
+and parked 2026-09-25 with 335 passing tests on Python 3.10/3.13/3.14 (331 on 3.11/3.12
+at step 8.4), verified release artifacts and the acceptance report
+`docs/acceptance/v1.0.0.md`; tagged `v1.0.0` locally (not pushed). Phase 9, CLI and MCP
+adapters, is next.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -61,11 +63,11 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Resolved in Phase 8 (decision E2): the text editor's **Keep backup** covers Save and Save As overwrites. |
 | History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | Phase 8 step 8.2: the action area has four short rows instead of two long ones; the tree's name column stretches; the status bar can no longer be squeezed out. The minimum size is the measured requested width × 560 px (647×560 at Tk scaling 1.33 on the Windows test machine). A test shows every button, checkbox and entry fully visible and unclipped at that size, at least 4 tree rows and 3 log lines. | None known; other scalings and platforms are unmeasured. |
-| Testing | Phase 8 step 8.3: the suite (331 tests) runs with `--capture=sys` (`pytest.ini`, decision E4). This removes the intermittent Tk start-up failure: it came from pytest's default fd-level capture, not from the app. Unused imports are removed across `src/`, `tests/` and `tools/`. Two names are kept in `tools/text_toucher.py` as re-exports that a test imports; they are listed in `__all__`. pyflakes now reports only the star-import notices of the `import *` sections in `app.py`, `core/exports.py`, `core/snapshots.py` and `core/helpers.py`. Phase 7 acceptance: 271 regressions, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Whole-application acceptance in Phase 8; coverage for Phase 9. |
+| Testing | Phase 8 final: 335 tests pass on Python 3.10, 3.13 and 3.14 (exit codes captured; 331 on 3.11/3.12 at step 8.4); benchmark and layout probe recorded. Step 8.3: the suite runs with `--capture=sys` (`pytest.ini`, decision E4). This removes the intermittent Tk start-up failure: it came from pytest's default fd-level capture, not from the app. Unused imports are removed across `src/`, `tests/` and `tools/`. Two names are kept in `tools/text_toucher.py` as re-exports that a test imports; they are listed in `__all__`. pyflakes now reports only the star-import notices of the `import *` sections in `app.py`, `core/exports.py`, `core/snapshots.py` and `core/helpers.py`. Phase 7 acceptance: 271 regressions, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Whole-application acceptance in Phase 8; coverage for Phase 9. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | Phase 4 complete (`v0.4.0` tagged and pushed 2026-09-23). Phase 8 step 8.4: version 1.0.0; CHANGELOG 1.0.0 section; classifiers per E3 (Windows; Python 3.10–3.14, each with a passing suite); README platform statement; `docs/developer-guide.md`. Wheel and sdist built in isolation and inspected. Fresh 3.10/3.14 installs, a GUI launch and a vendor export were verified in clean locations. macOS/Linux launch untested. | Tag `v1.0.0` at 8.5; GitHub release/PyPI only with owner approval; cross-platform CI post-1.0 (`docs/TODO.md`). |
 | Transports | Action layer is transport-ready; no CLI or MCP adapter exists by decision. | Phase 9: CLI and stdio MCP adapters over public actions only. |
-| Acceptance evidence | Audited at Phase 8 entry against section 14. Step 8.1 closed gaps G1–G6 with tests (fixing defects D1 and D2). Step 8.2 mapped every desktop control, key binding, menu entry and close box to a test that drives it (`docs/ui-map.md`); the smoke tests cannot open a real dialog or depend on keyboard focus (defect D3, found in 8.3). Step 8.3 explained the intermittent Tk start-up failure (trigger: standard-handle swapping by pytest's fd capture, reproduced without project code) and eliminated it from the suite (decision E4). Recorded rather than explained: one silent 3.10 run (Tranche 6) and one baseline-copy layout failure (Tranche 7). | Write `docs/acceptance/v1.0.0.md`, including those two records. |
+| Acceptance evidence | Phase 8 complete: `docs/acceptance/v1.0.0.md` records every section 15 condition 1–13 and every section 14 row for 1.0 with evidence (G1–G6 closed; every UI entry point driven by a test; E4 explained and eliminated from the suite; defects D1–D5 fixed). Recorded, not explained: one silent 3.10 run (Tranche 6), one baseline-copy layout failure (Tranche 7). | Phase 9 acceptance; deferred items in `docs/TODO.md`. |
 
 ### Historical baseline issues — resolved, retained for context only
 
@@ -712,17 +714,17 @@ Evidence and residual limits are in `.dev-log/07-history-and-clarity.md`.
 
 ### Phase 8 — Full acceptance, documentation and v1.0.0
 
-- [ ] Run the complete suite with isolated fixtures and no unexplained failures.
-- [ ] Run fault-injection and interleaving tests from the acceptance matrix below.
+- [x] Run the complete suite with isolated fixtures and no unexplained failures (E4; two recorded events in the report).
+- [x] Run fault-injection and interleaving tests from the acceptance matrix below (G1–G6, step 8.1).
 - [x] Smoke-test every UI operation and keyboard/menu entry point (step 8.2; `docs/ui-map.md`).
-- [ ] Test vendor export in a clean directory without `.parts/` or development files.
-- [ ] Run and record performance/layout checks.
-- [ ] Update end-user instructions and developer action/API guidance.
-- [ ] Write final acceptance report listing evidence and any remaining limits.
+- [x] Test vendor export in a clean directory without `.parts/` or development files (steps 8.4, 8.5).
+- [x] Run and record performance/layout checks (benchmark and 8-window layout probe, step 8.5).
+- [x] Update end-user instructions and developer action/API guidance (README, `docs/developer-guide.md`).
+- [x] Write final acceptance report listing evidence and any remaining limits (`docs/acceptance/v1.0.0.md`).
 
-- [ ] Update version, changelog and install documentation; verify wheel and vendor
+- [x] Update version, changelog and install documentation; verify wheel and vendor
       export in clean directories; tag `v1.0.0` locally. Publication requires
-      explicit owner approval.
+      explicit owner approval (not published).
 
 Gate: every required stop condition for Phases 0–8 is satisfied. A blocked check is
 recorded as blocked; passing a small subset does not make the plan complete.
@@ -865,3 +867,4 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-09-25 | **D4 fixed** (owner: "fix D4"). **Deliberate error-code contract change for 1.0:** `core/paths.py` gains two `PathSafetyError` subclasses that name their code: `UnsafePathError` (`unsafe_path`), raised by `validate_target` for linked paths and the `.parts` folder, and `SourceChangedError` (`source_changed`), raised at the four "Source changed" sites in the project patcher. `apply_all` keeps the failure's type when it re-raises. The dispatcher reports those two codes for engine errors that carry them, and keeps its previous mapping otherwise (malformed JSON and a manifest path outside the root stay `invalid_input`). Messages are unchanged. Three regression tests (`NamedEngineCodeTests`) fail on the old code (`invalid_input`) and pass now. | Implemented in Tranche 8 step 8.4. |
 | 2026-09-25 | Main-window balance (owner: "shrink the log"): the log's requested height goes from 10 to 5 lines. At the default 1200×850 the tree grows from 371 px to 423 px and the log shrinks from 177 px to 125 px (about 8 lines). The minimum size is unchanged (647×560), and the pane divider still adjusts. The README screenshot (`assets/Screenshots/Screenshot_ex01.PNG`, previously v0.3.0 showing another project) is replaced with v1.0.0 on this repository (1216×889). `*.lnk` was hidden for that session only. | Owner decision; implemented in Tranche 8 step 8.4. |
 | 2026-09-25 | Defect D5 (found by the final layout probe, step 8.5): at the text editor's fixed 700 px minimum, 8.2's **Keep backup** checkbox was squeezed to 51 px of the 105 px its text needs. The editor's minimum width is now its toolbar's measured width (754 px here), never below 700. `EditorLayoutTests` checks the toolbar at the minimum size. The probe checked 8 windows at their minimum and default sizes, with 0 problems afterwards. | Fixed in Tranche 8 step 8.5. |
+| 2026-09-25 | Phase 8 accepted: `docs/acceptance/v1.0.0.md`. Tranche 8 parked; `v1.0.0` tagged locally at the parking commit. Publication (push, GitHub release, package index) awaits explicit owner approval. | Tranche 8 close. |
