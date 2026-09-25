@@ -352,6 +352,23 @@ class MainWindowLayoutTests(DesktopCase):
         self.assertGreater(int(tree.column("#0", "width")), 700)
 
 
+class EditorLayoutTests(DesktopCase):
+    """Step 8.5 layout probe: Keep backup (8.2) was squeezed at the editor's old 700 px minimum."""
+
+    def test_toolbar_fits_at_the_minimum_size(self):
+        editor = self.app.open_text_editor(self.a)
+        self.addCleanup(editor.top.destroy)
+        width, height = editor.top.minsize()
+        editor.top.geometry(f"{width}x{height}")
+        self.root.update()
+        right = editor.top.winfo_rootx() + editor.top.winfo_width()
+        for widget in editor.toolbar.winfo_children():
+            with self.subTest(control=widget.cget("text")):
+                self.assertTrue(widget.winfo_ismapped())
+                self.assertGreaterEqual(widget.winfo_width(), widget.winfo_reqwidth(), "text clipped")
+                self.assertLessEqual(widget.winfo_rootx() + widget.winfo_width(), right)
+
+
 class RemainingEntryPointTests(DesktopCase):
     """UI-map gaps found in step 8.2; each drives the real binding or button."""
 

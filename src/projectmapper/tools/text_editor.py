@@ -24,6 +24,9 @@ class TextEditorWindow(ToolWindowMixin):
         self.configure_tool_window(self.title_text(), "1100x760", (700, 500))
         self.top.protocol("WM_DELETE_WINDOW", self.close)
         self.build_ui()
+        # The toolbar is one row: the window may not get narrower than it measures.
+        self.top.update_idletasks()
+        self.top.minsize(max(700, self.toolbar.winfo_reqwidth() + 24), 500)
         self.editor.insert("1.0", self.session.source)
         self.editor.edit_modified(False)
         self.editor.bind("<<Modified>>", self.changed)
@@ -47,7 +50,7 @@ class TextEditorWindow(ToolWindowMixin):
         return f"{self.session.path.name}{marker} — Text Editor"
 
     def build_ui(self):
-        toolbar = self.frame(self.top)
+        toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
         self.button(toolbar, "Open…", self.open_file, "secondary").pack(side="left")
         self.button(toolbar, "Save", self.save, "success").pack(side="left", padx=5)

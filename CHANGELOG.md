@@ -15,25 +15,6 @@ an automated test ([docs/ui-map.md](docs/ui-map.md)).
   highlighting in all three views; keyboard shortcuts (Alt+↑/↓, F8/Shift+F8, Ctrl+Enter).
 - Colour-highlighted diffs in both patchers. Lines are classified by hunk line counts,
   so content such as `--- comment` is never shown as a file header.
-
-### Changed
-
-- Project patch validation reports every file's problems at once, each naming its
-  file and hunk; Apply is still available only when the whole manifest is valid.
-  `project_patch.validate` returns the full review (`valid`, `errors`, per-file
-  outcomes) and issues a plan only when valid.
-- The approval dialog lists per-file and total +/− counts.
-- New Project Patcher windows start with an empty manifest; **Copy Schema** copies the
-  full example; **Add File…** replaces an untouched example and uses a unique-line
-  hunk template instead of the whole file.
-- **Keep .bak backups** moved beside Apply. Disabled action buttons are greyed, and
-  editor scrollbars follow the dark theme.
-
-- Backups are managed **generations** instead of sibling `.bak` files. Project files
-  back up to `_projectmapper/backups/`; files outside the project root go to a
-  per-user store. The options are now labelled **Keep backup** / **Keep backups**.
-  Existing `.bak` files are never touched.
-- Files inside `_projectmapper/` can no longer be project-patch targets.
 - Headless backup actions: list, preview (current vs backup), restore with approval
   (saving a pre-restore copy first), and approval-bound clean-up of old generations.
 - Session **operation history** (`history.query`): one record per operation from any
@@ -47,7 +28,27 @@ an automated test ([docs/ui-map.md](docs/ui-map.md)).
   Clean Up (keep newest N) and Delete Selected. Recovery messages point to it.
 - The text editor has a **Keep backup** option for Save and for Save As over an
   existing file (`text.save_as` accepts an optional `backup` flag).
+- Developer documentation: every action's payload, approvals, events, error codes and
+  history ([docs/developer-guide.md](docs/developer-guide.md)), and a map of every
+  desktop control to the test that drives it ([docs/ui-map.md](docs/ui-map.md)).
 
+### Changed
+
+- Project patch validation reports every file's problems at once, each naming its
+  file and hunk; Apply is still available only when the whole manifest is valid.
+  `project_patch.validate` returns the full review (`valid`, `errors`, per-file
+  outcomes) and issues a plan only when valid.
+- The approval dialog lists per-file and total +/− counts.
+- New Project Patcher windows start with an empty manifest; **Copy Schema** copies the
+  full example; **Add File…** replaces an untouched example and uses a unique-line
+  hunk template instead of the whole file.
+- **Keep .bak backups** moved beside Apply. Disabled action buttons are greyed, and
+  editor scrollbars follow the dark theme.
+- Backups are managed **generations** instead of sibling `.bak` files. Project files
+  back up to `_projectmapper/backups/`; files outside the project root go to a
+  per-user store. The options are now labelled **Keep backup** / **Keep backups**.
+  Existing `.bak` files are never touched.
+- Files inside `_projectmapper/` can no longer be project-patch targets.
 - The main window fits smaller screens: its controls are in four shorter rows, and it
   has a minimum size at which every control is visible (about 650×560 px). **Open
   Output Folder** is now at the start of the second row. The "Hide pattern" label,
