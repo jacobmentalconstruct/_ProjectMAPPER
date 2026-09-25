@@ -14,8 +14,9 @@ operational clarity, completed and parked 2026-09-24 with 271 passing tests on
 Python 3.10/3.13/3.14. Phase 8, full acceptance, documentation and v1.0.0, completed
 and parked 2026-09-25 with 335 passing tests on Python 3.10/3.13/3.14 (331 on 3.11/3.12
 at step 8.4), verified release artifacts and the acceptance report
-`docs/acceptance/v1.0.0.md`; tagged `v1.0.0` locally (not pushed). Phase 9, CLI and MCP
-adapters, is next.
+`docs/acceptance/v1.0.0.md`; tagged `v1.0.0`. With owner approval on 2026-09-25, `main`
+and the tag were pushed and the GitHub release "ProjectMapper 1.0.0" published (wheel and
+sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is next.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -868,3 +869,4 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-09-25 | Main-window balance (owner: "shrink the log"): the log's requested height goes from 10 to 5 lines. At the default 1200×850 the tree grows from 371 px to 423 px and the log shrinks from 177 px to 125 px (about 8 lines). The minimum size is unchanged (647×560), and the pane divider still adjusts. The README screenshot (`assets/Screenshots/Screenshot_ex01.PNG`, previously v0.3.0 showing another project) is replaced with v1.0.0 on this repository (1216×889). `*.lnk` was hidden for that session only. | Owner decision; implemented in Tranche 8 step 8.4. |
 | 2026-09-25 | Defect D5 (found by the final layout probe, step 8.5): at the text editor's fixed 700 px minimum, 8.2's **Keep backup** checkbox was squeezed to 51 px of the 105 px its text needs. The editor's minimum width is now its toolbar's measured width (754 px here), never below 700. `EditorLayoutTests` checks the toolbar at the minimum size. The probe checked 8 windows at their minimum and default sizes, with 0 problems afterwards. | Fixed in Tranche 8 step 8.5. |
 | 2026-09-25 | Phase 8 accepted: `docs/acceptance/v1.0.0.md`. Tranche 8 parked; `v1.0.0` tagged locally at the parking commit. Publication (push, GitHub release, package index) awaits explicit owner approval. | Tranche 8 close. |
+| 2026-09-25 | Published with owner approval ("push main and the tag, and create the GitHub release"): `main` fast-forwarded `8270af2..fb4ebc7`; tag `v1.0.0` → `fb4ebc7`; GitHub release "ProjectMapper 1.0.0" (Latest) with `projectmapper-1.0.0-py3-none-any.whl` (sha256 `5fbbee01…`) and `projectmapper-1.0.0.tar.gz` (sha256 `f8c73a09…`). These were rebuilt from the tagged commit; all 112 archive members are byte-identical to the build verified in clean locations from `2d7fd1b` (only archive timestamps differ). Downloaded assets match the published checksums. Not published to PyPI. | Owner decision. |
