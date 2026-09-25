@@ -86,6 +86,38 @@ class IntegrationTests(unittest.TestCase):
         self.assertIn("Backup was not written", result.error["message"])
         self.assertEqual(path.read_bytes(), b"v1\n")
 
+    def save_as(self, path, text, backup):
+        pending = self.app.execute("text.save_as", {"path": str(path), "text": text, "backup": backup})
+        self.approve(pending.operation_id, True)
+        return self.app.dispatcher.wait(pending.operation_id)
+
+    def test_save_as_overwrite_backup_flag(self):
+        path = self.write("a.txt", b"v1\n")
+        self.assertEqual(self.save_as(path, "v2\n", backup=False).status, "succeeded")
+        self.assertEqual(self.store.list(), [])
+        self.assertEqual(self.save_as(path, "v3\n", backup=True).status, "succeeded")
+        (generation,) = self.store.list()
+        self.assertEqual((generation.action, self.store.read(generation.id, "a.txt")), ("text.save_as", b"v2\n"))
+        self.assertEqual(path.read_bytes(), b"v3\n")
+
+    def test_save_as_backup_failure_stops_the_overwrite(self):
+        path = self.write("a.txt", b"v1\n")
+        with patch.object(BackupStore, "create", side_effect=BackupError("Backup was not written: disk full")):
+            result = self.save_as(path, "v2\n", backup=True)
+        self.assertEqual(result.status, "failed")
+        self.assertIn("Backup was not written", result.error["message"])
+        self.assertEqual(path.read_bytes(), b"v1\n")
+
+    def test_save_as_new_file_ignores_backup_flag(self):
+        path = self.root / "new.txt"
+        result = self.app.execute("text.save_as", {"path": str(path), "text": "n\n", "backup": True})
+        if result.status == "awaiting_approval":
+            self.approve(result.operation_id, True)
+            result = self.app.dispatcher.wait(result.operation_id)
+        self.assertEqual(result.status, "succeeded", result.error)
+        self.assertEqual(path.read_bytes(), b"n\n")
+        self.assertEqual(self.store.list(), [])
+
     def test_outside_root_save_uses_the_user_store(self):
         outside = Path(temporary_directory(self).name).resolve() / "elsewhere.txt"
         outside.write_bytes(b"far\n")

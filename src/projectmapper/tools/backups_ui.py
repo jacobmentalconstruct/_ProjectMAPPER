@@ -53,9 +53,9 @@ class BackupsWindow(ToolWindowMixin):
         self.cleanup_button = self.button(toolbar, "Clean Up…", self.clean_up, "secondary")
         self.cleanup_button.pack(side="right", padx=6)
         self.keep = tk.StringVar(self.top, "10")
-        tk.Spinbox(toolbar, from_=0, to=999, width=4, textvariable=self.keep, bg=colors["field_bg"],
-                   fg=colors["field_text"], insertbackground=colors["text"], buttonbackground=colors["panel_alt_bg"],
-                   relief="flat", font=("Arial", 10)).pack(side="right", padx=(4, 6))
+        self.keep_box = ttk.Spinbox(toolbar, from_=0, to=999, width=4, textvariable=self.keep,
+                                    style="Review.TSpinbox", font=("Arial", 10))
+        self.keep_box.pack(side="right", padx=(4, 6))
         self.label(toolbar, panel=True, text="keep newest").pack(side="right")
         self.cleanup_scope = tk.StringVar(self.top, "project")
         for value, text in (("user", "User store"), ("project", "Project store")):

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import unittest
+from tkinter import ttk
 from unittest.mock import patch
 
 from tests.support import temporary_directory, tk_root
@@ -178,7 +179,7 @@ class BackupsWindowTests(unittest.TestCase):
             yield widget
             for child in widget.winfo_children():
                 yield from walk(child)
-        controls = [w for w in walk(top) if w.winfo_class() in ("Button", "Radiobutton", "Spinbox")]
+        controls = [w for w in walk(top) if w.winfo_class() in ("Button", "Radiobutton", "TSpinbox")]
         controls += [window.generation_list, window.file_list, window.views, window.status_label]
         for widget in controls:
             with self.subTest(widget=str(widget)):
@@ -189,6 +190,18 @@ class BackupsWindowTests(unittest.TestCase):
                 self.assertLessEqual(y + widget.winfo_height(), top.winfo_height())
                 if widget.winfo_class() in ("Button", "Radiobutton"):
                     self.assertGreaterEqual(widget.winfo_width(), widget.winfo_reqwidth(), "text clipped")
+
+    def test_keep_newest_spinbox_follows_the_dark_theme(self):
+        window = self.open()
+        self.assertEqual(str(window.keep_box.cget("style")), "Review.TSpinbox")
+        style = ttk.Style(window.top)
+        colors = window.colors
+        for option, expected in (("fieldbackground", colors["field_bg"]), ("background", colors["panel_alt_bg"]),
+                                 ("arrowcolor", colors["text"]), ("lightcolor", colors["panel_alt_bg"])):
+            with self.subTest(option=option):
+                self.assertEqual(str(style.lookup("Review.TSpinbox", option)), expected)
+        window.keep_box.event_generate("<<Increment>>", when="now")
+        self.assertEqual(window.keep.get(), "11")
 
     def test_keyboard_traversal_reaches_controls(self):
         self.save("v2\n")

@@ -41,7 +41,14 @@ All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.pyt
 - **Backups window** (main window → **Backups…**): generation list with integrity
   status, Current / Diff / Backup comparison, Restore File / Restore All Files,
   Clean Up (keep newest N) and Delete Selected. Recovery messages point to it.
+- The text editor has a **Keep backup** option for Save and for Save As over an
+  existing file (`text.save_as` accepts an optional `backup` flag).
 
+- The main window fits smaller screens: its controls are in four shorter rows, and it
+  has a minimum size at which every control is visible (about 650×560 px). **Open
+  Output Folder** is now at the start of the second row. The "Hide pattern" label,
+  entry and Add button read left to right.
+- The Backups window's "keep newest" box follows the dark theme.
 - The main log keeps its most recent 2,000 lines, and progress updates go to the
   status bar instead of one log line each.
 - Error messages read "Label: detail" with one consistent label per error code, for

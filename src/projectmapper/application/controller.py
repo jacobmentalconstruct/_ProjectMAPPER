@@ -465,9 +465,10 @@ class Controller:
         return {"path": str(path)}
 
     def _save_as(self, payload, context):
-        inputs(payload, ("path", "text"))
+        inputs(payload, ("path", "text"), ("backup",))
         path = validate_target(payload["path"])
         if not path.exists():
+            # Nothing is overwritten, so there is nothing to back up.
             return self._create({"folder": str(path.parent), "name": path.name,
                                  "content": payload["text"], "extension": "(None)"}, context)
         session = PatchSession(path)
@@ -476,7 +477,11 @@ class Controller:
             ctx.check_cancelled()
             if self.state.generation != generation:
                 raise ActionError("stale_plan", "Project changed while awaiting approval.")
-            saved = session.save(payload["text"])
+            backup = None
+            if payload.get("backup", False):
+                write = self._generation_writer("backup", "text.save_as", ctx)
+                backup = lambda target, data, mode: write([(target, data, mode)])
+            saved = session.save(payload["text"], backup=backup)
             self._changed(saved)
             return {"path": str(saved), "paths": [str(saved)]}
         return ApprovalPlan({"title": "Overwrite file?", "path": str(path),

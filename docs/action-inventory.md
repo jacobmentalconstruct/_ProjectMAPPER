@@ -23,6 +23,12 @@ headless in-process clients. This is not a CLI/MCP transport or a process sandbo
 | Load patch / Copy Schema | patch.load / patch.schema |
 | Single-file preview / Apply to Result / Save | patch.validate / patch.result / patch.save |
 | Project Add File / preview / Apply | project_patch.add_entry / project_patch.validate / project_patch.apply |
+| Backups window: list, compare, restore, delete, clean up | backup.list / backup.preview / backup.restore / backup.prune_preview / backup.prune |
+| History window: filter, refresh, details, live updates | history.query (plus dispatcher subscribe) |
+| Progress window: Cancel | Dispatcher.cancel of the running operations |
+
+Every control, key and menu entry, with the test that drives it, is listed in
+`ui-map.md` (Tranche 8).
 
 Phase 5 contract notes (2026-09-23):
 - `project_patch.validate` succeeds whenever the manifest itself is well formed and
@@ -75,6 +81,13 @@ Phase 7 contract notes (2026-09-24):
   whitelisted string request fields `path`, `root`, `folder`, `generation` and `scope`
   (each ≤4,096 characters), so failed operations still show their target. Text,
   manifests and patches never appear in events.
+
+Phase 8 contract notes (2026-09-24):
+- `text.save_as` accepts an optional `backup` flag (additive). When the target
+  exists and the overwrite is approved, its previous bytes are saved as a backup
+  generation first; a failed backup prevents the write. A new file has nothing to
+  back up, so the flag is ignored. The editor's **Keep backup** sets the flag for
+  both Save and Save As.
 
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.

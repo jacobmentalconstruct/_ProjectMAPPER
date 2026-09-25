@@ -138,6 +138,10 @@ else:
 
 
 
+# Enough height for the path row, several tree rows, all action rows and a few log lines.
+MIN_WINDOW_HEIGHT = 560
+
+
 # === [SECTION: PROGRESS_POPUP] BEGIN ===
 class ProgressPopup:
     def __init__(self, parent, title="Processing", on_cancel=None):
@@ -629,7 +633,7 @@ class ProjectMapperApp:
         self.widgets["folder_tree"].heading("nav_up", text="↑")
         self.widgets["folder_tree"].heading("nav_down", text="↓")
         self.widgets["folder_tree"].heading("size", text="Size")
-        self.widgets["folder_tree"].column("#0", width=760)
+        self.widgets["folder_tree"].column("#0", width=420, minwidth=200)  # stretches with the window
         self.widgets["folder_tree"].column("nav_up", width=34, anchor="center", stretch=False)
         self.widgets["folder_tree"].column("nav_down", width=34, anchor="center", stretch=False)
         self.widgets["folder_tree"].column("size", width=120, anchor="e", stretch=False)
@@ -648,29 +652,35 @@ class ProjectMapperApp:
         paned.add(tree_frame, weight=3)
 
         action_frame = tk.Frame(paned, bg=THEME["panel_bg"])
+        # Four short rows instead of two long ones, so the window can be narrower than
+        # 1200 px without clipping; the minimum size is measured from them below.
         btn_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
-        btn_row.pack(fill=tk.X, padx=5, pady=6)
+        btn_row.pack(fill=tk.X, padx=5, pady=(6, 2))
+        tool_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
+        tool_row.pack(fill=tk.X, padx=5, pady=2)
 
         self._make_button(btn_row, "Compile Snapshot", self.compile_snapshot_placeholder, THEME["accent"], THEME["accent_hover"], bold=True).pack(side=tk.LEFT, padx=4)
         self._make_button(btn_row, "Export Tree MD", self.export_tree_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
         self._make_button(btn_row, "Export Filedump MD", self.export_filedump_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
         self._make_button(btn_row, "Export Tree+Dump MD", self.export_combined_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
-        vendor_button = self._make_button(btn_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"])
+        self._make_button(tool_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"]).pack(side=tk.LEFT, padx=4)
+        vendor_button = self._make_button(tool_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"])
         if SOURCE_ROOT is None:  # Installed package: there is no source checkout to vendor.
             vendor_button.configure(state=tk.DISABLED)
         vendor_button.pack(side=tk.LEFT, padx=4)
         self.widgets["vendor_export_button"] = vendor_button
-        self._make_button(btn_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=4)
-        self.widgets["backups_button"] = self._make_button(btn_row, "Backups…", self.open_backups,
+        self._make_button(tool_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=4)
+        self.widgets["backups_button"] = self._make_button(tool_row, "Backups…", self.open_backups,
                                                            THEME["panel_alt_bg"], THEME["field_bg_alt"])
         self.widgets["backups_button"].pack(side=tk.RIGHT, padx=4)
-        self._make_button(btn_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=4)
 
+        option_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
+        option_row.pack(fill=tk.X, padx=5, pady=2)
         control_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
         control_row.pack(fill=tk.X, padx=5, pady=2)
         self.widgets["respect_exclusions"] = tk.BooleanVar(value=True)
         tk.Checkbutton(
-            control_row,
+            option_row,
             text="Apply exclusions (hide matches)",
             variable=self.widgets["respect_exclusions"],
             command=self.apply_exclusion_settings,
@@ -682,7 +692,7 @@ class ProjectMapperApp:
         ).pack(side=tk.LEFT, padx=6)
         self.widgets["include_tree_in_filedump"] = tk.BooleanVar(value=False)
         tk.Checkbutton(
-            control_row,
+            option_row,
             text="Tree in filedump export",
             variable=self.widgets["include_tree_in_filedump"],
             bg=THEME["panel_bg"],
@@ -694,7 +704,7 @@ class ProjectMapperApp:
         self.widgets["include_binary_blobs"] = tk.BooleanVar(value=False)
         self.widgets["include_binary_blobs"].trace_add("write", lambda *_: None if self.syncing_controls else self.action("capture.configure", {"include_binary": bool(self.widgets["include_binary_blobs"].get())}))
         tk.Checkbutton(
-            control_row,
+            option_row,
             text="Preserve binary blobs in DB",
             variable=self.widgets["include_binary_blobs"],
             bg=THEME["panel_bg"],
@@ -705,7 +715,7 @@ class ProjectMapperApp:
         ).pack(side=tk.LEFT, padx=6)
         self._make_button(control_row, "All", lambda: self.set_global_selection(S_CHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=2)
         self._make_button(control_row, "None", lambda: self.set_global_selection(S_UNCHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=2)
-        tk.Label(control_row, text="Hide pattern:", bg=THEME["panel_bg"], fg=THEME["muted_text"]).pack(side=tk.RIGHT, padx=4)
+        self._make_button(control_row, "Add", self.add_exclusion_from_entry, THEME["accent"], THEME["accent_hover"]).pack(side=tk.RIGHT, padx=2)
         self.widgets["exclusion_entry"] = tk.Entry(
             control_row,
             bg=THEME["field_bg_alt"],
@@ -715,7 +725,8 @@ class ProjectMapperApp:
             relief=tk.FLAT,
         )
         self.widgets["exclusion_entry"].pack(side=tk.RIGHT, padx=4)
-        self._make_button(control_row, "Add", self.add_exclusion_from_entry, THEME["accent"], THEME["accent_hover"]).pack(side=tk.RIGHT, padx=2)
+        # Packed right to left: reads "Hide pattern: [entry] Add".
+        tk.Label(control_row, text="Hide pattern:", bg=THEME["panel_bg"], fg=THEME["muted_text"]).pack(side=tk.RIGHT, padx=4)
         self._make_button(control_row, "Exclusions", self.manage_exclusions_popup, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=2)
         self._make_button(control_row, "Rescan", self.request_rescan_tree, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.RIGHT, padx=2)
 
@@ -735,6 +746,7 @@ class ProjectMapperApp:
             font=("Consolas", 9),
             state=tk.DISABLED,
             height=10,
+            width=60,  # a base width only; the log fills the window
         )
         self.widgets["log_box"].pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         paned.add(action_frame, weight=1)
@@ -747,7 +759,10 @@ class ProjectMapperApp:
             fg=THEME["status_text"],
             anchor="w",
         )
-        self.widgets["status_bar"].pack(fill=tk.X, side=tk.BOTTOM)
+        # Packed before the pane so a short window shrinks the pane, never the status bar.
+        self.widgets["status_bar"].pack(fill=tk.X, side=tk.BOTTOM, before=paned)
+        self.root.update_idletasks()
+        self.root.minsize(self.root.winfo_reqwidth(), MIN_WINDOW_HEIGHT)
 
     def _make_button(self, parent, text, command, bg, active_bg, bold=False):
         return tk.Button(

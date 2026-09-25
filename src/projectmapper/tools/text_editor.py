@@ -58,6 +58,9 @@ class TextEditorWindow(ToolWindowMixin):
         self.read_only_var = tk.BooleanVar(self.top, self.read_only)
         self.checkbutton(toolbar, "Read-only", self.read_only_var,
                          self.toggle_read_only).pack(side="right")
+        # Keep the previous bytes as a backup generation whenever this window overwrites a file.
+        self.backup = tk.BooleanVar(self.top, False)
+        self.checkbutton(toolbar, "Keep backup", self.backup).pack(side="right", padx=(0, 8))
         body = self.frame(self.top)
         body.pack(fill="both", expand=True, padx=12, pady=(0, 8))
         body.rowconfigure(0, weight=1)
@@ -128,7 +131,7 @@ class TextEditorWindow(ToolWindowMixin):
         try:
             text = self.content()
             result = self.app.action("text.save", {"path": str(self.session.path), "text": text,
-                "sha256": hashlib.sha256(self.session.original_bytes).hexdigest()})
+                "sha256": hashlib.sha256(self.session.original_bytes).hexdigest(), "backup": self.backup.get()})
             path = Path(result["path"])
             self.session = Session(self.app, path)
         except (OSError, PatchError) as exc:
@@ -149,7 +152,8 @@ class TextEditorWindow(ToolWindowMixin):
         if not selected:
             return
         try:
-            result = self.app.action("text.save_as", {"path": selected, "text": self.content()}, parent=self.top)
+            result = self.app.action("text.save_as", {"path": selected, "text": self.content(),
+                                                      "backup": self.backup.get()}, parent=self.top)
             path = Path(result["path"])
         except (OSError, PatchError) as exc:
             self.status.set(f"Save As failed: {exc}")

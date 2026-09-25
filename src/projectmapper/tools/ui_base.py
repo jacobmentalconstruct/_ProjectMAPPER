@@ -65,6 +65,12 @@ class ToolWindowMixin:
                         lightcolor=colors["panel_alt_bg"], darkcolor=colors["panel_alt_bg"])
         style.map("Review.TCombobox", fieldbackground=[("readonly", colors["field_bg"])],
                   foreground=[("readonly", colors["text"])], selectbackground=[("readonly", colors["selection"])])
+        style.configure("Review.TSpinbox", fieldbackground=colors["field_bg"], background=colors["panel_alt_bg"],
+                        foreground=colors["field_text"], arrowcolor=colors["text"], insertcolor=colors["text"],
+                        bordercolor=colors["panel_alt_bg"], lightcolor=colors["panel_alt_bg"],
+                        darkcolor=colors["panel_alt_bg"], selectbackground=colors["selection"],
+                        selectforeground=colors["text"], arrowsize=12)
+        style.map("Review.TSpinbox", background=[("active", colors["field_bg_alt"])])
 
     def add_view(self, notebook, name):
         """Add a read-only text tab to a review notebook and return its text box."""
