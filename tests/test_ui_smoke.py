@@ -534,6 +534,9 @@ class MainWindowCloseTests(unittest.TestCase):
         root.withdraw()
         try:
             app = ProjectMapperApp(root, folder)
+            # Pending timers of a destroyed root would fire in a later test's event loop.
+            for timer in root.tk.call("after", "info"):
+                root.after_cancel(timer)
             with patch.object(app.controller, "close", wraps=app.controller.close) as closed:
                 root.destroy()
             closed.assert_called_once()

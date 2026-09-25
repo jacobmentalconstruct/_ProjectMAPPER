@@ -29,8 +29,8 @@ retention, is completed and parked (233 tests on Python 3.10/3.13/3.14); its rec
 is `.dev-log/06-backup-generations.md`. Phase 7, history and operational clarity, is
 completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
 `.dev-log/07-history-and-clarity.md`. Phase 8, full acceptance, documentation and
-v1.0.0, is open; its entry record is `.dev-log/08-acceptance-and-v1.md` (approved; steps 8.1–8.3
-complete; 8.4 implemented, owner decisions pending; 331 tests). `ui-map.md` maps every desktop entry point to its test.
+v1.0.0, is open; its entry record is `.dev-log/08-acceptance-and-v1.md` (approved; steps 8.1–8.4
+complete, 334 tests; 8.5 next). `ui-map.md` maps every desktop entry point to its test.
 
 ## Conventions
 

@@ -66,6 +66,58 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(errors.describe(None), "Operation failed")
 
 
+class NamedEngineCodeTests(unittest.TestCase):
+    """Defect D4: engine refusals that mean "changed on disk" or "location not allowed" keep that code."""
+
+    def setUp(self):
+        import os
+        from unittest.mock import patch
+        from projectmapper.application.controller import create_application
+        self.folder = Path(temporary_directory(self).name).resolve()
+        env = patch.dict(os.environ, {"PROJECTMAPPER_USER_BACKUPS": str(self.folder.parent / "pm-user")})
+        env.start()
+        self.addCleanup(env.stop)
+        self.target = self.folder / "a.py"
+        self.target.write_bytes(b"alpha = 1\n")
+        self.controller, self.approve = create_application(str(self.folder))
+        self.addCleanup(self.controller.close)
+
+    def test_project_apply_after_an_external_edit_is_source_changed(self):
+        import json
+        manifest = json.dumps({"files": [{"path": "a.py", "hunks": [
+            {"search_block": "alpha = 1", "replace_block": "alpha = 2"}]}]})
+        plan = self.controller.execute("project_patch.validate", {"root": str(self.folder), "manifest": manifest})
+        pending = self.controller.execute("project_patch.apply", {"plan_id": plan.data["plan_id"]})
+        self.assertEqual(pending.status, "awaiting_approval")
+        self.target.write_bytes(b"alpha = 1  # edited elsewhere\n")
+        self.approve(pending.operation_id, True)
+        result = self.controller.dispatcher.wait(pending.operation_id)
+        self.assertEqual((result.status, result.error["code"]), ("failed", "source_changed"))
+        self.assertTrue(errors.describe(result.error).startswith("The file changed on disk: "))
+        self.assertEqual(self.target.read_bytes(), b"alpha = 1  # edited elsewhere\n")
+
+    def test_protected_folder_is_unsafe_path(self):
+        result = self.controller.execute("text.open", {"path": str(self.folder / ".parts" / "x.txt")})
+        self.assertEqual((result.status, result.error["code"]), ("failed", "unsafe_path"))
+        self.assertTrue(errors.describe(result.error).startswith("That location is not allowed: "))
+
+    def test_linked_path_is_unsafe_path(self):
+        import os
+        import subprocess
+        real = self.folder / "real"
+        real.mkdir()
+        (real / "b.txt").write_bytes(b"b\n")
+        link = self.folder / "linked"
+        try:
+            os.symlink(real, link, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            made = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(real)], capture_output=True, text=True)
+            if made.returncode:
+                self.skipTest(f"cannot create a symlink or junction here: {made.stderr.strip()}")
+        result = self.controller.execute("text.open", {"path": str(link / "b.txt")})
+        self.assertEqual((result.status, result.error["code"]), ("failed", "unsafe_path"))
+
+
 class DesktopWordingTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(temporary_directory(self).name).resolve()

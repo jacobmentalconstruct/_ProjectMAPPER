@@ -737,7 +737,7 @@ class ProjectMapperApp:
             insertbackground=THEME["log_text"],
             font=("Consolas", 9),
             state=tk.DISABLED,
-            height=10,
+            height=5,  # a starting height; the tree gets the room and the pane divider can be dragged
             width=60,  # a base width only; the log fills the window
         )
         self.widgets["log_box"].pack(fill=tk.BOTH, expand=True, padx=5, pady=5)

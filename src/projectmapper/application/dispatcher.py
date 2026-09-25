@@ -167,10 +167,13 @@ class Dispatcher:
             status = "cancelled" if exc.code == "cancelled" else "recovery_required" if exc.code == "recovery_required" else "failed"
             self._finish(operation, status, error={"code": exc.code, "message": str(exc), "details": exc.details})
         except Exception as exc:
-            # Engines report rejected inputs as ValueError (PatchError, JSON/Unicode decode errors).
+            # Engines report rejected inputs as ValueError (PatchError, JSON/Unicode decode errors);
+            # the two engine refusals that name a code (UnsafePathError, SourceChangedError) keep it.
             # Keep the code choice inline: the error-wording test reads every literal code here.
+            named = getattr(exc, "code", None) if isinstance(exc, ValueError) else None
             self._finish(operation, "failed", error={
-                "code": "io_error" if isinstance(exc, OSError) else "invalid_input" if isinstance(exc, ValueError)
+                "code": "unsafe_path" if named == "unsafe_path" else "source_changed" if named == "source_changed"
+                else "io_error" if isinstance(exc, OSError) else "invalid_input" if isinstance(exc, ValueError)
                 else "action_failed", "message": str(exc)})
 
     def get(self, operation_id):

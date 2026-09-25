@@ -78,8 +78,7 @@ operation. Any other value denies it (status `cancelled`). Rules:
   written. The code depends on the action:
   - `stale_plan` for a delete or an overwrite
   - `source_changed` or `backup_invalid` for a restore
-  - currently `invalid_input` with the message "Source changed after validation" for a
-    project apply
+  - `source_changed` for a project apply
 - A clean-up removes only the generations that still match, and reports the others as
   `prune_incomplete`.
 
@@ -116,10 +115,10 @@ wording ("Label: message"), and a test checks that every code raised has a label
 
 | Code | Label | Typical cause |
 | --- | --- | --- |
-| `invalid_input` | Invalid request | Missing or unknown fields, bad values, malformed patch JSON; any `ValueError` from the engines, including path-safety refusals |
+| `invalid_input` | Invalid request | Missing or unknown fields, bad values, malformed patch JSON, a manifest path outside the root; any other `ValueError` from the engines |
 | `not_found` | Not found | Unknown operation, plan, backup generation or file |
-| `unsafe_path` | That location is not allowed | A target inside `_projectmapper/`, or a delete outside the project. Other path-safety refusals (linked paths, the `.parts` folder) report `invalid_input` |
-| `source_changed` | The file changed on disk | `text.save`/`patch.save` fingerprint mismatch; a restore target changed after its preview |
+| `unsafe_path` | That location is not allowed | A linked path (symlink or junction), the read-only `.parts` folder, a target inside `_projectmapper/`, or a delete outside the project |
+| `source_changed` | The file changed on disk | `text.save`/`patch.save` fingerprint mismatch; a restore or project-apply target changed after its preview |
 | `stale_plan` | The preview is out of date | The project or target changed after the preview; approval no longer pending |
 | `stale_scan` | The project changed during the scan | A newer scan superseded this one |
 | `stale_snapshot` | The snapshot is out of date | Files, selection, exclusions or capture options changed since compile |

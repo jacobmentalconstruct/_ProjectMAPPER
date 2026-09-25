@@ -51,14 +51,19 @@ an automated test ([docs/ui-map.md](docs/ui-map.md)).
 - The main window fits smaller screens: its controls are in four shorter rows, and it
   has a minimum size at which every control is visible (about 650×560 px). **Open
   Output Folder** is now at the start of the second row. The "Hide pattern" label,
-  entry and Add button read left to right.
+  entry and Add button read left to right. The log starts smaller, so the project
+  tree gets more of the window; drag the divider to resize them.
 - The Backups window's "keep newest" box follows the dark theme.
 - The main log keeps its most recent 2,000 lines, and progress updates go to the
   status bar instead of one log line each.
 - Error messages read "Label: detail" with one consistent label per error code, for
   example "The file changed on disk: …". Rejected inputs from the patch engines
-  (invalid JSON, unsafe paths, undecodable text) report `invalid_input` ("Invalid
-  request") instead of the generic `action_failed`.
+  (invalid JSON, undecodable text) report `invalid_input` ("Invalid request")
+  instead of the generic `action_failed`. Linked paths and the read-only `.parts`
+  folder report `unsafe_path` ("That location is not allowed"). A project patch
+  refused because a file changed after its preview reports `source_changed` ("The
+  file changed on disk"), as single-file saves do; it was reported as "Invalid
+  request".
 
 ### Fixed
 

@@ -12,10 +12,12 @@ try:
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.writes import atomic_write_bytes, stage_bytes
     from ..core.config import OUTPUT_ROOT_NAME
+    from ..core.paths import SourceChangedError
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.writes import atomic_write_bytes, stage_bytes
     from core.config import OUTPUT_ROOT_NAME
+    from core.paths import SourceChangedError
 
 
 EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
@@ -100,7 +102,7 @@ class ProjectPatchSession:
         actual_hash = _sha256(original_bytes)
         expected = entry.get("sha256")
         if expected and expected.casefold() != actual_hash:
-            raise PatchError(f"Source changed; expected sha256 {expected}, found {actual_hash}.")
+            raise SourceChangedError(f"Source changed; expected sha256 {expected}, found {actual_hash}.")
         try:
             original = original_bytes.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
@@ -161,19 +163,19 @@ class ProjectPatchSession:
             for result in results:
                 destination = validate_target(result["path"])
                 if destination.read_bytes() != result["original_bytes"]:
-                    raise PatchError(f"Source changed after validation: {result['relative_path']}")
+                    raise SourceChangedError(f"Source changed after validation: {result['relative_path']}")
                 result["mode"] = stat.S_IMODE(destination.stat().st_mode)
                 result["output_bytes"] = (b"\xef\xbb\xbf" if result["original_bytes"].startswith(b"\xef\xbb\xbf") else b"") + result["patched"].encode("utf-8")
                 staged = stage_bytes(destination, result["output_bytes"], mode=result["mode"], prefix=".project-patch-")
                 scratch.append((staged, result))
             for _, result in scratch:
                 if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
-                    raise PatchError(f"Source changed during staging: {result['relative_path']}")
+                    raise SourceChangedError(f"Source changed during staging: {result['relative_path']}")
             if backup is not None:
                 backup([(result["path"], result["original_bytes"], result["mode"]) for result in results])
             for staged, result in scratch:
                 if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
-                    raise PatchError(f"Source changed before replacement: {result['relative_path']}")
+                    raise SourceChangedError(f"Source changed before replacement: {result['relative_path']}")
                 os.replace(staged, result["path"])
                 committed.append(result)
         except Exception as exc:
@@ -211,7 +213,9 @@ class ProjectPatchSession:
                 detail += "; " + "; ".join(recovery_errors)
             if cleanup_errors:
                 detail += "; cleanup: " + "; ".join(cleanup_errors)
-            raise PatchError(detail) from failure
+            # Keep a named refusal's type (e.g. SourceChangedError) so its error code survives.
+            named = isinstance(failure, PatchError) and getattr(failure, "code", None)
+            raise (type(failure) if named else PatchError)(detail) from failure
         self.results = []
         return [result["path"] for result in results]
 
