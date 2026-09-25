@@ -1,6 +1,5 @@
 """Native ProjectMapper text editor, based on the MonacoVIEWER workflow."""
 
-import re
 import hashlib
 import tkinter as tk
 from tkinter import filedialog, messagebox

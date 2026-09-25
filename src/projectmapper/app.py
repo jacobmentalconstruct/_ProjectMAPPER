@@ -11,14 +11,6 @@ import subprocess
 import threading
 import queue
 import traceback
-import fnmatch
-import sqlite3
-import hashlib
-import contextlib
-import gc
-import time
-import json
-import shutil
 import copy
 import weakref
 from pathlib import Path
@@ -30,12 +22,12 @@ if __package__:
     from .tree_view import TreeProjection
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                         TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
-    from .core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
+    from .core import format_diagnostics, scan_project_tree
 else:
     from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
-    from core import ProjectState, collect_diagnostics, format_diagnostics, scan_project_tree
+    from core import format_diagnostics, scan_project_tree
 # === [SECTION: IMPORTS] END ===
 
 
@@ -380,11 +372,11 @@ class ExclusionsPopup:
 
 if __package__:
     from .application.controller import create_application
-    from .application.desktop import perform, Session
+    from .application.desktop import perform
     from .application.errors import describe
 else:
     from application.controller import create_application
-    from application.desktop import perform, Session
+    from application.desktop import perform
     from application.errors import describe
 
 

@@ -3,7 +3,6 @@ import gc
 import json
 import os
 from pathlib import Path
-import tempfile
 import subprocess
 import sys
 import tkinter as tk

@@ -2,7 +2,6 @@ from tests.support import temporary_directory, tk_root
 import gc
 from datetime import datetime
 from pathlib import Path
-import tempfile
 import tkinter as tk
 from types import SimpleNamespace
 import unittest

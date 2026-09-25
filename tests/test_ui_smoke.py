@@ -7,6 +7,7 @@ export are patched so nothing leaves the temporary fixture.
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from types import SimpleNamespace
 import time
@@ -18,6 +19,10 @@ from tests.support import temporary_directory, tk_root
 from projectmapper.app import ProjectMapperApp
 from projectmapper.core.backups import BackupStore
 from projectmapper.core.config import OUTPUT_ROOT_NAME
+
+# Every modal the app can open. A real one would block the suite until someone clicks it.
+MODALS = {"tkinter.messagebox": ("showerror", "showwarning", "showinfo", "askyesno"),
+          "tkinter.filedialog": ("askopenfilename", "asksaveasfilename", "askdirectory")}
 
 
 def sha(path):
@@ -36,12 +41,42 @@ class DesktopCase(unittest.TestCase):
         env = patch.dict(os.environ, {"PROJECTMAPPER_USER_BACKUPS": str(self.user)})
         env.start()
         self.addCleanup(env.stop)
+        self.guard_modals()
         self.root = tk_root(self)
         self.root.withdraw()
         self.app = ProjectMapperApp(self.root, self.folder)
         for timer in self.root.tk.call("after", "info"):
             self.root.after_cancel(timer)
         self.scan()
+
+    def guard_modals(self):
+        """No test may open a real dialog: an unexpected one is recorded and fails the test.
+
+        Tests that expect a dialog patch it themselves; that inner patch takes precedence."""
+        unexpected = []
+        for module, names in MODALS.items():
+            for name in names:
+                def record(*args, _name=name, **kwargs):
+                    unexpected.append((_name, args[:1]))
+                    return False if _name == "askyesno" else ""  # decline, or no file chosen
+                guard = patch(f"{module}.{name}", side_effect=record)
+                guard.start()
+                self.addCleanup(guard.stop)
+        self.addCleanup(lambda: self.assertEqual(unexpected, [], "a real dialog would have opened"))
+
+    def fire_binding(self, widget, sequence):
+        """Run the widget's real Tk binding for a key sequence.
+
+        Simulated keys only reach the window with keyboard focus, and Windows will not give
+        a test window focus while someone is using another application; this calls the
+        registered binding through Tcl instead, so it works whatever has focus."""
+        script = widget.bind(sequence)
+        funcid = re.search(r"\[(\S+) %#", script).group(1)
+        # The fields of a plain KeyPress (type 2); tkinter parses them into the Event.
+        fields = dict.fromkeys(widget._subst_format, "0")
+        fields.update({"%A": "", "%T": "2", "%K": sequence.strip("<>"), "%W": str(widget)})
+        fields = [fields[name] for name in widget._subst_format]
+        return widget.tk.call(funcid, *fields)
 
     def scan(self):
         app = self.app
@@ -98,17 +133,13 @@ class RootNavigationTests(DesktopCase):
     def test_path_entry_return_sets_root_and_rejects_invalid(self):
         entry = self.app.widgets["project_path_entry"]
         self.app.widgets["selected_root_var"].set(str(self.folder / "src"))
-        # A withdrawn window cannot take keyboard focus; show it as a user would see it.
-        self.root.deiconify()
-        self.addCleanup(self.root.withdraw)
-        entry.focus_force()
-        self.root.update()
-        entry.event_generate("<Return>", when="now")
+        self.fire_binding(entry, "<Return>")
         self.assertEqual(self.app.selected_root, self.folder / "src")
         self.app.widgets["selected_root_var"].set(str(self.folder / "missing"))
         with patch("projectmapper.app.messagebox.showerror") as shown:
-            entry.event_generate("<Return>", when="now")
+            self.fire_binding(entry, "<Return>")
         shown.assert_called_once()
+        self.assertEqual(shown.call_args.args[0], "Invalid Project Root")
         self.assertEqual(self.app.selected_root, self.folder / "src")
 
 
@@ -358,26 +389,16 @@ class RemainingEntryPointTests(DesktopCase):
                 toggle.assert_not_called()
 
     def test_escape_closes_the_exclusions_window(self):
-        # A withdrawn root hides its transient windows, which then cannot take focus.
-        self.root.deiconify()
-        self.addCleanup(self.root.withdraw)
-        self.root.update()  # let the root finish mapping, or it takes focus back afterwards
         self.button(self.root, "Exclusions").invoke()
         top = self.app.exclusions_popup.top
-        self.root.update()
-        top.focus_force()
-        self.root.update()
-        self.assertEqual(self.root.focus_get().winfo_toplevel(), top)
-        top.event_generate("<Escape>", when="now")
+        self.fire_binding(top, "<Escape>")
         self.assertFalse(top.winfo_exists())
 
     def test_history_refresh_key(self):
         window = self.app.open_history()
         self.addCleanup(lambda: window.top.winfo_exists() and window.top.destroy())
         with patch.object(window, "refresh") as refreshed:
-            window.top.focus_force()
-            self.root.update()
-            window.top.event_generate("<F5>", when="now")
+            self.assertEqual(self.fire_binding(window.top, "<F5>"), "break")
         refreshed.assert_called_once()
 
     def test_editor_find_next_highlights_the_match(self):

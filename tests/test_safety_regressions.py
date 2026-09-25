@@ -10,7 +10,7 @@ from projectmapper.core.diagnostics import collect_diagnostics
 from projectmapper.tools.patcher import PatchError, PatchSession
 from projectmapper.tools.project_patcher import ProjectPatchSession
 from projectmapper.core.writes import stage_bytes
-from projectmapper.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot, scan_project_tree
+from projectmapper.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot
 
 
 def manifest(*names):

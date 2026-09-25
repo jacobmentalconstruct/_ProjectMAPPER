@@ -1,7 +1,6 @@
 """Single-file hunk transformations. No GUI or reference-folder dependencies."""
 
 from dataclasses import dataclass
-from pathlib import Path
 import os
 import re
 import stat

@@ -1,8 +1,6 @@
 from pathlib import Path
 import json
-import tkinter as tk
 import unittest
-from unittest.mock import patch
 from tests.support import temporary_directory, tk_root
 
 from projectmapper.tools.patcher import PatchError

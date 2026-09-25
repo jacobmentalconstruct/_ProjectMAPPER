@@ -1,11 +1,9 @@
-from tests.support import temporary_directory, tk_root
+from tests.support import temporary_directory
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 from projectmapper.app import ProjectMapperApp
-from projectmapper.core.state import ProjectState
 from projectmapper.application.controller import create_application
 
 

@@ -2,10 +2,8 @@ from tests.support import temporary_directory, tk_root
 import copy
 import contextlib
 import sqlite3
-import tempfile
 import threading
 import time
-import tkinter as tk
 import unittest
 from pathlib import Path
 from unittest.mock import patch

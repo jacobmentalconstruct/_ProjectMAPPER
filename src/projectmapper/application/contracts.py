@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Callable
 from uuid import uuid4
 
 

@@ -1,7 +1,6 @@
 from tests.support import temporary_directory, tk_root
 import gc
 from pathlib import Path
-import tempfile
 import tkinter as tk
 import unittest
 from unittest.mock import patch

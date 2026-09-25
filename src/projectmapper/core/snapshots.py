@@ -7,11 +7,9 @@ import sqlite3
 import contextlib
 import gc
 import json
-import shutil
 import hashlib
 import io
 from pathlib import Path
-from datetime import datetime
 from .config import *
 from .helpers import *
 from .exclusions import ExclusionPolicy

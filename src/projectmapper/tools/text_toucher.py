@@ -1,8 +1,6 @@
 """Create individual UTF-8 files from ProjectMapper's context menu."""
 
-from datetime import datetime
 from pathlib import Path
-import re
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -18,6 +16,9 @@ try:
     from ..core.files import EXTENSIONS, file_name, create_text_file
 except ImportError:
     from core.files import EXTENSIONS, file_name, create_text_file
+
+# file_name and create_text_file are re-exported: tests import them from this module.
+__all__ = ["TextToucherWindow", "EXTENSIONS", "file_name", "create_text_file"]
 
 
 class TextToucherWindow(ToolWindowMixin):

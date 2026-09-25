@@ -431,6 +431,10 @@ pip install -e ".[dev]"
 python -m pytest            # full suite; tests/benchmark_tree.py holds opt-in benchmarks
 ```
 
+`pytest.ini` sets `--capture=sys`. Keep it: pytest's default fd-level capture swaps the
+process's standard handles around every test, and on Windows that intermittently stops Tk
+from starting ("Can't find a usable init.tcl"). The application itself never swaps them.
+
 ## Notes
 
 Tk presentation lives in `src/projectmapper/app.py` and `src/projectmapper/tree_view.py`. Shared actions and
