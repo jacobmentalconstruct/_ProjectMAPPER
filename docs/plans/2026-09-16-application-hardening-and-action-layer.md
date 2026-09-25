@@ -16,7 +16,8 @@ and parked 2026-09-25 with 335 passing tests on Python 3.10/3.13/3.14 (331 on 3.
 at step 8.4), verified release artifacts and the acceptance report
 `docs/acceptance/v1.0.0.md`; tagged `v1.0.0`. With owner approval on 2026-09-25, `main`
 and the tag were pushed and the GitHub release "ProjectMapper 1.0.0" published (wheel and
-sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is next.
+sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is open (entry awaiting owner
+review, 2026-09-25).
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -734,7 +735,10 @@ recorded as blocked; passing a small subset does not make the plan complete.
 
 Design: section 12B. Opens only after Phase 8 is accepted.
 
-- [ ] Entry decision: MCP implementation dependency and process/approval composition.
+- [ ] Entry decision: MCP implementation dependency and process/approval composition
+      (entry record 2026-09-25: decisions F0–F6 pending; findings: actions are not
+      confined to the project root, several writes need no approval in the core, and
+      MCP revision 2026-07-28 removed the `initialize` handshake).
 - [ ] CLI over public actions with JSON output, exit codes and approval rule.
 - [ ] Local stdio MCP server: tools, resources, bounded results and schemas.
 - [ ] Trusted approval adapter; prove agents cannot approve, forge or reuse decisions.
