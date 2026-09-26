@@ -16,8 +16,9 @@ and parked 2026-09-25 with 335 passing tests on Python 3.10/3.13/3.14 (331 on 3.
 at step 8.4), verified release artifacts and the acceptance report
 `docs/acceptance/v1.0.0.md`; tagged `v1.0.0`. With owner approval on 2026-09-25, `main`
 and the tag were pushed and the GitHub release "ProjectMapper 1.0.0" published (wheel and
-sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is open (entry awaiting owner
-review, 2026-09-25).
+sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is open: entry written
+2026-09-25, approved 2026-09-26 with owner decisions F0–F6 (section 17); step 9.1 (adapter
+foundation) implemented and reviewed 2026-09-26 with 369 passing tests on Python 3.10/3.13/3.14.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -52,7 +53,7 @@ destructive operations. Approval stays with a trusted human adapter.
 
 ## 2. Current state and gap
 
-Current as of v1.0.0 (released 2026-09-25) and the Phase 9 entry record. Historical entry observations and
+Current as of v1.0.0 (released 2026-09-25) and the Phase 9 entry decisions (2026-09-26). Historical entry observations and
 repairs are retained in the dated tranche journals; they are not current defects.
 
 | Area | Current state | Required difference |
@@ -65,10 +66,10 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Resolved in Phase 8 (decision E2): the text editor's **Keep backup** covers Save and Save As overwrites. |
 | History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | Phase 8 step 8.2: the action area has four short rows instead of two long ones; the tree's name column stretches; the status bar can no longer be squeezed out. Step 8.4: the log starts at 5 lines, so the tree gets more of the default window. The minimum size is the measured requested width × 560 px (647×560 at Tk scaling 1.33 on the Windows test machine). A test shows every button, checkbox and entry fully visible and unclipped at that size, at least 4 tree rows and 3 log lines. | None known; other scalings and platforms are unmeasured. |
-| Testing | Phase 8 final: 335 tests pass on Python 3.10, 3.13 and 3.14 (exit codes captured; 331 on 3.11/3.12 at step 8.4); benchmark and layout probe recorded. Step 8.3: the suite runs with `--capture=sys` (`pytest.ini`, decision E4). This removes the intermittent Tk start-up failure: it came from pytest's default fd-level capture, not from the app. Unused imports are removed across `src/`, `tests/` and `tools/`. Two names are kept in `tools/text_toucher.py` as re-exports that a test imports; they are listed in `__all__`. pyflakes now reports only the star-import notices of the `import *` sections in `app.py`, `core/exports.py`, `core/snapshots.py` and `core/helpers.py`. Phase 7 acceptance: 271 regressions, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Phase 9 adapter, protocol and approval-boundary tests; cross-platform CI (`docs/TODO.md`; order is decision F0). |
+| Testing | Phase 8 final: 335 tests pass on Python 3.10, 3.13 and 3.14 (exit codes captured; 331 on 3.11/3.12 at step 8.4); benchmark and layout probe recorded. Step 8.3: the suite runs with `--capture=sys` (`pytest.ini`, decision E4). This removes the intermittent Tk start-up failure: it came from pytest's default fd-level capture, not from the app. Unused imports are removed across `src/`, `tests/` and `tools/`. Two names are kept in `tools/text_toucher.py` as re-exports that a test imports; they are listed in `__all__`. pyflakes now reports only the star-import notices of the `import *` sections in `app.py`, `core/exports.py`, `core/snapshots.py` and `core/helpers.py`. Phase 7 acceptance: 271 regressions, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Phase 9 adapter, protocol and approval-boundary tests; then cross-platform CI (`docs/TODO.md`; decision F0: after Phase 9). |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | Phase 4 complete (`v0.4.0` tagged and pushed 2026-09-23). Phase 8 step 8.4: version 1.0.0; CHANGELOG 1.0.0 section; classifiers per E3 (Windows; Python 3.10–3.14, each with a passing suite); README platform statement; `docs/developer-guide.md`. Wheel and sdist built in isolation and inspected. Fresh 3.10/3.14 installs, a GUI launch and a vendor export were verified in clean locations. macOS/Linux launch untested. | v1.0.0 released on GitHub 2026-09-25 (tag `v1.0.0` → `fb4ebc7`). PyPI only with owner approval; cross-platform CI (`docs/TODO.md`). |
-| Transports | Action layer is transport-ready; no CLI or MCP adapter exists yet. The Phase 9 entry record (2026-09-25) found that core actions are not confined to the project root, that `text.save`/`patch.save`/`file.create` need no approval, and that MCP revision 2026-07-28 removed the `initialize` handshake. | Phase 9: CLI and stdio MCP adapters over public actions only, after owner decisions F0–F6. |
+| Transports | Action layer is transport-ready; no CLI or MCP adapter exists yet. The Phase 9 entry record (2026-09-25) found that core actions are not confined to the project root, that `text.save`/`patch.save`/`file.create` need no approval, and that MCP revision 2026-07-28 removed the `initialize` handshake. | Phase 9: CLI and stdio MCP adapters over public actions only, per owner decisions F0–F6 (2026-09-26): agents may transform files, including multi-file project patches, with root confinement, forced backups and a trusted approval popup; user-set result limits. |
 | Acceptance evidence | Phase 8 complete: `docs/acceptance/v1.0.0.md` records every section 15 condition 1–13 and every section 14 row for 1.0 with evidence (G1–G6 closed; every UI entry point driven by a test; E4 explained and eliminated from the suite; defects D1–D5 fixed). Recorded, not explained: one silent 3.10 run (Tranche 6), one baseline-copy layout failure (Tranche 7). | Phase 9 acceptance; deferred items in `docs/TODO.md`. |
 
 ### Historical baseline issues — resolved, retained for context only
@@ -555,6 +556,18 @@ section references remain valid.
   remain free of third-party dependencies either way.
 - Documentation: agent integration guide, including example client configuration and
   the approval model.
+- **Amended 2026-09-26 (owner decisions F2–F5, section 17):**
+  - Agents may transform files, including multi-file project patches.
+  - Every agent write is confined to the project root, fingerprint-guarded, backed up
+    (forced on by the adapter) and attributed.
+  - The trusted human adapter is an approval popup owned by the adapter process. It
+    shows the exact diff, defaults to deny, and denies on a user-set timeout. It approves
+    project apply always and single-file writes unless the user's settings waive it.
+  - Delete, Save As overwrite, restore, prune, vendor export and root changes are not
+    exposed.
+  - Result limits are user-defined in a per-user settings file with a desktop Settings
+    window (defaults 256 KB per tool result, 1 MB per resource read).
+  - The CLI uses the same popup, never a terminal confirmation.
 
 ## 13. Implementation phases and stop gates
 
@@ -735,10 +748,12 @@ recorded as blocked; passing a small subset does not make the plan complete.
 
 Design: section 12B. Opens only after Phase 8 is accepted.
 
-- [ ] Entry decision: MCP implementation dependency and process/approval composition
-      (entry record 2026-09-25: decisions F0–F6 pending; findings: actions are not
-      confined to the project root, several writes need no approval in the core, and
-      MCP revision 2026-07-28 removed the `initialize` handshake).
+- [x] Entry decision: MCP implementation dependency and process/approval composition
+      (entry record 2026-09-25; findings: actions are not confined to the project root,
+      several writes need no approval in the core, and MCP revision 2026-07-28 removed
+      the `initialize` handshake). Decided 2026-09-26: F0–F6 in section 17.
+- [x] Adapter foundation (step 9.1): session, root confinement, exposure allow-list,
+      forced backups, approval requests, result bounds, user settings (2026-09-26).
 - [ ] CLI over public actions with JSON output, exit codes and approval rule.
 - [ ] Local stdio MCP server: tools, resources, bounded results and schemas.
 - [ ] Trusted approval adapter; prove agents cannot approve, forge or reuse decisions.
@@ -874,3 +889,4 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-09-25 | Defect D5 (found by the final layout probe, step 8.5): at the text editor's fixed 700 px minimum, 8.2's **Keep backup** checkbox was squeezed to 51 px of the 105 px its text needs. The editor's minimum width is now its toolbar's measured width (754 px here), never below 700. `EditorLayoutTests` checks the toolbar at the minimum size. The probe checked 8 windows at their minimum and default sizes, with 0 problems afterwards. | Fixed in Tranche 8 step 8.5. |
 | 2026-09-25 | Phase 8 accepted: `docs/acceptance/v1.0.0.md`. Tranche 8 parked; `v1.0.0` tagged locally at the parking commit. Publication (push, GitHub release, package index) awaits explicit owner approval. | Tranche 8 close. |
 | 2026-09-25 | Published with owner approval ("push main and the tag, and create the GitHub release"): `main` fast-forwarded `8270af2..fb4ebc7`; tag `v1.0.0` → `fb4ebc7`; GitHub release "ProjectMapper 1.0.0" (Latest) with `projectmapper-1.0.0-py3-none-any.whl` (sha256 `5fbbee01…`) and `projectmapper-1.0.0.tar.gz` (sha256 `f8c73a09…`). These were rebuilt from the tagged commit; all 112 archive members are byte-identical to the build verified in clean locations from `2d7fd1b` (only archive timestamps differ). Downloaded assets match the published checksums. Not published to PyPI. | Owner decision. |
+| 2026-09-26 | Phase 9 entry decisions:<br>- **F0:** Phase 9 first; cross-platform CI next.<br>- **F1:** the official `mcp` SDK as the optional extra `projectmapper[mcp]`, its dependency set measured before adoption; the GUI and CLI stay dependency-free.<br>- **F2 (owner: "Agents must be able to transform files ( safely )"; "Agents can change multiple files BUT can we just keep an HITL via popup"):** agents may use `patch.validate`/`patch.save`, `text.save`, `file.create` and `project_patch.validate`/`project_patch.apply`. Every agent write is confined to the root (links, `.parts/`, `_projectmapper/` refused), fingerprint-guarded, backed up with backups forced on, and attributed. Not exposed: `file.delete`, `text.save_as`, backup restore/prune and previews, `vendor.export`, `project.set_root`.<br>- **F3:** a trusted approval popup in the adapter process: exact per-file diff, default deny, one decision per plan, timeout denies, never answerable through the agent, stdin, tool arguments or elicitation, never blocks the stdio loop. Project apply always asks; single-file writes ask unless a setting waives it. Recorded limit: anything able to click on the desktop could answer it.<br>- **F4:** the CLI follows the same rule and popup; no terminal confirmation.<br>- **F5 (owner: "the user sets this in advance in settings and we leave the default setting as you recommend"):** limits in a per-user settings file with a desktop Settings window; defaults 256 KB per tool result and 1 MB per resource read; an agent may request less, never more. The file also holds the approval timeout and the single-file approval switch.<br>- **F6:** `projectmapper-cli`, `projectmapper-mcp`, `python -m projectmapper.cli`/`.mcp`; release 1.1.0.<br>- Stop condition revised: adapter processes import `tkinter` only when an approval popup is needed. | Owner decisions; section 12B amended. Entry approved ("yes, record it and continue with 9.1"). |

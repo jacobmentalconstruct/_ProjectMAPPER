@@ -8,8 +8,11 @@ verification records. End-user instructions remain in the root `README.md`.
 - **Released:** v1.0.0 on GitHub (tag `v1.0.0` → `fb4ebc7`, wheel and sdist attached; not on
   PyPI). Accepted against the plan's stop conditions 1–13:
   [acceptance/v1.0.0.md](acceptance/v1.0.0.md).
-- **In progress:** Phase 9, CLI and MCP adapters. The entry record is written, with
-  findings and owner decisions F0–F6 pending. No Phase 9 code exists yet.
+- **In progress:** Phase 9, CLI and MCP adapters. Entry approved 2026-09-26 with owner
+  decisions F0–F6 (plan section 17): agents may transform files, including multi-file
+  patches, behind root confinement, forced backups and an approval popup; result limits
+  are user settings. Step 9.1, the shared adapter foundation
+  (`src/projectmapper/adapters/`, `core/settings.py`), is done: 369 tests pass. Next: 9.2, the CLI.
 - **Tested platform:** Windows 10, Python 3.10–3.14. macOS and Linux are untested.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
@@ -54,7 +57,7 @@ completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
 v1.0.0, is completed and parked (335 tests on Python 3.10/3.13/3.14; `v1.0.0` tagged,
 pushed and released on GitHub 2026-09-25). Its acceptance report is [acceptance/v1.0.0.md](acceptance/v1.0.0.md); its record is
 `.dev-log/08-acceptance-and-v1.md`. Phase 9, CLI and MCP adapters, is open; its entry record is
-`.dev-log/09-cli-and-mcp.md` (awaiting owner review). `ui-map.md` maps every desktop entry point to its test.
+`.dev-log/09-cli-and-mcp.md` (approved 2026-09-26; step 9.1 done). `ui-map.md` maps every desktop entry point to its test.
 
 ## Conventions
 

@@ -18,6 +18,7 @@ LABELS = {
     "io_error": "File system error",
     "cancelled": "Cancelled",
     "approval_denied": "Not approved",
+    "approval_required": "Approval required",
     "closed": "The application is closing",
     "capacity": "Session limit reached",
     "reentrant": "Operation ordering error",

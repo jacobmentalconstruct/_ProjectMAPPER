@@ -7,8 +7,8 @@ starting point. Decisions behind them are in the plan's decision log
 ## 1. Cross-platform CI (decision E3)
 
 v1.0.0 is tested on Windows only; macOS and Linux are expected to work but untested.
-E3 named CI on Windows, Linux and macOS the first post-1.0 item. Its order relative to
-Phase 9 (CLI and MCP adapters) is decision F0 in the Phase 9 entry record. Pushing a
+E3 named CI on Windows, Linux and macOS the first post-1.0 item. Decision F0 (2026-09-26):
+it follows Phase 9 (CLI and MCP adapters). Pushing a
 workflow is outward-facing, so it needs owner approval.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
