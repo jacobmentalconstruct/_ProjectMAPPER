@@ -47,6 +47,21 @@ class ProjectPatchTests(unittest.TestCase):
         with self.assertRaisesRegex(PatchError, "Source changed"):
             session.validate_all()
 
+    def test_apply_preserves_bom_mixed_line_endings_and_relative_indentation(self):
+        original = b"\xef\xbb\xbfhead\r\n\told\rchild\nlast"
+        target = self.root / "mixed.py"
+        target.write_bytes(original)
+        session = ProjectPatchSession(self.root, {"files": [{"path": "mixed.py", "hunks": [
+            {"search_block": "old", "replace_block": "    new\n        nested"}
+        ]}]})
+
+        (result,) = session.validate_all()
+        self.assertEqual(result["patched"], "head\r\n\tnew\r\t    nested\rchild\nlast")
+        session.apply_all()
+
+        self.assertEqual(target.read_bytes(),
+                         b"\xef\xbb\xbfhead\r\n\tnew\r\t    nested\rchild\nlast")
+
     def test_project_window_has_preview_and_linked_actions(self):
         root = tk_root(self)
         root.withdraw()

@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37129275742` confirmed the New File context-menu test advances, then found another withdrawn-root event loop in a lazy-tree projection test. The lazy-tree tests now keep their root viewable; full-matrix verification is pending.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37129895448` confirmed the lazy-tree tests advance, then found hidden-root event pumping in the shared desktop smoke-test fixture. The fixture now keeps its root viewable; hosted verification is pending.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python

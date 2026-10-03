@@ -6,11 +6,13 @@ Status (2026-10-03): **Phases 0–9 are complete. Phase 9 shipped as v1.1.0** (c
 `79775c7`, tag `v1.1.0`, pushed to `origin/main`; no GitHub release or package-index
 upload). Its acceptance evidence is in `docs/acceptance/v1.1.0.md` and implementation
 record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI is the next
-work item; macOS and Linux remain unverified. The latest matrix passes Linux and Windows
-on Python 3.10/3.13/3.14 and macOS 3.14. Tracebacks found hidden-parent `root.update()` calls
-in the Backups window suite, exclusions scan test, History window layout test, Project
-Patcher review tests, New File context-menu test and lazy-tree projection tests. Those tests
-now keep the parent root viewable while processing events; hosted verification is pending.
+work item; macOS and Linux remain unverified. The latest matrix run (`37129895448`) passes
+Linux and Windows on Python 3.10/3.13/3.14 and macOS 3.14. Tracebacks found hidden-parent
+`root.update()` calls in the Backups window suite, exclusions scan test, History window
+layout test, Project Patcher review tests, New File context-menu test, lazy-tree projection
+tests and the shared desktop smoke-test fixture. Those test roots now stay viewable while
+processing events; hosted verification is pending. A project-patch regression now covers
+UTF-8 BOMs, mixed line endings, final-newline preservation and indentation through apply.
 Phase 10, project transforms, is fully planned in
 `docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
@@ -61,7 +63,7 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Resolved in Phase 8 (decision E2): the text editor's **Keep backup** covers Save and Save As overwrites. |
 | History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | Phase 8 step 8.2: the action area has four short rows instead of two long ones; the tree's name column stretches; the status bar can no longer be squeezed out. Step 8.4: the log starts at 5 lines, so the tree gets more of the default window. The minimum size is the measured requested width × 560 px (647×560 at Tk scaling 1.33 on the Windows test machine). A test shows every button, checkbox and entry fully visible and unclipped at that size, at least 4 tree rows and 3 log lines. | None known; other scalings and platforms are unmeasured. |
-| Testing | Phase 9 Windows suite: 389 tests on Python 3.10 and 3.14; 388 plus one optional-SDK skip on 3.13 (`docs/acceptance/v1.1.0.md`). Hosted CI passes Linux and Windows on 3.10/3.13/3.14 and macOS 3.14; macOS 3.10/3.13 are under diagnosis. Tk start-up workaround remains `--capture=sys` (decision E4). | Keep platform claims conservative until the full matrix passes. |
+| Testing | Phase 9 Windows suite: 389 tests on Python 3.10 and 3.14; 388 plus one optional-SDK skip on 3.13 (`docs/acceptance/v1.1.0.md`). Hosted CI passes Linux and Windows on 3.10/3.13/3.14 and macOS 3.14; macOS 3.10/3.13 are under diagnosis. Current CI fixes include an end-to-end mixed-line-ending/BOM/indentation regression. Tk start-up workaround remains `--capture=sys` (decision E4). | Keep platform claims conservative until the full matrix passes. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | v1.0.0 released on GitHub 2026-09-25. v1.1.0 tagged and pushed 2026-10-02; wheel/sdist and isolated install verified locally. No GitHub release or package-index upload for v1.1.0. | Cross-platform CI is next per F0; Phase 10 project transforms follows (see `docs/plans/2026-10-02-project-transforms.md`). |
 | Transports | Phase 9 CLI and stdio MCP adapters are implemented and released in v1.1.0. The adapters use public actions, root confinement, bounded outputs, forced backups and trusted human approval. | Preserve the approval boundary; Phase 10 extends project patches with structural operations. |

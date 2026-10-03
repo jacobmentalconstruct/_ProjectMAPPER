@@ -11,23 +11,15 @@ next. The workflow in `.github/workflows/tests.yml` covers Windows, macOS and Li
 Python 3.10, 3.13 and 3.14, checks Tk startup, and uses Xvfb for Linux UI tests. Runs
 `37121817805` through `37124673080` identified and fixed platform-specific behavior,
 fixture paths, toolbar sizing, Aqua metrics, and an approval-denial hang. The latest run,
-`37125335567`, passed all Linux and Windows jobs plus macOS 3.14. On macOS 3.10 and 3.13,
-the denied-restore test, minimum-size control-layout test, and spinbox theme test all
-passed; after the last one at 32% the suite stopped producing output. The run was canceled
-after six minutes. This no longer points to the layout test. The next run adds a repeating
-60-second traceback dumps identified two waits in Backups UI tests at `root.update()` while
-the parent root was withdrawn: `test_keyboard_traversal_reaches_controls` and
-`test_single_instance_and_refresh_key`. Both were fixed. The next run advanced through
-those tests and found the same hidden-root event-loop call in
-`test_changes_during_running_scan_are_eventually_applied`; that test now deiconifies its
-root. The next run reached the History window and found another hidden-root `update()` in
-its minimum-size layout check; the History live-update, layout and keyboard tests now show
-their parent before processing events. The following run advanced and found hidden-root
-event processing in Project Patcher review tests. Those UI test classes now keep the parent
-root viewable. The next run advanced through the New File context-menu test and reached
-`test_collapse_before_first_batch_remains_expandable`, where the shared `drain()` helper
-processed Tk events with a withdrawn root. The lazy-tree test class now leaves that root
-viewable; hosted verification is pending.
+`37125335567`, passed all Linux and Windows jobs plus macOS 3.14. Repeating traceback
+dumps in subsequent runs identified hidden-root Tk event-loop waits in Backups, exclusions,
+History, Project Patcher review, New File context-menu, and lazy-tree tests. Those tests were
+updated to keep their roots viewable. Run `37129895448` confirmed the lazy-tree tests advance,
+then found the same issue in the shared desktop smoke-test fixture at
+`DesktopCase.pump()`. That fixture now keeps its root viewable, covering its event-pumping
+tests together. A project-patch regression test also now exercises UTF-8 BOM retention,
+mixed CRLF/CR/LF endings, no final newline, and relative indentation through validation and
+write. Both changes await the next hosted matrix run.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

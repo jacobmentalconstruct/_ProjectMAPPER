@@ -43,7 +43,9 @@ class DesktopCase(unittest.TestCase):
         self.addCleanup(env.stop)
         self.guard_modals()
         self.root = tk_root(self)
-        self.root.withdraw()
+        # These cases exercise the desktop UI and pump Tk events. On Aqua, update()
+        # can block indefinitely when the parent root is withdrawn.
+        self.root.deiconify()
         self.app = ProjectMapperApp(self.root, self.folder)
         for timer in self.root.tk.call("after", "info"):
             self.root.after_cancel(timer)

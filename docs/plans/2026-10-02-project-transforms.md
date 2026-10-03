@@ -11,19 +11,18 @@ implementation/review cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status (2026-10-03; refreshed after hosted CI run `37125335567`):
+Current status (2026-10-03; refreshed after hosted CI run `37129895448`):
 
 - **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
   cross-platform CI is the next work item; Phase 10 follows it. Runs `37121817805` through
   `37124673080` identified and fixed platform-specific behavior, fixture paths, toolbar
-  sizing, Aqua metrics, and an approval-denial hang. Latest run `37125335567` passed Linux
-  and Windows on Python 3.10/3.13/3.14 and macOS 3.14. macOS 3.10/3.13 passed denied
-  restore, minimum-size layout and spinbox theme tests, then emitted no further test output
-  after 32% until canceled at six minutes. Tracebacks in runs `37126035883`,
-  `37126599081`, `37127134972`, `37128227007`, `37128773406`, and `37129275742` found
-  hidden-parent Tk event-loop waits in Backups, exclusions, History, Project Patcher review,
-  New File context-menu and lazy-tree tests. The affected setups now keep parent roots
-  viewable; hosted verification is pending and cross-platform acceptance remains open.
+  sizing, Aqua metrics, and an approval-denial hang. Run `37129895448` passed Linux and
+  Windows on Python 3.10/3.13/3.14 and macOS 3.14. Repeating traceback runs
+  `37126035883`–`37129895448` found hidden-parent Tk event-loop waits in Backups, exclusions,
+  History, Project Patcher review, New File context-menu, lazy-tree and shared desktop
+  smoke tests. Their test roots now stay viewable; hosted verification is pending and
+  cross-platform acceptance remains open. A project-patch regression test covers BOMs,
+  mixed physical newlines and relative indentation end to end.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
