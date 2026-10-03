@@ -8,7 +8,7 @@ import unittest
 from tkinter import ttk
 from unittest.mock import patch
 
-from tests.support import temporary_directory, tk_root
+from tests.support import fire_binding, temporary_directory, tk_root
 from projectmapper.app import ProjectMapperApp
 from projectmapper.core.backups import BackupStore
 from projectmapper.tools.patcher import PatchError
@@ -162,11 +162,7 @@ class BackupsWindowTests(unittest.TestCase):
         self.assertIs(self.app.open_backups(), window)
         self.assertEqual(self.keys(window), [])
         self.save("v2\n")
-        self.root.deiconify()
-        self.addCleanup(self.root.withdraw)
-        window.top.focus_force()
-        self.root.update()
-        window.top.event_generate("<F5>", when="now")
+        fire_binding(window.top, "<F5>")
         self.assertEqual(len(self.keys(window)), 1)
 
     def test_every_control_visible_at_minimum_size(self):

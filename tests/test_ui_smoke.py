@@ -7,7 +7,6 @@ export are patched so nothing leaves the temporary fixture.
 import hashlib
 import json
 import os
-import re
 from pathlib import Path
 from types import SimpleNamespace
 import time
@@ -15,7 +14,7 @@ import tkinter as tk
 import unittest
 from unittest.mock import patch
 
-from tests.support import temporary_directory, tk_root
+from tests.support import fire_binding, temporary_directory, tk_root
 from projectmapper.app import ProjectMapperApp
 from projectmapper.core.backups import BackupStore
 from projectmapper.core.config import OUTPUT_ROOT_NAME
@@ -72,13 +71,7 @@ class DesktopCase(unittest.TestCase):
         Simulated keys only reach the window with keyboard focus, and Windows will not give
         a test window focus while someone is using another application; this calls the
         registered binding through Tcl instead, so it works whatever has focus."""
-        script = widget.bind(sequence)
-        funcid = re.search(r"\[(\S+) %#", script).group(1)
-        # The fields of a plain KeyPress (type 2); tkinter parses them into the Event.
-        fields = dict.fromkeys(widget._subst_format, "0")
-        fields.update({"%A": "", "%T": "2", "%K": sequence.strip("<>"), "%W": str(widget)})
-        fields = [fields[name] for name in widget._subst_format]
-        return widget.tk.call(funcid, *fields)
+        return fire_binding(widget, sequence)
 
     def scan(self):
         app = self.app
