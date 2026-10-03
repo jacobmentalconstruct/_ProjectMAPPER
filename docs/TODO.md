@@ -16,13 +16,14 @@ fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CR
 endings, no final newline, and relative indentation through validation and write. Hosted run
 [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
-CI acceptance is complete through Phase 10.4. Hosted run `37145383336` passed the Phase 10.3
+CI acceptance is complete through Phase 10.5. Hosted run `37145383336` passed the Phase 10.3
 matrix; Phase 10.4 backup manifest v2, changeset recording, whole-changeset undo, and
 Backups-window wording pass the Windows full suite (427 passed, 2 skipped) and hosted run
 [`37148797317`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37148797317)
-across all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Phase 10.5 is implemented
-locally and passes Windows Python 3.13 (437 passed, 2 skipped) plus changed-file Ruff;
-refresh the cross-platform matrix after the tranche is committed. Follow progress in the
+across all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Phase 10.5 passed the
+Windows Python 3.13 suite (437 passed, 2 skipped), changed-file Ruff and hosted run
+[`37151399734`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37151399734)
+across all nine jobs. Next is Phase 10.6a and 10.6 in the
 [Phase 10 plan](plans/2026-10-02-project-transforms.md). Keep compatibility claims tied to
 the tested matrix.
 

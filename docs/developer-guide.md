@@ -157,7 +157,7 @@ generations. They never hold file contents. The category is the action's prefix
 (`snapshot`, `backup`, …) or `internal` for recorded problems. The history keeps 500
 records per session and is not persisted.
 
-## CLI and MCP adapter boundary (version 1.1.0)
+## CLI and MCP adapter boundary (Phase 9 and Phase 10)
 
 The adapters create one `AdapterSession` for a fixed project root. They expose only the
 allow-listed actions, confine all path arguments, force backups on backed-up writes, and

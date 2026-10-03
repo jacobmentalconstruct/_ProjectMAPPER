@@ -6,8 +6,8 @@ Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9
 accepted and released. Cross-platform CI passed all nine platform/version jobs in run
 `37139891049`. Steps 10.0–10.4 are complete. Phase 10.4 passed the full local suite and all
 nine Windows/macOS/Linux × Python 3.10/3.13/3.14 hosted jobs in run `37148797317`. Phase
-10.5 controller and adapter implementation is in progress; local full-suite and changed-file
-lint checks pass, while the documentation and hosted CI gates remain.**
+10.5 is accepted: local verification passes and hosted run `37151399734` passes all nine
+Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Proceed to 10.6a and 10.6.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
@@ -43,13 +43,13 @@ Current status (2026-10-03; refreshed after hosted CI run `37148797317`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.4 are complete; 10.5 is active:** `.dev-log/10-project-transforms.md`
+- **Steps 10.0–10.5 are complete; 10.6a is next:** `.dev-log/10-project-transforms.md`
   records the entry gate and acceptance; D1–D7 are present in section 17 of the main plan.
   The shared executor applies content and structural operations, quarantines deletes until
   commit, and rolls back failures. Hosted run `37148797317` passed all nine Windows,
   macOS and Linux jobs on Python 3.10, 3.13 and 3.14 with backup manifest v2 and changeset
-  undo. Phase 10.5 now adds v2 changesets, adapter actions, selection remapping and
-  approval classification; finish its docs and hosted CI gate before proceeding.
+  undo. Phase 10.5 adds v2 changesets, adapter actions, selection remapping and approval
+  classification. Hosted run `37151399734` passes all nine matrix jobs; proceed to 10.6a.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -492,8 +492,9 @@ dual-path dirty marking, operation metadata and the `ask_before_structural_write
 are wired through the controller and agent boundary. Version 1 manifests remain accepted.
 The popup still makes one decision for the whole request; per-operation destructive
 selection and re-simulation remain in 10.6. Local verification currently passes 437 tests
-with 2 skips, and Ruff passes on all changed Python files. Hosted CI, docs accuracy search,
-and a final gate review remain before accepting 10.5.
+with 2 skips; changed-file Ruff, line-ending tests and the docs accuracy check pass. Hosted
+run [`37151399734`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37151399734)
+passes all nine jobs. Step 10.5 is accepted; proceed to 10.6a.
 
 ### 10.6a — Tooltips for every existing control
 - `ToolTip` helper, the tooltip text registry, and tooltips for every control listed in
