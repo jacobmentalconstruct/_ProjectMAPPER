@@ -180,9 +180,11 @@ class Controller:
             for path, data, mode in items:
                 store = BackupStore.for_target(path, self.state.root)
                 groups.setdefault((store.scope, str(store.directory)), (store, []))[1].append((path, data, mode))
-            names = [f"{store.create(kind, action, context.operation_id, files,
-                                     changeset=changeset if kind == 'changeset' else None).id} "
-                     f"({store.scope} store)" for store, files in groups.values()]
+            names = []
+            for store, files in groups.values():
+                generation = store.create(kind, action, context.operation_id, files,
+                                          changeset=changeset if kind == "changeset" else None)
+                names.append(f"{generation.id} ({store.scope} store)")
             return ", ".join(names)
         return write
 
