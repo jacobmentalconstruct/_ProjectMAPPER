@@ -4,14 +4,14 @@ Date: 2026-10-02
 
 Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
 accepted and released. Cross-platform CI passed all nine platform/version jobs in run
-`37139891049`. Steps 10.0–10.2 are complete; step 10.3 is underway.**
+`37139891049`. Steps 10.0–10.3 are complete; step 10.4 is next.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status (2026-10-03; refreshed after hosted CI run `37139891049`):
+Current status (2026-10-03; refreshed after hosted CI run `37145383336`):
 
 - **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
   cross-platform CI preceded Phase 10 and is now accepted. Runs `37121817805` through
@@ -24,6 +24,7 @@ Current status (2026-10-03; refreshed after hosted CI run `37139891049`):
   `37133646697` passed all nine jobs with the Phase 10.1 changes, including the
   focus-independent Tcl binding test helper for desktop shortcuts. Run `37139891049`
   passed all nine jobs with the Phase 10.2 virtual-tree validator and core hunk engine.
+  Run `37145383336` passed all nine jobs with the Phase 10.3 transaction executor.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
@@ -37,11 +38,11 @@ Current status (2026-10-03; refreshed after hosted CI run `37139891049`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.2 are complete; 10.3 is underway:** `.dev-log/10-project-transforms.md` records the entry
-  gate and acceptance; D1–D7 are present in section 17 of the main plan. The 407-test
-  Windows suite and all nine hosted matrix jobs passed for 10.2. The v1 patch apply path
-  now delegates to the core transaction module; the structural operation executor and
-  its quarantine/no-overwrite rollback gates remain to be implemented.
+- **Steps 10.0–10.3 are complete; 10.4 is next:** `.dev-log/10-project-transforms.md`
+  records the entry gate and acceptance; D1–D7 are present in section 17 of the main plan.
+  The shared executor applies content and structural operations, quarantines deletes until
+  commit, and rolls back failures. Hosted run `37145383336` passed all nine matrix jobs.
+  Proceed to backup manifest v2 and undo.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -415,16 +416,18 @@ implementation and focused-test evidence.
   op index and check full rollback. Fail during rollback and check the recovery generation.
   Test a locked folder rename on Windows. Test POSIX overwrite refusal.
 
-**Progress 2026-10-03:** The v1 multi-file patch path delegates to `core.transaction`,
-which stages outputs, rechecks content and stat identity before replacement, invokes the
-backup callback before the first write, and raises a typed recovery error when rollback
-cannot safely restore. The same executor now applies create, delete, move, mkdir, folder
-move and recursive folder delete operations. Deletes stay in a same-volume quarantine until
-commit; rollback is tested at every operation index, including restoration of quarantined
-files and folders. The Windows locked-folder and POSIX no-overwrite cases have targeted
-tests. The full local Windows suite passed (417 passed, 1 skipped) before the final
-operation-index test was added; the focused transaction suite now passes 10 tests with one
-platform-specific skip. Hosted cross-platform CI remains before 10.3 acceptance.
+**Accepted 2026-10-03:** Hosted run
+[37145383336](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37145383336)
+passed all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. The v1 multi-file patch
+path delegates to `core.transaction`, which stages outputs, rechecks content and stat
+identity before replacement, invokes the backup callback before the first write, and raises
+a typed recovery error when rollback cannot safely restore. The same executor now applies
+create, delete, move, mkdir, folder move and recursive folder delete operations. Deletes
+stay in a same-volume quarantine until commit; rollback is tested at every operation index,
+including restoration of quarantined files and folders. The Windows locked-folder and POSIX
+no-overwrite cases have targeted tests. The full local Windows suite passed (417 passed,
+1 skipped) before the final operation-index test was added; the focused transaction suite
+now passes 10 tests with one platform-specific skip. Phase 10.3 is complete; proceed to 10.4.
 
 The full-suite run also exposed a false backup-restore refusal when a temporary project was
 created beneath a checkout whose directory was named `_ProjectMAPPER`. The restore guard now

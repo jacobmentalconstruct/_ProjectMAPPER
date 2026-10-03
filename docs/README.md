@@ -24,7 +24,7 @@ verification records. End-user instructions remain in the root `README.md`.
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Remaining work:** [TODO.md](TODO.md): Phase 10 transaction executor (underway) and later project-transform steps, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): Phase 10.4 backups v2 and undo and later project-transform steps, the Tcl mechanism behind E4,
   two recorded test events, and star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's
@@ -33,7 +33,7 @@ verification records. End-user instructions remain in the root `README.md`.
 ## Active plan
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
-- [Project transforms: Phase 10, planned 2026-10-02, follows cross-platform CI](plans/2026-10-02-project-transforms.md)
+- [Project transforms: Phase 10, steps 10.0–10.3 accepted; backups v2 and undo next](plans/2026-10-02-project-transforms.md)
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)
