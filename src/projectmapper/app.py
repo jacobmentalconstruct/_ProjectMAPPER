@@ -602,6 +602,7 @@ class ProjectMapperApp:
         self.widgets["project_path_entry"] = tk.Entry(
             top_frame,
             textvariable=self.widgets["selected_root_var"],
+            width=12,
             bg=THEME["field_bg"],
             fg=THEME["field_text"],
             insertbackground=THEME["field_text"],
@@ -1337,5 +1338,4 @@ def main(argv=None):
 if __name__ == "__main__":
     main()
 # === [SECTION: ENTRYPOINT] END ===
-
 

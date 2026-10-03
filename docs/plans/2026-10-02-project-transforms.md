@@ -10,10 +10,13 @@ implementation/review cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status (2026-10-03):
+Current status (2026-10-03; refreshed after first hosted CI run):
 
 - **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
   cross-platform CI is the next work item; Phase 10 follows it.
+  The first hosted CI run (`37121817805`) found platform-specific UI sizing and test
+  assumptions, a Linux file-collision message mismatch, and a macOS ttk combobox styling
+  assumption. These are being addressed before the CI gate is considered complete.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

@@ -18,6 +18,13 @@ class ToolWindowMixin:
         self.top.geometry(geometry)
         self.top.minsize(*minimum)
 
+    def fit_minimum_width_to(self, *widgets, margin=24):
+        """Keep packed toolbar controls visible across platform font metrics."""
+        self.top.update_idletasks()
+        minimum_width, minimum_height = self.top.minsize()
+        requested = max((widget.winfo_reqwidth() for widget in widgets if widget), default=0)
+        self.top.minsize(max(minimum_width, requested + margin), minimum_height)
+
     def frame(self, parent):
         return tk.Frame(parent, bg=self.colors["panel_bg"])
 

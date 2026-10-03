@@ -58,10 +58,15 @@ class TextToucherWindow(ToolWindowMixin):
                                           state="readonly", width=9, style="TextToucher.TCombobox")
         self.extension_box.grid(row=0, column=2, padx=8)
         # Style this dropdown's popdown only, rather than all comboboxes in the app.
-        popdown = self.top.tk.call("ttk::combobox::PopdownWindow", self.extension_box)
-        self.top.tk.call(str(popdown) + ".f.l", "configure", "-background", self.colors["field_bg"],
-                         "-foreground", self.colors["text"], "-selectbackground", self.colors["selection"],
-                         "-selectforeground", self.colors["text"])
+        try:
+            popdown = self.top.tk.call("ttk::combobox::PopdownWindow", self.extension_box)
+            self.top.tk.call(str(popdown) + ".f.l", "configure", "-background", self.colors["field_bg"],
+                             "-foreground", self.colors["text"], "-selectbackground", self.colors["selection"],
+                             "-selectforeground", self.colors["text"])
+        except tk.TclError:
+            # Aqua's native ttk combobox may not expose the themed popdown list
+            # widget here. The native dropdown remains usable without custom colors.
+            pass
         self.label(self.top, text="FILE CONTENT", bg=self.colors["app_bg"]).grid(
             row=2, column=0, sticky="w", padx=12, pady=(6, 4))
         editor = self.frame(self.top)

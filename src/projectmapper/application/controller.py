@@ -449,7 +449,10 @@ class Controller:
     def _create(self, payload, context):
         inputs(payload, ("folder", "name", "content"), ("extension", "timestamp"))
         context.check_cancelled()
-        path = create_text_file(**payload)
+        try:
+            path = create_text_file(**payload)
+        except FileExistsError as exc:
+            raise ActionError("invalid_input", "That file already exists. Choose a different name; nothing was overwritten.") from exc
         self._changed(path)
         return {"path": str(path), "paths": [str(path)]}
 

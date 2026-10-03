@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified; cross-platform CI is being added.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. The new nine-job cross-platform workflow is active; its first run exposed platform-specific layout, error-message and lazy-tree test issues, which are being fixed before acceptance.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
@@ -24,7 +24,7 @@ verification records. End-user instructions remain in the root `README.md`.
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Remaining work:** [TODO.md](TODO.md): cross-platform CI verification, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): cross-platform CI fixes and verification, the Tcl mechanism behind E4,
   two recorded test events, star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's

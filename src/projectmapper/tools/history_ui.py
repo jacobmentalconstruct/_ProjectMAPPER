@@ -57,12 +57,13 @@ class HistoryWindow(ToolWindowMixin):
         self.top.bind("<Destroy>", lambda event: self.unsubscribe() if event.widget is self.top else None, add="+")
         self.top.bind("<F5>", lambda _event: (self.refresh(), "break")[1])
         self.refresh()
+        self.fit_minimum_width_to(self.toolbar)
 
     # --- layout ------------------------------------------------------------
 
     def build_ui(self):
         colors = self.colors
-        toolbar = self.frame(self.top)
+        toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
         self.category = tk.StringVar(self.top, "All")
         self.outcome = tk.StringVar(self.top, "All")

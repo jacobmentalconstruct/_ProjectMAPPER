@@ -9,9 +9,13 @@ starting point. Decisions behind them are in the plan's decision log
 The v1.1.0 suite was run on Windows with Python 3.10, 3.13 and 3.14. macOS and Linux
 remain unverified. Decision F0 put this after Phase 9, which is now complete. The GitHub
 Actions matrix is in `.github/workflows/tests.yml` for Windows, macOS and Linux on Python
-3.10, 3.13 and 3.14; it also checks Tk window creation and uses Xvfb on Linux. The item
-remains open until all hosted jobs pass and platform-specific failures are resolved. Keep
-platform classifiers and tested-platform claims conservative until then.
+3.10, 3.13 and 3.14; it also checks Tk window creation and uses Xvfb on Linux. First hosted
+run `37121817805` exposed platform issues and was cancelled after collecting logs: Linux
+had a clipped History toolbar and an unfriendly file-collision message; Windows had a lazy
+tree test that expanded a folder before it was rendered; macOS exposed combobox popdown
+styling and font-metric layout assumptions. Fixes are in progress. The item remains open
+until all hosted jobs pass and platform-specific failures are resolved. Keep platform
+classifiers and tested-platform claims conservative until then.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

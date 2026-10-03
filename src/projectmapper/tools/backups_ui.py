@@ -40,12 +40,13 @@ class BackupsWindow(ToolWindowMixin):
         self.build_ui()
         self.top.bind("<F5>", lambda _event: (self.refresh(), "break")[1])
         self.refresh()
+        self.fit_minimum_width_to(self.toolbar)
 
     # --- layout ------------------------------------------------------------
 
     def build_ui(self):
         colors = self.colors
-        toolbar = self.frame(self.top)
+        toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
         self.button(toolbar, "Refresh", self.refresh).pack(side="left")
         self.delete_button = self.button(toolbar, "Delete Selected…", self.delete_selected, "danger")

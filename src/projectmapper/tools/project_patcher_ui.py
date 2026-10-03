@@ -37,10 +37,11 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.setup_review_styles()
         self.top.protocol("WM_DELETE_WINDOW", self.close)
         self.build_ui()
+        self.fit_minimum_width_to(self.toolbar, self.footer, self.nav)
         self.bind_keys()
 
     def build_ui(self):
-        toolbar = self.frame(self.top)
+        toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
         self.button(toolbar, "Copy Schema", self.copy_schema).pack(side="right")
         self.button(toolbar, "Load Patch JSON", self.load_patch, "secondary").pack(side="right", padx=6)
@@ -57,7 +58,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
                                      fg=self.colors["status_text"], anchor="w", justify="left",
                                      wraplength=680, padx=10, pady=8)
         self.status_label.pack(side="bottom", fill="x", padx=12, pady=(0, 10))
-        footer = self.frame(self.top)
+        footer = self.footer = self.frame(self.top)
         footer.pack(side="bottom", fill="x", padx=12, pady=6)
         self.action_group = self.frame(footer)
         self.action_group.configure(padx=4, pady=4)
@@ -105,7 +106,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.file_list.pack(fill="x", padx=4, pady=(6, 4))
         self.file_list.bind("<<TreeviewSelect>>", self.on_file_selected)
 
-        nav = self.frame(right)
+        nav = self.nav = self.frame(right)
         nav.pack(fill="x", padx=4, pady=(0, 4))
         self.prev_file_button = self.button(nav, "◀ File", lambda: self.step_file(-1), state="disabled")
         self.next_file_button = self.button(nav, "File ▶", lambda: self.step_file(1), state="disabled")

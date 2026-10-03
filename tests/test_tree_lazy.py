@@ -36,6 +36,13 @@ class LazyProjectionTests(unittest.TestCase):
         self.assertIsNone(self.app.tree_projection.timer)
 
     def expand(self, path):
+        path = Path(path)
+        if not self.tree.exists(str(path)):
+            ancestors = list(path.parents)
+            visible = next((ancestor for ancestor in ancestors if self.tree.exists(str(ancestor))), None)
+            self.assertIsNotNone(visible, f"No rendered ancestor for {path}")
+            self.expand(visible)
+            self.drain()
         self.tree.focus(str(path))
         self.tree.item(str(path), open=True)
         self.app.on_tree_open(SimpleNamespace(widget=self.tree))
