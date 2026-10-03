@@ -209,6 +209,7 @@ class Dispatcher:
 
     def _resolve_approval(self, operation_id, approved):
         """Private trusted-adapter capability; never register as a public action."""
+        denied = False
         with self._lock:
             if self._closed:
                 raise ActionError("closed", "Application actions have been closed.")
@@ -217,11 +218,18 @@ class Dispatcher:
             if operation["result"].status != "awaiting_approval" or plan is None:
                 raise ActionError("stale_plan", "Approval is no longer pending.")
             operation["plan"] = None
-            operation["settled"] = False
             if approved is not True:
                 operation["cancel"].set()
-            operation["result"] = Result(operation_id, operation["request"].action, "queued")
-            self._worker.submit(self._run, operation, plan.execute)
+                denied = True
+            else:
+                operation["settled"] = False
+                operation["result"] = Result(operation_id, operation["request"].action, "queued")
+                self._worker.submit(self._run, operation, plan.execute)
+        if denied:
+            # Refusal is already a complete decision. Do not queue a no-op continuation
+            # behind the single worker: the trusted UI can wait for this result directly.
+            self._finish(operation, "cancelled", error={
+                "code": "approval_denied", "message": "Pending approval was denied."})
         return operation_id
 
     def close(self):

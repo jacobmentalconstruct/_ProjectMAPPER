@@ -93,6 +93,7 @@ class BackupActionTests(unittest.TestCase):
         plan = self.preview(self.store.list()[0].id)
         _, result = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]}, approve=False)
         self.assertEqual(result.status, "cancelled")
+        self.assertEqual(result.error["code"], "approval_denied")
         self.assertEqual(self.a.read_bytes(), b"v2\n")
         self.assertEqual([g.kind for g in self.store.list()], ["backup"])
 

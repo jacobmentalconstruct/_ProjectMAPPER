@@ -24,7 +24,9 @@ and macOS 3.10/3.13 repeated the same stall. These follow-up changes use resolve
 paths, measured minimum window widths, a larger Aqua allowance for native button metrics,
 an 820 px compact-screen threshold matching the measured 811 px minimum, and a Project
 Patcher minimum width based on both side-by-side panes. macOS jobs now emit per-test
-verbose progress to locate the repeated stall. The item remains open until all hosted jobs pass and
+verbose progress. That isolated the 3.10/3.13 stall to denial of a backup restore; denied
+approvals now settle immediately rather than scheduling a cancelled continuation on the
+worker. The item remains open until all hosted jobs pass and
 platform-specific failures are resolved. Keep platform classifiers and tested-platform
 claims conservative until then.
 
