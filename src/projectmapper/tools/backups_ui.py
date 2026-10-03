@@ -121,7 +121,10 @@ class BackupsWindow(ToolWindowMixin):
 
     def set_actions(self, generation=None, file_ready=False):
         usable = generation is not None and generation["status"] == "ok"
-        self.set_button_enabled(self.restore_file_button, usable and file_ready, "accent")
+        changeset = usable and generation.get("kind") == "changeset"
+        self.restore_file_button.configure(text="Restore File…")
+        self.restore_all_button.configure(text="Undo Changeset…" if changeset else "Restore All Files…")
+        self.set_button_enabled(self.restore_file_button, usable and file_ready and not changeset, "accent")
         self.set_button_enabled(self.restore_all_button, usable, "accent")
         self.set_button_enabled(self.delete_button, usable, "danger")
 
@@ -179,6 +182,8 @@ class BackupsWindow(ToolWindowMixin):
         for index, item in enumerate(generation["files"]):
             self.file_list.insert("", "end", iid=str(index), text=item["target"], values=("…",))
         self.set_actions(generation)
+        if generation["kind"] == "changeset" and not generation["files"]:
+            self.show_diff(self.diff_box, "This changeset has no file-content backups. Undo it to reverse its recorded project operations.")
         if generation["files"]:
             self.file_list.selection_set("0")
             self.on_file_selected()
@@ -190,13 +195,19 @@ class BackupsWindow(ToolWindowMixin):
         target = generation["files"][int(selected[0])]["target"]
         self.file_plan = None
         try:
-            data = self.app.action("backup.preview", {"scope": generation["scope"], "generation": generation["id"],
-                                                      "targets": [target]})
+            payload = {"scope": generation["scope"], "generation": generation["id"]}
+            if generation["kind"] != "changeset":
+                payload["targets"] = [target]
+            data = self.app.action("backup.preview", payload)
         except (OSError, PatchError) as exc:
             self.clear_views(f"Preview failed: {exc}")
             self.set_actions(generation)
             return
-        (item,) = data["files"]
+        item = next((entry for entry in data["files"] if entry["target"] == target), None)
+        if item is None:
+            self.show_diff(self.diff_box, "This changeset must be undone as a whole; select Undo Changeset to review it.")
+            self.set_actions(generation)
+            return
         state = "missing now" if not item["current_exists"] else "identical" if item["identical"] else "differs"
         self.file_list.set(selected[0], "state", state)
         self.show_text(self.current_box, item["current_text"] if item["current_text"] is not None else
@@ -204,8 +215,8 @@ class BackupsWindow(ToolWindowMixin):
         self.show_diff(self.diff_box, item["diff"])
         self.show_text(self.backup_box, item["backup_text"] if item["backup_text"] is not None else "(not UTF-8 text)")
         self.views.select(VIEW_DIFF)
-        self.file_plan = data["plan_id"]
-        self.set_actions(generation, file_ready=True)
+        self.file_plan = data["plan_id"] if generation["kind"] != "changeset" else None
+        self.set_actions(generation, file_ready=self.file_plan is not None)
 
     # --- actions -----------------------------------------------------------
 
@@ -219,8 +230,12 @@ class BackupsWindow(ToolWindowMixin):
             return False
         self.refresh(generation and generation["key"])
         saved = f" Previous contents saved as {result['pre_restore']}." if result.get("pre_restore") else ""
-        self.status.set(f"Restored {result['count']} file(s).{saved}")
-        self.app.log_message(f"Restored {result['count']} file(s) from backup {generation['id']}.{saved}")
+        if generation["kind"] == "changeset":
+            message = f"Undid changeset {generation['id']}, affecting {result['count']} path(s).{saved}"
+        else:
+            message = f"Restored {result['count']} file(s) from backup {generation['id']}.{saved}"
+        self.status.set(message)
+        self.app.log_message(message)
         return True
 
     def restore_file(self):

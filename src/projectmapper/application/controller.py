@@ -21,13 +21,16 @@ try:
     from ..core.files import create_text_file, file_name
     from ..core import snapshots, exports
     from ..core.config import OUTPUT_ROOT_NAME, SOURCE_ROOT
+    from ..core.changeset import parse_changeset
+    from ..core.paths import PathSafetyError, SourceChangedError
+    from ..core.vtree import VirtualTree
     from ..core.diagnostics import collect_diagnostics
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.backups import BackupError, BackupStore
     from ..core.writes import atomic_write_bytes
-    from ..core.transaction import RecoveryRequiredError
+    from ..core.transaction import RecoveryRequiredError, apply_operations, prepare_undo
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
@@ -36,13 +39,16 @@ except ImportError:
     from core.files import create_text_file, file_name
     from core import snapshots, exports
     from core.config import OUTPUT_ROOT_NAME, SOURCE_ROOT
+    from core.changeset import parse_changeset
+    from core.paths import PathSafetyError, SourceChangedError
+    from core.vtree import VirtualTree
     from core.diagnostics import collect_diagnostics
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
     from core.diff import DiffFile, unified_diff_text
     from core.backups import BackupError, BackupStore
     from core.writes import atomic_write_bytes
-    from core.transaction import RecoveryRequiredError
+    from core.transaction import RecoveryRequiredError, apply_operations, prepare_undo
 
 
 
@@ -167,15 +173,16 @@ class Controller:
         return {"path": str(session.path), "text": session.source, "sha256": fingerprint(session.original_bytes),
                 "bom": session.bom}
 
-    def _generation_writer(self, kind, action, context):
+    def _generation_writer(self, kind, action, context, *, changeset=None):
         """Return a writer for ``[(path, data, mode)]`` that stores one generation per scope."""
         def write(items):
             groups = {}
             for path, data, mode in items:
                 store = BackupStore.for_target(path, self.state.root)
                 groups.setdefault((store.scope, str(store.directory)), (store, []))[1].append((path, data, mode))
-            names = [f"{store.create(kind, action, context.operation_id, files).id} ({store.scope} store)"
-                     for store, files in groups.values()]
+            names = [f"{store.create(kind, action, context.operation_id, files,
+                                     changeset=changeset if kind == 'changeset' else None).id} "
+                     f"({store.scope} store)" for store, files in groups.values()]
             return ", ".join(names)
         return write
 
@@ -198,7 +205,8 @@ class Controller:
         backup = None
         if payload.get("backup", False):
             write = self._generation_writer("backup", action, context)
-            backup = lambda path, data, mode: write([(path, data, mode)])
+            def backup(path, data, mode):
+                return write([(path, data, mode)])
         path = session.save(payload["text"], payload.get("suffix"), backup=backup)
         self._changed(path)
         return {"path": str(path), "paths": [str(path)], "sha256": fingerprint(session.original_bytes)}
@@ -264,6 +272,18 @@ class Controller:
         targets = payload.get("targets") or list(recorded)
         if not isinstance(targets, list) or not all(key in recorded for key in targets):
             raise ActionError("invalid_input", "Choose files recorded in this backup.")
+        if generation.kind == "changeset" and set(targets) != set(recorded):
+            raise ActionError("invalid_input", "A changeset must be undone as a whole.")
+        if generation.kind == "changeset":
+            for state in generation.changeset.get("post_state", []):
+                path = validate_target(store.target_path(state["target"]))
+                actual = path.read_bytes() if path.is_file() else None
+                expected = state.get("sha256") if state.get("kind") == "file" else None
+                if ((None if actual is None else fingerprint(actual)) != expected
+                        or (state.get("kind") == "dir") != path.is_dir()
+                        or (state.get("mode") is not None and path.exists()
+                            and stat.S_IMODE(path.stat().st_mode) != state["mode"])):
+                    raise ActionError("source_changed", f"{state['target']} changed after the changeset. Undo refused.")
         files, bound = [], []
         for key in targets:
             data = store.read(generation.id, key)
@@ -282,7 +302,11 @@ class Controller:
             bound.append({"key": key, "path": str(path), "backup_sha256": recorded[key]["sha256"],
                           "current_sha256": None if current is None else fingerprint(current),
                           "mode": recorded[key]["mode"]})
-        plan = {"scope": payload["scope"], "generation": generation.id, "files": bound}
+        plan = {"scope": payload["scope"], "generation": generation.id, "files": bound,
+                "manifest_sha256": store.fingerprint(generation.id)}
+        plan["kind"] = generation.kind
+        if generation.kind == "changeset":
+            plan["affected"] = [item["target"] for item in generation.changeset.get("post_state", [])]
         return {"plan_id": self._store_plan("restore", plan), "generation": generation.id, "files": files}
 
     def _backup_restore(self, payload, context):
@@ -294,6 +318,8 @@ class Controller:
             ctx.check_cancelled()
             self._plan(payload["plan_id"], "restore")
             self.plans.pop(payload["plan_id"], None)  # single use: any failure needs a new preview
+            if store.fingerprint(plan["generation"]) != plan["manifest_sha256"]:
+                raise ActionError("backup_invalid", "Backup manifest changed after the preview. Preview again.")
             checked = []
             for item in plan["files"]:
                 path = validate_target(item["path"])
@@ -307,9 +333,49 @@ class Controller:
                 if fingerprint(data) != item["backup_sha256"]:
                     raise ActionError("backup_invalid", f"Backup of {item['key']} changed after the preview.")
                 checked.append((item, path, current, data))
-            existing = [(path, current, stat.S_IMODE(path.stat().st_mode))
-                        for _, path, current, _ in checked if current is not None]
+            generation = store.get(plan["generation"]) if plan.get("kind") == "changeset" else None
+            if generation is not None:
+                for state in generation.changeset.get("post_state", []):
+                    path = validate_target(store.target_path(state["target"]))
+                    actual = path.read_bytes() if path.is_file() else None
+                    expected = state.get("sha256") if state.get("kind") == "file" else None
+                    if ((None if actual is None else fingerprint(actual)) != expected
+                            or (state.get("kind") == "dir") != path.is_dir()
+                            or (state.get("mode") is not None and path.exists()
+                                and stat.S_IMODE(path.stat().st_mode) != state["mode"])):
+                        raise ActionError("source_changed",
+                                          f"{state['target']} changed after the preview. Preview again.")
+                existing = []
+                for state in generation.changeset.get("post_state", []):
+                    if state.get("kind") == "file":
+                        path = validate_target(store.target_path(state["target"]))
+                        existing.append((path, path.read_bytes(), stat.S_IMODE(path.stat().st_mode)))
+            else:
+                existing = [(path, current, stat.S_IMODE(path.stat().st_mode))
+                            for _, path, current, _ in checked if current is not None]
             saved = self._generation_writer("pre-restore", "backup.restore", ctx)(existing) if existing else None
+            if plan.get("kind") == "changeset":
+                try:
+                    simulation = prepare_undo(
+                        self.state.root, generation.changeset,
+                        lambda key: store.read(generation.id, key))
+                    result = apply_operations(
+                        self.state.root, simulation,
+                        recover=self._generation_writer("recovery", "backup.restore", ctx),
+                        operation_id=ctx.operation_id)
+                except BackupError as exc:
+                    raise ActionError("backup_invalid", str(exc)) from exc
+                except SourceChangedError as exc:
+                    raise ActionError("source_changed", str(exc)) from exc
+                except RecoveryRequiredError as exc:
+                    detail = str(exc) + (f"; pre-restore backup {saved}." if saved else "")
+                    raise ActionError("recovery_required", detail) from exc
+                except PathSafetyError as exc:
+                    raise ActionError("io_error", str(exc)) from exc
+                for path in result["paths"]:
+                    self._changed(path)
+                return {"paths": [str(path) for path in result["paths"]],
+                        "count": len(result["paths"]), "pre_restore": saved}
             restored = []
             for item, path, _, data in checked:
                 try:
@@ -323,13 +389,19 @@ class Controller:
                 self._changed(path)
             return {"paths": [str(path) for _, path, _, _ in checked], "count": len(checked), "pre_restore": saved}
 
-        names = "\n".join(item["key"] for item in plan["files"][:20])
-        more = f"\n… and {len(plan['files']) - 20} more" if len(plan["files"]) > 20 else ""
-        return ApprovalPlan({"title": "Restore from backup?",
-                             "message": f"Replace {len(plan['files'])} file(s) with their contents in backup "
-                                        f"{plan['generation']}?\n\n{names}{more}\n\nCurrent contents are saved "
+        changeset = plan.get("kind") == "changeset"
+        targets = plan.get("affected", []) if changeset else [item["key"] for item in plan["files"]]
+        names = "\n".join(targets[:20])
+        more = f"\n… and {len(targets) - 20} more" if len(targets) > 20 else ""
+        title = "Undo changeset?" if changeset else "Restore from backup?"
+        action = "Undo this changeset" if changeset else "Restore from backup"
+        count_label = "path(s)" if changeset else "file(s)"
+        return ApprovalPlan({"title": title,
+                             "message": f"{action} {plan['generation']} affecting {len(targets)} {count_label}?"
+                                        f"\n\n{names}{more}\n\nCurrent contents are saved "
                                         "first as a pre-restore backup.",
-                             "paths": [item["path"] for item in plan["files"]]}, approved)
+                             "paths": ([str(store.target_path(key)) for key in targets] if changeset else
+                                       [item["path"] for item in plan["files"]])}, approved)
 
     def _backup_prune_preview(self, payload, context):
         inputs(payload, ("scope", "keep"), ("include",))
@@ -345,7 +417,7 @@ class Controller:
         if unknown:
             raise ActionError("invalid_input", f"Only verified generations can be removed: {', '.join(sorted(unknown))}")
         # Recovery generations are never chosen by the keep rule, only by explicit id.
-        routine = [g for g in verified if g.kind in ("backup", "pre-restore")]
+        routine = [g for g in verified if g.kind in ("backup", "pre-restore", "changeset")]
         chosen = {g.id for g in routine[keep:]} | set(include)
         candidates = [g for g in verified if g.id in chosen]
         bound = [{"id": g.id, "fingerprint": store.fingerprint(g.id)} for g in candidates]
@@ -393,14 +465,36 @@ class Controller:
         original = path.read_bytes()
         identity = path.stat()
         generation = self.state.generation
+        relative = path.relative_to(self.state.root).as_posix()
+        manifest = {"version": 2, "description": "Delete file", "ops": [
+            {"op": "delete", "path": relative, "sha256": fingerprint(original)}]}
+        simulation = VirtualTree(self.state.root).simulate(parse_changeset(manifest))
+        if not simulation.valid:
+            raise ActionError("unsafe_path", simulation.errors[0]["error"])
         def approved(context):
             context.check_cancelled()
             current = validate_target(path).stat()
             if generation != self.state.generation or (identity.st_dev, identity.st_ino, identity.st_mtime_ns, identity.st_ctime_ns) != (current.st_dev, current.st_ino, current.st_mtime_ns, current.st_ctime_ns) or path.read_bytes() != original:
                 raise ActionError("stale_plan", "The target or project changed while awaiting approval.")
-            path.unlink()
+            saved = []
+            def record_changeset(items, changeset):
+                writer = self._generation_writer("changeset", "file.delete", context,
+                                                 changeset=changeset)
+                saved.append(writer(items))
+            recover = self._generation_writer("recovery", "file.delete", context)
+            try:
+                result = apply_operations(self.state.root, simulation, record=record_changeset,
+                                          forward=manifest,
+                                          recover=recover, operation_id=context.operation_id)
+            except SourceChangedError as exc:
+                raise ActionError("stale_plan", str(exc)) from exc
+            except RecoveryRequiredError as exc:
+                raise ActionError("recovery_required", str(exc)) from exc
+            except PathSafetyError as exc:
+                raise ActionError("io_error", str(exc)) from exc
             self._changed(path)
-            return {"paths": [str(path)], "path": str(path)}
+            return {"paths": [str(changed) for changed in result["paths"]],
+                    "path": str(path), "changeset": saved[-1] if saved else "recorded"}
         return ApprovalPlan({"title": "Delete file?", "path": str(path),
                              "message": f"Permanently delete this file?\n\n{path}",
                              "sha256": fingerprint(original), "generation": generation}, approved)
@@ -489,7 +583,8 @@ class Controller:
             backup = None
             if payload.get("backup", False):
                 write = self._generation_writer("backup", "text.save_as", ctx)
-                backup = lambda target, data, mode: write([(target, data, mode)])
+                def backup(target, data, mode):
+                    return write([(target, data, mode)])
             saved = session.save(payload["text"], backup=backup)
             self._changed(saved)
             return {"path": str(saved), "paths": [str(saved)]}
@@ -607,9 +702,13 @@ class Controller:
             try:
                 backup = (self._generation_writer("backup", "project_patch.apply", ctx)
                           if payload.get("backup", False) else None)
+                def record(items, changeset):
+                    writer = self._generation_writer("changeset", "project_patch.apply", ctx,
+                                                     changeset=changeset)
+                    return writer(items)
                 # Recovery material is always made durable, whether or not backups were requested.
                 recover = self._generation_writer("recovery", "project_patch.apply", ctx)
-                paths = session.apply_all(backup=backup, recover=recover)
+                paths = session.apply_all(backup=backup, record=record, recover=recover)
             except PatchError as exc:
                 for item in session.results:
                     self._changed(item["path"])

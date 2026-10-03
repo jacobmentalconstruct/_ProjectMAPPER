@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import stat
 import unittest
 from unittest.mock import patch
 
@@ -7,7 +8,8 @@ from tests.support import temporary_directory
 from projectmapper.core import transaction
 from projectmapper.core.changeset import parse_changeset
 from projectmapper.core.paths import PathSafetyError, SourceChangedError
-from projectmapper.core.transaction import RecoveryRequiredError, _rename_no_replace, apply_operations
+from projectmapper.core.transaction import (RecoveryRequiredError, _rename_no_replace,
+                                            apply_operations, prepare_undo)
 from projectmapper.core.vtree import VirtualTree
 
 
@@ -46,6 +48,55 @@ class TransactionTests(unittest.TestCase):
         self.assertFalse((self.root / "renamed/child.txt").exists())
         self.assertFalse((self.root / "_projectmapper/.pending").exists())
         self.assertEqual(len(result["operations"]), 7)
+
+    def test_mixed_changeset_record_and_inverse_round_trip(self):
+        (self.root / "a.txt").write_bytes(b"old\n")
+        (self.root / "move-me.txt").write_bytes(b"move data\n")
+        (self.root / "folder").mkdir()
+        if os.name != "nt":
+            (self.root / "folder").chmod(0o750)
+        (self.root / "folder" / "nested.txt").write_bytes(b"nested data\n")
+        (self.root / "move-folder").mkdir()
+        (self.root / "move-folder" / "child.txt").write_bytes(b"folder move data\n")
+        manifest = {"version": 2, "ops": [
+            {"op": "patch", "path": "a.txt", "hunks": [
+                {"search_block": "old", "replace_block": "new"}]},
+            {"op": "create", "path": "created.txt", "content": "new file\n"},
+            {"op": "move", "from": "move-me.txt", "to": "moved.txt"},
+            {"op": "move_dir", "from": "move-folder", "to": "moved-folder"},
+            {"op": "mkdir", "path": "empty"},
+            {"op": "delete_dir", "path": "folder", "recursive": True},
+        ]}
+        plan = self.simulate(manifest["ops"])
+        blobs = {}
+        records = []
+
+        def record(items, changeset):
+            blobs.update({Path(path).relative_to(self.root).as_posix(): data
+                          for path, data, _ in items})
+            records.append(changeset)
+
+        apply_operations(self.root, plan, record=record, forward=manifest)
+        self.assertEqual(len(records), 1)
+
+        def read_backup(key):
+            return blobs[key]
+
+        inverse = prepare_undo(self.root, records[0], read_backup)
+        self.assertTrue(inverse.valid)
+        apply_operations(self.root, inverse)
+
+        self.assertEqual((self.root / "a.txt").read_bytes(), b"old\n")
+        self.assertEqual((self.root / "move-me.txt").read_bytes(), b"move data\n")
+        self.assertFalse((self.root / "moved.txt").exists())
+        self.assertEqual((self.root / "move-folder" / "child.txt").read_bytes(),
+                         b"folder move data\n")
+        self.assertFalse((self.root / "moved-folder").exists())
+        self.assertFalse((self.root / "created.txt").exists())
+        self.assertFalse((self.root / "empty").exists())
+        if os.name != "nt":
+            self.assertEqual(stat.S_IMODE((self.root / "folder").stat().st_mode), 0o750)
+        self.assertEqual((self.root / "folder" / "nested.txt").read_bytes(), b"nested data\n")
 
     def test_backup_callback_runs_before_the_first_mutation(self):
         target = self.root / "a.txt"

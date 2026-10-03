@@ -292,7 +292,7 @@ class ProjectPatchTests(SessionCase):
         [request] = approver.requests
         self.assertEqual(request.diff, validated["data"]["diff"])
         self.assertEqual(request.title, "Apply project patch?")
-        self.assertEqual(self.backups(session), 1)
+        self.assertEqual(self.backups(session), 2, "the project patch keeps its undo changeset")
         reused = session.call("project_patch.apply", {"plan_id": validated["data"]["plan_id"]})
         self.assertNotEqual(reused["status"], "succeeded")
         self.assertEqual(len(approver.requests), 1)

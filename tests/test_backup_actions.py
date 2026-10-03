@@ -122,23 +122,24 @@ class BackupActionTests(unittest.TestCase):
             {"files": [{"path": n, "hunks": [{"search_block": o, "replace_block": w}]}
                        for n, o, w in (("a.txt", "v1", "v2"), ("b.txt", "b1", "b2"))]})})
         self.run_approved("project_patch.apply", {"plan_id": preview.data["plan_id"], "backup": True})
-        (generation,) = self.store.list()
+        generation = next(item for item in self.store.list() if item.kind == "changeset")
         plan = self.preview(generation.id)
-        import projectmapper.application.controller as controller_module
-        real, calls = controller_module.atomic_write_bytes, []
+        import projectmapper.core.transaction as transaction_module
+        real, calls = transaction_module.os.replace, []
 
-        def failing(path, data, mode=None):
-            calls.append(path)
-            if len(calls) == 2:
+        def failing(source, destination):
+            calls.append(Path(destination))
+            if Path(destination).name == "a.txt":
                 raise PermissionError("injected")
-            return real(path, data, mode=mode)
-        with patch.object(controller_module, "atomic_write_bytes", side_effect=failing):
+            return real(source, destination)
+        with patch.object(transaction_module.os, "replace", side_effect=failing), \
+                patch.object(transaction_module, "atomic_write_bytes", side_effect=PermissionError("locked")):
             _, result = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]})
         self.assertEqual(result.status, "recovery_required")
         message = result.error["message"]
-        restored, failed = ("a.txt", "b.txt") if Path(calls[0]).name == "a.txt" else ("b.txt", "a.txt")
-        self.assertIn(f"restored {restored}", message)
-        self.assertIn(failed, message)
+        self.assertIn("operation 0", message)
+        self.assertIn("locked", message)
+        self.assertIn("pre-restore backup", message)
         pre = [g for g in self.store.list() if g.kind == "pre-restore"]
         self.assertEqual(len(pre), 1)
         self.assertIn(pre[0].id, message)
@@ -154,6 +155,82 @@ class BackupActionTests(unittest.TestCase):
         self.assertEqual(result.status, "succeeded", result.error)
         self.assertEqual(self.a.read_bytes(), b"v1\n")
         self.assertNotIn("pre-restore", [g.kind for g in self.store.list()], "nothing existed to preserve")
+
+    def test_version_1_generation_still_previews_and_restores(self):
+        self.backed_up_save(self.a, "v2\n")
+        (generation,) = self.store.list()
+        manifest_path = generation.path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["version"] = 1
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.a.write_bytes(b"changed\n")
+
+        plan = self.preview(generation.id)
+        _, restored = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]})
+
+        self.assertEqual(restored.status, "succeeded", restored.error)
+        self.assertEqual(self.a.read_bytes(), b"v1\n")
+
+    def test_file_delete_creates_changeset_generation_that_can_undo(self):
+        pending = self.app.execute("file.delete", {"path": str(self.a)})
+        self.assertEqual(pending.status, "awaiting_approval", pending.error)
+        self.approve(pending.operation_id, True)
+        deleted = self.app.dispatcher.wait(pending.operation_id)
+        self.assertEqual(deleted.status, "succeeded", deleted.error)
+        self.assertFalse(self.a.exists())
+
+        (generation,) = self.store.list()
+        self.assertEqual(generation.kind, "changeset")
+        self.assertEqual(generation.changeset["forward"]["ops"][0]["op"], "delete")
+        self.assertEqual(generation.changeset["inverse"]["ops"][0]["op"], "restore")
+        self.assertEqual(self.store.read(generation.id, "a.txt"), b"v1\n")
+        plan = self.preview(generation.id)
+        self.assertFalse(plan["files"][0]["current_exists"])
+
+        _, restored = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]})
+        self.assertEqual(restored.status, "succeeded", restored.error)
+        self.assertEqual(self.a.read_bytes(), b"v1\n")
+
+    def test_changeset_undo_refuses_when_post_state_has_changed(self):
+        pending = self.app.execute("file.delete", {"path": str(self.a)})
+        self.approve(pending.operation_id, True)
+        self.assertEqual(self.app.dispatcher.wait(pending.operation_id).status, "succeeded")
+        (generation,) = self.store.list()
+        self.a.write_bytes(b"external\n")
+
+        result = self.app.execute("backup.preview", {"scope": "project", "generation": generation.id})
+
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error["code"], "source_changed")
+        self.assertEqual(self.a.read_bytes(), b"external\n")
+
+    def test_delete_undo_uses_transactional_create(self):
+        pending = self.app.execute("file.delete", {"path": str(self.a)})
+        self.approve(pending.operation_id, True)
+        self.assertEqual(self.app.dispatcher.wait(pending.operation_id).status, "succeeded")
+        (generation,) = self.store.list()
+        plan = self.preview(generation.id)
+
+        with patch("projectmapper.core.transaction.os.link", side_effect=PermissionError("injected")):
+            _, result = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]})
+
+        self.assertEqual(result.status, "failed")
+        self.assertFalse(self.a.exists())
+
+    def test_restore_refuses_manifest_edits_after_preview(self):
+        self.backed_up_save(self.a, "v2\n")
+        (generation,) = self.store.list()
+        plan = self.preview(generation.id)
+        manifest_path = generation.path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["action"] = "tampered after preview"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        _, result = self.run_approved("backup.restore", {"plan_id": plan["plan_id"]})
+
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error["code"], "backup_invalid")
+        self.assertEqual(self.a.read_bytes(), b"v2\n")
 
     def test_restore_is_stale_after_root_change(self):
         self.backed_up_save(self.a, "v2\n")

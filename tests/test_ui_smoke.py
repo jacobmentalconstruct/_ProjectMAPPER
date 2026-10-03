@@ -257,7 +257,15 @@ class ToolWindowEntryTests(DesktopCase):
         with patch("tkinter.messagebox.askyesno", return_value=True):
             window.apply()
         self.assertEqual(self.a.read_bytes(), b"alpha = 3\n")
-        self.assertEqual(len(BackupStore.for_project(self.folder).list()), 1)
+        generations = BackupStore.for_project(self.folder).list()
+        self.assertEqual({item.kind for item in generations}, {"backup", "changeset"})
+        backups = self.app.open_backups()
+        self.addCleanup(backups.top.destroy)
+        changeset = next(item for item in backups.generations.values() if item["kind"] == "changeset")
+        backups.generation_list.selection_set(changeset["key"])
+        backups.on_generation_selected()
+        self.assertEqual(backups.restore_all_button.cget("text"), "Undo Changeset…")
+        self.assertEqual(backups.restore_file_button.cget("state"), "disabled")
 
     def test_editor_open_and_save_as(self):
         editor = self.app.open_text_editor(self.a)

@@ -4,7 +4,8 @@ Date: 2026-10-02
 
 Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
 accepted and released. Cross-platform CI passed all nine platform/version jobs in run
-`37139891049`. Steps 10.0–10.3 are complete; step 10.4 is next.**
+`37139891049`. Steps 10.0–10.3 are complete; step 10.4 is in progress, with local tests
+passing and hosted matrix verification pending.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
@@ -38,11 +39,12 @@ Current status (2026-10-03; refreshed after hosted CI run `37145383336`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.3 are complete; 10.4 is next:** `.dev-log/10-project-transforms.md`
-  records the entry gate and acceptance; D1–D7 are present in section 17 of the main plan.
-  The shared executor applies content and structural operations, quarantines deletes until
-  commit, and rolls back failures. Hosted run `37145383336` passed all nine matrix jobs.
-  Proceed to backup manifest v2 and undo.
+- **Steps 10.0–10.3 are complete; 10.4 is active:** `.dev-log/10-project-transforms.md`
+  records the entry gate, accepted work and current 10.4 evidence; D1–D7 are present in
+  section 17 of the main plan. The shared executor applies content and structural
+  operations, quarantines deletes until commit, and rolls back failures. Hosted run
+  `37145383336` passed all nine matrix jobs for 10.3. The local 10.4 suite passes; run hosted
+  Windows/macOS/Linux CI before accepting 10.4.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -441,6 +443,23 @@ ancestor name alone cannot make an otherwise valid target look like the managed 
 - Route `file.delete` through the engine.
 - Gate: v1 generations still list, preview and restore. Undo a mixed changeset round-trip
   to byte- and tree-identical state. Undo after an external edit is refused per path.
+
+#### 10.4 progress (2026-10-03)
+
+- Implemented v2 backup manifests with changeset records while retaining v1 read, preview,
+  restore and retention support. Changeset records carry forward operations, inverse
+  operations, affected-path state and original file blobs where restoration needs bytes.
+- Routed the project patch flow and single-file deletion through changeset recording. Undo
+  runs through the shared transaction executor, checks the reviewed post-state and saves a
+  pre-undo copy. The Backups window labels this action “Undo Changeset…” and keeps it whole.
+- Mixed transaction round-trip covers patch, create, file move, directory move, mkdir and
+  recursive directory deletion. It exposed and fixed a moved-subtree state-recording bug.
+  Tests also cover v1 restore compatibility, preview staleness and manifest edits.
+- The full local Windows suite passes: 427 passed, 2 skipped. After the final directory-mode
+  rollback adjustment, the mixed changeset and focused backup/UI suite also pass (25 passed);
+  Ruff, compileall and `git diff --check` pass. Hosted Windows/macOS/Linux verification is
+  still required before accepting 10.4. Do not proceed to 10.5 until that gate passes and this
+  record is refreshed.
 
 ### 10.5 — Controller, actions, state, adapters
 - v2 in `project_patch.*` and `patch.schema`.

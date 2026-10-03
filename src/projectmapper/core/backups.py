@@ -22,8 +22,9 @@ from .config import OUTPUT_ROOT_NAME
 from .writes import discard_scratch, stage_bytes
 
 FORMAT = "projectmapper-backup"
-VERSION = 1
-KINDS = ("backup", "pre-restore", "recovery")
+VERSION = 2
+_SUPPORTED_VERSIONS = (1, VERSION)
+KINDS = ("backup", "pre-restore", "recovery", "changeset")
 MANIFEST = "manifest.json"
 _NAME = re.compile(r"^\d{8}T\d{12}Z-[0-9a-z]{1,16}$")
 _STORED = re.compile(r"^\d{4}\.bin$")
@@ -44,6 +45,7 @@ class Generation:
     operation_id: str = ""
     created_at: str = ""
     files: list = field(default_factory=list)
+    changeset: dict = None
     size: int = 0
     problem: str = ""
 
@@ -137,13 +139,15 @@ class BackupStore:
 
     # --- writing -------------------------------------------------------
 
-    def create(self, kind, action, operation_id, files):
-        """Write one generation for ``files`` = [(target_path, bytes, mode)]."""
+    def create(self, kind, action, operation_id, files, *, changeset=None):
+        """Write one generation with original file blobs and an optional changeset record."""
         if kind not in KINDS:
             raise BackupError(f"Unknown backup kind: {kind}")
         entries = [(self.target_key(path), data, mode) for path, data, mode in files]
-        if not entries:
+        if not entries and (kind != "changeset" or changeset is None):
             raise BackupError("A backup generation needs at least one file.")
+        if (kind == "changeset") != (changeset is not None):
+            raise BackupError("Only changeset generations may carry a changeset record, and it is required.")
         self.directory.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc)
         for _ in range(8):
@@ -166,6 +170,8 @@ class BackupStore:
             manifest = {"format": FORMAT, "version": VERSION, "scope": self.scope, "kind": kind,
                         "action": action, "operation_id": operation_id,
                         "created_at": stamp.isoformat(), "files": records}
+            if changeset is not None:
+                manifest["changeset"] = changeset
             _write_blob(path / MANIFEST, json.dumps(manifest, indent=2).encode("utf-8"), None)
         except Exception as exc:
             # Only this call created ``path``; nothing else can live in it yet.
@@ -204,6 +210,7 @@ class BackupStore:
         generation.kind, generation.action = manifest["kind"], manifest["action"]
         generation.operation_id, generation.created_at = manifest["operation_id"], manifest["created_at"]
         generation.files = manifest["files"]
+        generation.changeset = manifest.get("changeset")
         generation.size = sum(item["size"] for item in manifest["files"])
         for item in manifest["files"]:
             blob = path / item["stored"]
@@ -221,7 +228,8 @@ class BackupStore:
     def _validate(self, manifest):
         if manifest.get("format") != FORMAT:
             raise ValueError("not a ProjectMapper backup manifest")
-        if manifest.get("version") != VERSION:
+        version = manifest.get("version")
+        if version not in _SUPPORTED_VERSIONS:
             raise ValueError(f"unsupported version {manifest.get('version')!r}")
         if manifest.get("scope") != self.scope:
             raise ValueError("scope does not match this store")
@@ -231,7 +239,40 @@ class BackupStore:
             if not isinstance(manifest.get(key), str):
                 raise ValueError(f"{key} must be text")
         files = manifest.get("files")
-        if not isinstance(files, list) or not files:
+        changeset = manifest.get("changeset")
+        if version == 1 and (manifest["kind"] == "changeset" or changeset is not None):
+            raise ValueError("version 1 cannot contain changesets")
+        if manifest["kind"] == "changeset":
+            if version != VERSION or not isinstance(changeset, dict):
+                raise ValueError("changeset kind requires a version 2 changeset record")
+            for direction in ("forward", "inverse"):
+                document = changeset.get(direction)
+                if (not isinstance(document, dict) or document.get("version") != 2
+                        or not isinstance(document.get("ops"), list)
+                        or any(not isinstance(operation, dict) for operation in document["ops"])):
+                    raise ValueError(f"changeset {direction} must contain version 2 ops")
+            if set(changeset) - {"forward", "inverse", "post_state"}:
+                raise ValueError("unknown changeset record field")
+            post_state = changeset.get("post_state", [])
+            if not isinstance(post_state, list):
+                raise ValueError("changeset post_state must be a list")
+            seen_targets = set()
+            for item in post_state:
+                if (not isinstance(item, dict) or not self._valid_key(item.get("target"))
+                        or item.get("kind") not in {"missing", "file", "dir"}):
+                    raise ValueError("invalid changeset post_state entry")
+                if item["target"] in seen_targets:
+                    raise ValueError("duplicate changeset post_state target")
+                seen_targets.add(item["target"])
+                digest = item.get("sha256")
+                if item["kind"] == "file":
+                    if not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
+                        raise ValueError("invalid changeset post_state sha256")
+                elif digest is not None:
+                    raise ValueError("non-file changeset post_state cannot have a sha256")
+        elif changeset is not None:
+            raise ValueError("only changeset generations may contain a changeset record")
+        if not isinstance(files, list) or (not files and manifest["kind"] != "changeset"):
             raise ValueError("files must be a non-empty list")
         seen = set()
         for item in files:

@@ -8,14 +8,14 @@ try:
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.config import OUTPUT_ROOT_NAME
     from ..core.paths import resolve_in_root
-    from ..core.changeset import ChangeSet, Operation
+    from ..core.changeset import ChangeSet, Operation, parse_changeset
     from ..core.transaction import apply_operations
     from ..core.vtree import Simulation, VirtualTree
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.config import OUTPUT_ROOT_NAME
     from core.paths import resolve_in_root
-    from core.changeset import ChangeSet, Operation
+    from core.changeset import ChangeSet, Operation, parse_changeset
     from core.transaction import apply_operations
     from core.vtree import Simulation, VirtualTree
 
@@ -131,7 +131,7 @@ class ProjectPatchSession:
             raise PatchError("; ".join(errors))
         return self.results
 
-    def apply_all(self, backup=None, recover=None):
+    def apply_all(self, backup=None, record=None, recover=None):
         """Apply the reviewed changeset as one rollback-capable transaction.
 
         ``backup`` and ``recover`` are optional callables taking ``[(path, original_bytes, mode)]``
@@ -141,7 +141,8 @@ class ProjectPatchSession:
         if not self.results:
             self.validate_all(self._force_indent)
         simulation = Simulation(operations=copy.deepcopy(self._reviewed_operations))
-        result = apply_operations(self.root, simulation, backup=backup, recover=recover)
+        result = apply_operations(self.root, simulation, backup=backup, record=record,
+                                  forward=parse_changeset(self.manifest).as_dict(), recover=recover)
         self.results = []
         self._reviewed_operations = []
         return result["paths"]

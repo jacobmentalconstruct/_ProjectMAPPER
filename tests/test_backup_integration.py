@@ -74,7 +74,7 @@ class IntegrationTests(unittest.TestCase):
         self.app.execute("patch.result", {"plan_id": plan.data["plan_id"]})
         saved = self.app.execute("patch.save", {"plan_id": plan.data["plan_id"], "backup": True})
         self.assertEqual(saved.status, "succeeded", saved.error)
-        (generation,) = self.store.list()
+        generation = next(item for item in self.store.list() if item.kind == "backup")
         self.assertEqual(self.store.read(generation.id, "a.txt"), b"old\n")
         self.assertEqual(generation.action, "patch.save")
 
@@ -96,7 +96,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.save_as(path, "v2\n", backup=False).status, "succeeded")
         self.assertEqual(self.store.list(), [])
         self.assertEqual(self.save_as(path, "v3\n", backup=True).status, "succeeded")
-        (generation,) = self.store.list()
+        generation = next(item for item in self.store.list() if item.kind == "backup")
         self.assertEqual((generation.action, self.store.read(generation.id, "a.txt")), ("text.save_as", b"v2\n"))
         self.assertEqual(path.read_bytes(), b"v3\n")
 
@@ -136,7 +136,7 @@ class IntegrationTests(unittest.TestCase):
         result = self.apply(manifest(("b.txt", "old", "new"), ("c.txt", "cold", "warm")), backup=True)
         self.assertEqual(result.status, "succeeded", result.error)
         self.assertEqual(bak.read_bytes(), b"someone else's backup\n")
-        (generation,) = self.store.list()
+        generation = next(item for item in self.store.list() if item.kind == "backup")
         self.assertEqual(generation.action, "project_patch.apply")
         self.assertEqual(sorted(f["target"] for f in generation.files), ["b.txt", "c.txt"])
         self.assertEqual(self.store.read(generation.id, "c.txt"), b"cold\n")
@@ -171,19 +171,19 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(result.status, "recovery_required")
         message = result.error["message"]
         self.assertNotIn("retained in this session", message)
-        (generation,) = self.store.list()
-        self.assertEqual(generation.kind, "recovery")
+        generation = next(item for item in self.store.list() if item.kind == "recovery")
         self.assertIn(generation.id, message)
         self.assertEqual(self.store.read(generation.id, "c1.txt"), b"orig1\n")
         self.assertEqual((self.root / "c1.txt").read_bytes(), b"external edit\n", "external edit preserved")
         self.assertEqual((self.root / "c2.txt").read_bytes(), b"orig2\n")
 
-    def test_recovery_store_failure_is_reported_truthfully(self):
+    def test_changeset_store_failure_stops_before_mutation(self):
         with patch.object(BackupStore, "create", side_effect=BackupError("Backup was not written: disk full")):
             result = self.conflicted_apply()
-        self.assertEqual(result.status, "recovery_required")
-        self.assertIn("could not be saved", result.error["message"])
-        self.assertNotIn("retained in this session", result.error["message"])
+        self.assertEqual(result.status, "failed")
+        self.assertIn("Backup was not written", result.error["message"])
+        self.assertEqual((self.root / "c1.txt").read_bytes(), b"orig1\n")
+        self.assertEqual((self.root / "c2.txt").read_bytes(), b"orig2\n")
 
     def test_engine_without_a_recovery_store_does_not_claim_retention(self):
         self.write("c1.txt", b"orig1\n")

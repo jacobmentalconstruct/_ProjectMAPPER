@@ -16,15 +16,16 @@ fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CR
 endings, no final newline, and relative indentation through validation and write. Hosted run
 [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
-CI acceptance is complete; Phase 10 steps 10.0–10.3 are complete. The shared transaction
-executor handles the v1 patch path plus structural operations with rollback and delete
-quarantine. Step 10.4, backup manifest v2 and undo, is next. See [the Phase 10
-plan](plans/2026-10-02-project-transforms.md) for its acceptance gates.
+CI acceptance is complete for Phase 10.3. Step 10.4 is now in progress: the shared
+transaction executor is paired with backup manifest v2, changeset records and whole-change
+undo. See [the Phase 10 plan](plans/2026-10-02-project-transforms.md) for current evidence
+and the remaining hosted-matrix acceptance gate.
 
-The full local suite passed on Windows with filesystem-backed temporary fixtures redirected
-inside the project workspace (417 passed, 1 skipped before the final operation-index test).
-Hosted run `37145383336` passed the full Windows, macOS and Linux matrix. Keep compatibility
-claims tied to the tested matrix.
+Hosted run `37145383336` passed the full Windows, macOS and Linux matrix for Phase 10.3. Phase
+10.4 is in progress: backup manifest v2, changeset recording, whole-changeset undo, and
+Backups-window wording are implemented locally. The Windows full suite passes (427 passed,
+2 skipped); a new hosted matrix run remains before acceptance. Keep compatibility claims tied
+to the tested matrix.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

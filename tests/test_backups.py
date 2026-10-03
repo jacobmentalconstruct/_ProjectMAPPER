@@ -37,6 +37,35 @@ class StoreTests(unittest.TestCase):
         manifest = json.loads((generation.path / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual((manifest["format"], manifest["version"]), (backups.FORMAT, backups.VERSION))
 
+    def test_version_1_generation_remains_readable(self):
+        generation = self.create(self.target)
+        manifest_path = generation.path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["version"] = 1
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        listed = self.store.get(generation.id)
+
+        self.assertEqual(listed.status, "ok")
+        self.assertEqual(self.store.read(generation.id, "src/a.txt"), b"alpha\r\n")
+
+    def test_changeset_generation_round_trips_without_file_blobs(self):
+        changeset = {
+            "forward": {"version": 2, "ops": [{"op": "mkdir", "path": "empty"}]},
+            "inverse": {"version": 2, "ops": [{"op": "delete_dir", "path": "empty"}]},
+        }
+
+        generation = self.store.create("changeset", "project_patch.apply", "op-undo", [],
+                                       changeset=changeset)
+
+        self.assertEqual(generation.status, "ok")
+        self.assertEqual(generation.kind, "changeset")
+        self.assertEqual(generation.changeset, changeset)
+        self.assertEqual(generation.files, [])
+        self.assertEqual(generation.size, 0)
+        manifest = json.loads((generation.path / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["changeset"], changeset)
+
     def test_repeated_backups_create_distinct_generations(self):
         first = self.create(self.target)
         self.target.write_bytes(b"bravo\r\n")

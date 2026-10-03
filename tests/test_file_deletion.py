@@ -84,7 +84,8 @@ class FileDeletionTests(unittest.TestCase):
 
     def test_failed_delete_does_not_mark_snapshot_dirty(self):
         self.confirm.return_value = True
-        with patch.object(Path, "unlink", side_effect=PermissionError("File is locked")):
+        with patch("projectmapper.core.transaction._rename_no_replace",
+                   side_effect=PermissionError("File is locked")):
             self.app.delete_file(self.target)
         self.assertTrue(self.target.exists())
         self.assertFalse(self.app.transformed_paths)

@@ -243,7 +243,222 @@ def _undo(entry):
         _rename_no_replace(entry["quarantined"], entry["path"])
 
 
-def apply_operations(root, simulation, *, backup=None, recover=None, operation_id=None):
+def _changeset_record(root, operations, backup_items, forward):
+    """Build portable inverse operations and final fingerprints for one committed plan."""
+    backup_by_identity = {}
+    backup_data_by_identity = {}
+    for path, data, mode in backup_items:
+        relative = Path(path).relative_to(root).as_posix()
+        backup_by_identity[_identity(Path(path).stat())] = relative
+        backup_data_by_identity[_identity(Path(path).stat())] = data
+
+    original_files = {}
+    states = {}
+
+    def ensure(relative, expected):
+        key = relative.casefold()
+        if key not in states:
+            identity = expected.get("identity")
+            data = None
+            if identity is not None:
+                original = next((item for item in backup_items
+                                 if _identity(Path(item[0]).stat()) == identity), None)
+                if original is not None:
+                    data = original[1]
+                    original_files[identity] = Path(original[0]).relative_to(root).as_posix()
+            states[key] = {"path": relative, "kind": expected.get("kind"),
+                           "sha256": expected.get("sha256"), "mode": expected.get("mode"),
+                           "identity": identity, "data": data}
+        return states[key]
+
+    def backup_reference(identity):
+        return original_files.get(identity) or backup_by_identity.get(identity)
+
+    def restore(path, expected, data):
+        identity = expected.get("identity")
+        reference = backup_reference(identity)
+        item = {"op": "restore", "path": path, "mode": expected.get("mode")}
+        if reference is not None and data == backup_data_by_identity.get(identity):
+            item["from_backup"] = reference
+        elif data is not None:
+            item["content"] = data.decode("utf-8")
+        else:
+            raise PathSafetyError(f"Cannot record undo data for {path}.")
+        return item
+
+    inverse_groups = []
+    for operation in operations:
+        kind = operation["op"]
+        before = operation.get("before", {})
+        for relative, expected in before.items():
+            state = ensure(relative, expected)
+            if state["data"] is None and expected.get("identity") is not None:
+                identity = expected["identity"]
+                original = next((item for item in backup_items
+                                 if _identity(Path(item[0]).stat()) == identity), None)
+                if original is not None:
+                    state["data"] = original[1]
+                    original_files[identity] = Path(original[0]).relative_to(root).as_posix()
+
+        if kind == "patch":
+            path = operation["path"]
+            expected = before[path]
+            data = operation.get("original_bytes") or states[path.casefold()]["data"]
+            group = [restore(path, expected, data)]
+            output = operation["content"]
+            states[path.casefold()].update(kind="file", sha256=hashlib.sha256(output).hexdigest(),
+                                           data=output)
+        elif kind == "create":
+            path, data = operation["path"], operation["content"]
+            group = [{"op": "delete", "path": path,
+                      "sha256": hashlib.sha256(data).hexdigest()}]
+            states[path.casefold()].update(path=path, kind="file",
+                                           sha256=hashlib.sha256(data).hexdigest(),
+                                           mode=None, identity=None, data=data)
+        elif kind == "mkdir":
+            path = operation["path"]
+            group = [{"op": "delete_dir", "path": path}]
+            states[path.casefold()].update(path=path, kind="dir", sha256=None, data=None)
+        elif kind in {"move", "move_dir"}:
+            source, destination = operation["from"], operation["to"]
+            group = [{"op": kind, "from": destination, "to": source}]
+            prefix = source.casefold().rstrip("/")
+            moved = [(key, state) for key, state in list(states.items())
+                     if key == prefix or key.startswith(prefix + "/")]
+            for key, state in moved:
+                suffix = state["path"][len(source):]
+                target = destination + suffix
+                moved_state = dict(state)
+                states[key].update(kind="missing", sha256=None, mode=None, identity=None, data=None)
+                states[target.casefold()] = {**moved_state, "path": target}
+            if not moved:
+                raise PathSafetyError(f"Cannot record moved source {source}.")
+        elif kind == "delete":
+            path = operation["path"]
+            expected = before[path]
+            state = states[path.casefold()]
+            group = [restore(path, expected, state["data"])]
+            state.update(kind="missing", sha256=None, mode=None, identity=None, data=None)
+        elif kind == "delete_dir":
+            path = operation["path"]
+            expected_root = before[path]
+            prefix = path.casefold().rstrip("/")
+            members = [(key, state) for key, state in states.items()
+                       if key == prefix or key.startswith(prefix + "/")]
+            if len(members) == 1:
+                group = [{"op": "mkdir", "path": path, "mode": expected_root.get("mode")}]
+            else:
+                dirs = sorted((state for _, state in members if state["kind"] == "dir"),
+                              key=lambda state: (state["path"].count("/"), state["path"].casefold()))
+                files = sorted((state for _, state in members if state["kind"] == "file"),
+                               key=lambda state: state["path"].casefold())
+                group = [{"op": "mkdir", "path": state["path"], "mode": state.get("mode")}
+                         for state in dirs]
+                group.extend(restore(state["path"], before[state["path"]], state["data"])
+                             for state in files)
+            for _, state in members:
+                state.update(kind="missing", sha256=None, mode=None, identity=None, data=None)
+        else:
+            raise PathSafetyError(f"Cannot record undo for operation {kind}.")
+        inverse_groups.append(group)
+
+    inverse = [item for group in reversed(inverse_groups) for item in group]
+    post_state = [{"target": state["path"], "kind": state["kind"],
+                   "sha256": state["sha256"], "mode": state["mode"]}
+                  for state in sorted(states.values(), key=lambda item: item["path"].casefold())]
+    return {"forward": copy.deepcopy(forward),
+            "inverse": {"version": 2, "ops": inverse}, "post_state": post_state}
+
+
+def prepare_undo(root, changeset, read_backup):
+    """Build a reviewed executor simulation from a stored inverse changeset."""
+    from .vtree import Simulation
+
+    root = Path(root).absolute()
+    states = {item["target"].casefold(): dict(item) for item in changeset.get("post_state", [])}
+    operations = []
+
+    def current(relative):
+        return states.get(relative.casefold(), {"target": relative, "kind": "missing",
+                                                "sha256": None, "mode": None})
+
+    def before_entry(relative):
+        state = current(relative)
+        return {"kind": state["kind"], "sha256": state.get("sha256"),
+                "mode": state.get("mode"), "identity": None}
+
+    def update(relative, kind, data=None, mode=None, sha256=None):
+        digest = (hashlib.sha256(data).hexdigest() if data is not None else sha256) if kind == "file" else None
+        states[relative.casefold()] = {"target": relative, "kind": kind,
+                                       "sha256": digest, "mode": mode}
+
+    for index, inverse in enumerate(changeset["inverse"]["ops"]):
+        kind = inverse.get("op")
+        if kind == "restore":
+            relative = inverse["path"]
+            if "from_backup" in inverse:
+                content = read_backup(inverse["from_backup"])
+            elif isinstance(inverse.get("content"), str):
+                content = inverse["content"].encode("utf-8")
+            else:
+                raise PathSafetyError(f"Undo data is missing for {relative}.")
+            operations.append({"index": index, "op": "restore", "path": relative,
+                               "before": {relative: before_entry(relative)},
+                               "content": content, "mode": inverse.get("mode")})
+            update(relative, "file", content, inverse.get("mode"))
+        elif kind == "delete":
+            relative = inverse["path"]
+            entry = {relative: before_entry(relative)}
+            operations.append({"index": index, "op": "delete", "path": relative,
+                               "before": entry})
+            update(relative, "missing")
+        elif kind == "delete_dir":
+            relative = inverse["path"]
+            prefix = relative.casefold().rstrip("/")
+            members = {key: state for key, state in states.items()
+                       if key == prefix or key.startswith(prefix + "/")}
+            entry = {state["target"]: before_entry(state["target"])
+                     for state in members.values()}
+            operations.append({"index": index, "op": "delete_dir", "path": relative,
+                               "before": entry})
+            for state in members.values():
+                update(state["target"], "missing")
+        elif kind == "mkdir":
+            relative = inverse["path"]
+            operations.append({"index": index, "op": "mkdir", "path": relative,
+                               "before": {relative: before_entry(relative)},
+                               "mode": inverse.get("mode")})
+            update(relative, "dir")
+        elif kind in {"move", "move_dir"}:
+            source, destination = inverse["from"], inverse["to"]
+            prefix = source.casefold().rstrip("/")
+            members = {key: state for key, state in states.items()
+                       if key == prefix or (kind == "move_dir" and key.startswith(prefix + "/"))}
+            if prefix not in members:
+                raise PathSafetyError(f"Undo source does not exist in the reviewed result: {source}.")
+            entry = {state["target"]: before_entry(state["target"])
+                     for state in members.values()}
+            same_case_key = source.casefold() == destination.casefold()
+            if not same_case_key:
+                entry[destination] = before_entry(destination)
+            operations.append({"index": index, "op": kind, "from": source, "to": destination,
+                               "before": entry})
+            moved = []
+            for state in members.values():
+                suffix = state["target"][len(source):]
+                moved.append((state, destination + suffix))
+            for state, target in moved:
+                update(state["target"], "missing")
+            for state, target in moved:
+                update(target, state["kind"], mode=state.get("mode"),
+                       sha256=state.get("sha256"))
+        else:
+            raise PathSafetyError(f"Unsupported inverse operation: {kind}.")
+    return Simulation(operations=operations)
+
+
+def apply_operations(root, simulation, *, backup=None, record=None, forward=None,
+                     recover=None, operation_id=None):
     """Apply a valid virtual-tree plan as one rollback-capable filesystem transaction.
 
     ``backup`` and ``recover`` use the same file tuple contract as ``apply_patches``.
@@ -290,6 +505,16 @@ def apply_operations(root, simulation, *, backup=None, recover=None, operation_i
             backup(backup_items)
         except Exception as exc:
             raise PathSafetyError(f"Backup failed: {exc}") from exc
+    change_record = None
+    record_result = None
+    if record is not None:
+        if not isinstance(forward, dict):
+            raise PathSafetyError("A changeset record requires its forward manifest.")
+        change_record = _changeset_record(root, operations, backup_items, forward)
+        try:
+            record_result = record(backup_items, change_record)
+        except Exception as exc:
+            raise PathSafetyError(f"Changeset backup failed: {exc}") from exc
 
     quarantine = None
     if any(item["op"] in {"delete", "delete_dir"} for item in operations):
@@ -331,10 +556,39 @@ def apply_operations(root, simulation, *, backup=None, recover=None, operation_i
                 staged.unlink()
                 scratch.remove(staged)
                 touched.append(path)
+            elif kind == "restore":
+                path = resolve_in_root(root, operation["path"])
+                actual = _inspect(root, operation["path"])
+                output = operation["content"]
+                mode = operation.get("mode")
+                if actual["kind"] == "missing":
+                    staged = stage_bytes(path, output, mode=mode, prefix=".projectmapper-restore-")
+                    scratch.append(staged)
+                    _ensure_state(root, states)
+                    os.link(staged, path)
+                    journal.append({"index": index, "kind": "create", "path": path,
+                                    "content": output})
+                    staged.unlink()
+                    scratch.remove(staged)
+                elif actual["kind"] == "file":
+                    original = actual["data"]
+                    original_mode = actual["mode"]
+                    staged = stage_bytes(path, output, mode=mode, prefix=".projectmapper-restore-")
+                    scratch.append(staged)
+                    _ensure_state(root, states)
+                    os.replace(staged, path)
+                    scratch.remove(staged)
+                    journal.append({"index": index, "kind": "patch", "path": path,
+                                    "original": original, "output": output, "mode": original_mode})
+                else:
+                    raise PathSafetyError(f"Restore target is not a file: {operation['path']}.")
+                touched.append(path)
             elif kind == "mkdir":
                 path = resolve_in_root(root, operation["path"])
                 path.mkdir()
                 journal.append({"index": index, "kind": kind, "path": path})
+                if operation.get("mode") is not None:
+                    path.chmod(operation["mode"])
                 touched.append(path)
             elif kind in {"move", "move_dir"}:
                 source = resolve_in_root(root, operation["from"])
@@ -412,4 +666,5 @@ def apply_operations(root, simulation, *, backup=None, recover=None, operation_i
         except OSError as exc:
             raise RecoveryRequiredError(
                 f"Changes committed, but delete quarantine cleanup failed at {quarantine}: {exc}") from exc
-    return {"paths": list(dict.fromkeys(touched)), "operations": operations}
+    return {"paths": list(dict.fromkeys(touched)), "operations": operations,
+            "changeset": record_result}
