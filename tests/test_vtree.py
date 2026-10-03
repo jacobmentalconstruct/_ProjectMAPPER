@@ -2,6 +2,7 @@ from pathlib import Path
 import unittest
 
 from projectmapper.core.changeset import parse_changeset
+from projectmapper.core.config import OUTPUT_ROOT_NAME
 from projectmapper.core.vtree import VirtualTree
 
 
@@ -66,6 +67,17 @@ class VirtualTreeTests(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertIn("read-only", result.errors[0]["error"])
+
+    def test_project_root_under_same_named_parent_is_not_mistaken_for_output_store(self):
+        root = self.root.parent / OUTPUT_ROOT_NAME / "checkout"
+        changeset = parse_changeset({"version": 2, "ops": [
+            {"op": "create", "path": "new.txt", "content": "safe"},
+        ]})
+
+        result = VirtualTree(root).simulate(changeset)
+
+        self.assertTrue(result.valid, result.errors)
+        self.assertEqual(result.final_files, {"new.txt": b"safe"})
 
     def test_directory_moves_keep_sequential_virtual_descendants(self):
         changeset = parse_changeset({"version": 2, "ops": [

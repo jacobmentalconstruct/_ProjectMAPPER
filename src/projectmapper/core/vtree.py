@@ -9,7 +9,10 @@ from pathlib import Path
 from .config import OUTPUT_ROOT_NAME
 from .changeset import ChangeSet
 from .paths import PathSafetyError, SourceChangedError, UnsafePathError, resolve_in_root
-from ..tools.patcher import apply_patch_text
+if __package__ == "projectmapper.core":
+    from ..tools.patcher import apply_patch_text
+else:  # Support the app's legacy top-level package layout.
+    from tools.patcher import apply_patch_text
 
 
 _PROTECTED = {".parts", "_projectmapper", ".git", ".hg", ".svn"}
@@ -65,8 +68,7 @@ class VirtualTree:
         path = resolve_in_root(self.root, relative, allow_root=allow_root)
         parts = path.relative_to(self.root).parts
         if (any(part.casefold() in _PROTECTED for part in parts)
-                or any(part.casefold() == OUTPUT_ROOT_NAME.casefold()
-                       for part in (*self.root.parent.parts, *parts))):
+                or any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in parts)):
             raise UnsafePathError("Project metadata and output folders are read-only.")
         return path
 
