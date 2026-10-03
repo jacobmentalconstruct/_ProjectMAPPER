@@ -15,10 +15,12 @@ fixture paths, toolbar sizing, Aqua metrics, and an approval-denial hang. The la
 the denied-restore test, minimum-size control-layout test, and spinbox theme test all
 passed; after the last one at 32% the suite stopped producing output. The run was canceled
 after six minutes. This no longer points to the layout test. The next run adds a repeating
-60-second traceback dumps identified two waits in Backups UI tests, each at `root.update()`
-while its parent root was withdrawn: first `test_keyboard_traversal_reaches_controls`, then
-`test_single_instance_and_refresh_key`. Both tests now deiconify their parent before Tk
-processes focus/events; this is awaiting a full hosted matrix run.
+60-second traceback dumps identified two waits in Backups UI tests at `root.update()` while
+the parent root was withdrawn: `test_keyboard_traversal_reaches_controls` and
+`test_single_instance_and_refresh_key`. Both were fixed. The next run advanced through
+those tests and found the same hidden-root event-loop call in
+`test_changes_during_running_scan_are_eventually_applied`; that test now deiconifies its
+root. Hosted verification is pending.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

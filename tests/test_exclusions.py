@@ -188,6 +188,7 @@ class ManagerTests(unittest.TestCase):
                                      self.popup.top.winfo_rootx() + self.popup.top.winfo_width())
 
     def test_changes_during_running_scan_are_eventually_applied(self):
+        self.root.deiconify()
         started = threading.Event()
         release = threading.Event()
 
