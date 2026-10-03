@@ -17,14 +17,15 @@ endings, no final newline, and relative indentation through validation and write
 [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
 CI acceptance is complete; Phase 10 steps 10.0–10.2 are complete and step 10.3, the
-transaction executor, is underway. Its first slice moves v1 patch application into the
-core transaction module; structural execution and rollback remain. See [the Phase 10
-plan](plans/2026-10-02-project-transforms.md) and its journal for current progress.
+transaction executor, is awaiting its cross-platform CI gate. The shared executor now
+handles the v1 patch path plus structural operations with rollback and delete quarantine.
+See [the Phase 10 plan](plans/2026-10-02-project-transforms.md) and its journal for the
+remaining acceptance evidence.
 
-The full local suite cannot run reliably in this Windows desktop sandbox: its ACLs deny
-creation and cleanup of nested temporary test fixtures, even when `TEMP` is redirected into
-the project. Focused tests and compilation run locally; hosted CI is the full-suite
-verification source. Keep compatibility claims tied to the tested matrix.
+The full local suite passed on Windows with filesystem-backed temporary fixtures redirected
+inside the project workspace (417 passed, 1 skipped). Hosted CI remains the acceptance gate
+for the full Windows, macOS and Linux matrix. Keep compatibility claims tied to the tested
+matrix.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

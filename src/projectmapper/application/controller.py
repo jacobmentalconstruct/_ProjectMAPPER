@@ -20,7 +20,7 @@ try:
     from ..core.exclusions import ExclusionPolicy
     from ..core.files import create_text_file, file_name
     from ..core import snapshots, exports
-    from ..core.config import OUTPUT_ROOT_NAME
+    from ..core.config import OUTPUT_ROOT_NAME, SOURCE_ROOT
     from ..core.diagnostics import collect_diagnostics
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
@@ -35,7 +35,7 @@ except ImportError:
     from core.exclusions import ExclusionPolicy
     from core.files import create_text_file, file_name
     from core import snapshots, exports
-    from core.config import OUTPUT_ROOT_NAME
+    from core.config import OUTPUT_ROOT_NAME, SOURCE_ROOT
     from core.diagnostics import collect_diagnostics
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
     from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
@@ -268,7 +268,11 @@ class Controller:
         for key in targets:
             data = store.read(generation.id, key)
             path = validate_target(store.target_path(key))
-            if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in path.parts):
+            target_parts = Path(key).parts if store.scope == "project" else path.parts
+            if (store.scope == "user" and SOURCE_ROOT is not None
+                    and path.is_relative_to(SOURCE_ROOT)):
+                target_parts = path.relative_to(SOURCE_ROOT).parts
+            if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in target_parts):
                 raise ActionError("unsafe_path", f"{key} is inside {OUTPUT_ROOT_NAME}; it cannot be restored.")
             current = path.read_bytes() if path.is_file() else None
             files.append({"target": key, "path": str(path), "current_exists": current is not None,

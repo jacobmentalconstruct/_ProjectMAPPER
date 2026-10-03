@@ -9,15 +9,15 @@ try:
     from ..core.config import OUTPUT_ROOT_NAME
     from ..core.paths import resolve_in_root
     from ..core.changeset import ChangeSet, Operation
-    from ..core.transaction import apply_patches
-    from ..core.vtree import VirtualTree
+    from ..core.transaction import apply_operations
+    from ..core.vtree import Simulation, VirtualTree
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.config import OUTPUT_ROOT_NAME
     from core.paths import resolve_in_root
     from core.changeset import ChangeSet, Operation
-    from core.transaction import apply_patches
-    from core.vtree import VirtualTree
+    from core.transaction import apply_operations
+    from core.vtree import Simulation, VirtualTree
 
 
 EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
@@ -37,6 +37,8 @@ class ProjectPatchSession:
             raise PatchError("Project patch root must be a folder.")
         self.manifest = copy.deepcopy(self._parse(manifest))
         self.results = []
+        self._force_indent = False
+        self._reviewed_operations = []
         self._validate_manifest()
 
     @staticmethod
@@ -84,7 +86,9 @@ class ProjectPatchSession:
 
     def review(self, force_indent=False):
         """Validate every file independently; plan results exist only when all are valid."""
+        self._force_indent = force_indent
         self.results = []
+        self._reviewed_operations = []
         outcomes, results = [], []
         tree = VirtualTree(self.root)
         for entry in self.manifest["files"]:
@@ -102,6 +106,9 @@ class ProjectPatchSession:
                       "original_bytes": detail["original_bytes"], "original": detail["original"],
                       "patched": detail["patched"], "sha256": detail["sha256"],
                       "identity": detail["before"][detail["path"]]["identity"]}
+            operation_detail = copy.deepcopy(detail)
+            operation_detail["index"] = len(self._reviewed_operations)
+            self._reviewed_operations.append(operation_detail)
             results.append(result)
             diff = DiffFile(entry["path"], result["original"], result["patched"])
             visible = {key: value for key, value in result.items() if key != "identity"}
@@ -113,6 +120,8 @@ class ProjectPatchSession:
                              and _ends_with_newline(result["original"]) != _ends_with_newline(result["patched"])})
         if len(results) == len(outcomes):
             self.results = results
+        else:
+            self._reviewed_operations = []
         return outcomes
 
     def validate_all(self, force_indent=False):
@@ -123,18 +132,19 @@ class ProjectPatchSession:
         return self.results
 
     def apply_all(self, backup=None, recover=None):
-        """Replace all validated files or none.
+        """Apply the reviewed changeset as one rollback-capable transaction.
 
         ``backup`` and ``recover`` are optional callables taking ``[(path, original_bytes, mode)]``
-        and returning a description of where the bytes were stored. ``backup`` runs after
-        staging and before any replacement; if it raises, nothing is replaced. ``recover``
-        runs when a rollback cannot restore a file, so its original survives durably.
+        and returning a description of where the bytes were stored. Backups are captured
+        before mutation; deletes stay quarantined until the entire changeset commits.
         """
         if not self.results:
-            self.validate_all()
-        paths = apply_patches(self.results, backup=backup, recover=recover)
+            self.validate_all(self._force_indent)
+        simulation = Simulation(operations=copy.deepcopy(self._reviewed_operations))
+        result = apply_operations(self.root, simulation, backup=backup, recover=recover)
         self.results = []
-        return paths
+        self._reviewed_operations = []
+        return result["paths"]
 
 
 def project_patch_diff(results):

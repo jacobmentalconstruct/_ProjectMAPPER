@@ -418,8 +418,18 @@ implementation and focused-test evidence.
 **Progress 2026-10-03:** The v1 multi-file patch path delegates to `core.transaction`,
 which stages outputs, rechecks content and stat identity before replacement, invokes the
 backup callback before the first write, and raises a typed recovery error when rollback
-cannot safely restore. Structural operations, quarantine, and no-replace rename support
-remain part of this step's acceptance gate.
+cannot safely restore. The same executor now applies create, delete, move, mkdir, folder
+move and recursive folder delete operations. Deletes stay in a same-volume quarantine until
+commit; rollback is tested at every operation index, including restoration of quarantined
+files and folders. The Windows locked-folder and POSIX no-overwrite cases have targeted
+tests. The full local Windows suite passed (417 passed, 1 skipped) before the final
+operation-index test was added; the focused transaction suite now passes 10 tests with one
+platform-specific skip. Hosted cross-platform CI remains before 10.3 acceptance.
+
+The full-suite run also exposed a false backup-restore refusal when a temporary project was
+created beneath a checkout whose directory was named `_ProjectMAPPER`. The restore guard now
+checks paths relative to the project root (or source checkout for user-scope backups), so an
+ancestor name alone cannot make an otherwise valid target look like the managed output store.
 
 ### 10.4 — Backups v2 and undo
 - Backup manifest v2 with the `changeset` record and the new kind. Make `_validate`
