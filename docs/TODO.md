@@ -24,9 +24,10 @@ root. The next run reached the History window and found another hidden-root `upd
 its minimum-size layout check; the History live-update, layout and keyboard tests now show
 their parent before processing events. The following run advanced and found hidden-root
 event processing in Project Patcher review tests. Those UI test classes now keep the parent
-root viewable. The next run advanced to `test_context_menu_file_actions_use_selected_file_parent_and_project_root`,
-which pumped tree events with a withdrawn root. That test now deiconifies its root; hosted
-verification is pending.
+root viewable. The next run advanced through the New File context-menu test and reached
+`test_collapse_before_first_batch_remains_expandable`, where the shared `drain()` helper
+processed Tk events with a withdrawn root. The lazy-tree test class now leaves that root
+viewable; hosted verification is pending.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

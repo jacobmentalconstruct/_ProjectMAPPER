@@ -9,9 +9,9 @@ record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI is th
 work item; macOS and Linux remain unverified. The latest matrix passes Linux and Windows
 on Python 3.10/3.13/3.14 and macOS 3.14. Tracebacks found hidden-parent `root.update()` calls
 in the Backups window suite, exclusions scan test, History window layout test, Project
-Patcher review tests and New File tree context-menu test. Those tests now show the parent
-root while processing events; hosted verification is pending. Phase 10, project transforms,
-is fully planned in
+Patcher review tests, New File context-menu test and lazy-tree projection tests. Those tests
+now keep the parent root viewable while processing events; hosted verification is pending.
+Phase 10, project transforms, is fully planned in
 `docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
 renumbered 5–8; see the decision log (section 17) for the sequence and scope.**

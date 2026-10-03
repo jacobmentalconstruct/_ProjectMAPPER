@@ -15,7 +15,6 @@ from projectmapper.core.tree import scan_project_tree
 class LazyProjectionTests(unittest.TestCase):
     def setUp(self):
         self.root = tk_root(self)
-        self.root.withdraw()
         self.app = ProjectMapperApp(self.root)
         for timer in self.root.tk.call("after", "info"):
             self.root.after_cancel(timer)

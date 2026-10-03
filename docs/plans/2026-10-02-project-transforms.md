@@ -20,10 +20,10 @@ Current status (2026-10-03; refreshed after hosted CI run `37125335567`):
   and Windows on Python 3.10/3.13/3.14 and macOS 3.14. macOS 3.10/3.13 passed denied
   restore, minimum-size layout and spinbox theme tests, then emitted no further test output
   after 32% until canceled at six minutes. Tracebacks in runs `37126035883`,
-  `37126599081`, `37127134972`, `37128227007`, and `37128773406` found hidden-parent Tk event
-  loop waits in Backups, exclusions scan, History, Project Patcher review and New File
-  context-menu tests. The affected test setups now keep their parent roots viewable; hosted
-  verification is pending and cross-platform acceptance remains open.
+  `37126599081`, `37127134972`, `37128227007`, `37128773406`, and `37129275742` found
+  hidden-parent Tk event-loop waits in Backups, exclusions, History, Project Patcher review,
+  New File context-menu and lazy-tree tests. The affected setups now keep parent roots
+  viewable; hosted verification is pending and cross-platform acceptance remains open.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
