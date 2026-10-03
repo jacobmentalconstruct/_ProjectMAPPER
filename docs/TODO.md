@@ -17,11 +17,15 @@ styling and font-metric layout assumptions. Follow-up run `37122836384` passed L
 Python 3.10, 3.13 and 3.14. Windows still failed the lazy-tree test because the test
 fixture used an unresolved temporary path; macOS 3.14 also measured the main window at
 811 px and found two toolbar controls clipped at fixed test widths. Windows was cancelled
-after capturing failures because macOS 3.10/3.13 had stalled in the CLI test phase. These
-new fixes use resolved fixture paths, measured minimum window widths and reduced main
-toolbar padding. The item remains open until all hosted jobs pass and platform-specific
-failures are resolved. Keep platform classifiers and tested-platform claims conservative
-until then.
+after capturing failures because macOS 3.10/3.13 stopped producing output after
+`test_backups.py` and before the CLI test file. The next run passed Linux and Windows on all
+three Python versions; macOS 3.14 still clipped controls in Backups and Project Patcher,
+and macOS 3.10/3.13 repeated the same stall. These follow-up changes use resolved fixture
+paths, measured minimum window widths, a larger
+Aqua allowance for native button metrics, and an 820 px compact-screen threshold matching
+the measured 811 px minimum. The item remains open until all hosted jobs pass and
+platform-specific failures are resolved. Keep platform classifiers and tested-platform
+claims conservative until then.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

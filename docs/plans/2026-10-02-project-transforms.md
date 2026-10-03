@@ -22,6 +22,10 @@ Current status (2026-10-03; refreshed after first hosted CI run):
   assumptions and an 811 px main-window minimum. Those are corrected in the pending
   follow-up. macOS 3.10/3.13 stalled during their CLI test phase and were cancelled after
   four minutes; this remains an unresolved verification concern.
+  Run `37123428552` confirms Linux and Windows are green on all three Python versions.
+  macOS 3.14 still reports clipped Backups and Project Patcher buttons at the measured
+  minimum; macOS 3.10/3.13 stop producing output after `test_backups.py` and before the
+  CLI test file, and were cancelled after three minutes.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

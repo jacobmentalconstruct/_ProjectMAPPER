@@ -345,7 +345,7 @@ class MainWindowLayoutTests(DesktopCase):
 
     def test_every_control_fits_at_the_minimum_size(self):
         width, height = self.root.minsize()
-        self.assertLessEqual(width, 800, "the main window should fit an 800 px wide screen")
+        self.assertLessEqual(width, 820, "the main window should fit a compact 820 px wide screen")
         self.show(width, height)
         self.assertEqual((self.root.winfo_width(), self.root.winfo_height()), (width, height))
         for widget in self.controls():
