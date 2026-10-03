@@ -252,7 +252,8 @@ class VirtualTree:
             warnings = []
             if kind == "delete" and node.data != node.original_bytes:
                 warnings.append(f"Deleting a file changed by an earlier operation: {node.path}.")
-            return {"path": node.path, "before": before, "content": None,
+            return {"path": node.path, "before": before,
+                    "content": node.data if kind == "delete" else None,
                     "warnings": warnings}
 
         if kind in {"move", "move_dir"}:

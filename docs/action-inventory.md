@@ -92,6 +92,20 @@ Phase 8 contract notes (2026-09-24):
   back up, so the flag is ignored. The editor's **Keep backup** sets the flag for
   both Save and Save As.
 
+Phase 10.5 contract notes (2026-10-03):
+- `project_patch.validate` accepts both version 1 `files` manifests and version 2 `ops`
+  changesets. Version 2 reviews return operation-level paths, warnings and content previews;
+  `patch.schema` with `project: true` returns the version 2 example.
+- `project_patch.apply` consumes the exact reviewed plan. Version 1 patches and version 2
+  `patch` operations follow the existing content-edit approval rules. For adapter origins,
+  version 2 `mkdir`, `create` and move/rename operations run without a prompt by default;
+  `ask_before_structural_writes` enables one summary prompt. Delete operations remain
+  approval-gated. All applied operations are changesets that can be undone from Backups.
+- New structural actions use `{path, name}` for file/folder rename, `{path, to}` for moves,
+  `{path}` for folder creation, and `{path, recursive?}` for folder deletion. `file.delete`
+  is now exposed to the CLI/MCP adapters behind trusted approval. These actions are
+  confined to the configured project root and record affected paths in history.
+
 Linked buttons compose the same actions. Project Apply consumes the displayed
 plan ID, including after approval; it never silently rebuilds a preview.
 

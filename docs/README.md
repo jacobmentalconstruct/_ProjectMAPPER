@@ -17,7 +17,7 @@ verification records. End-user instructions remain in the root `README.md`.
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
 - **Cross-platform matrix:** Hosted CI run [`37148797317`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37148797317) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14 with Phase 10.4 changes. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
-- **Current development:** Phase 10.4 is accepted: v2 backup manifests retain forward/inverse changesets, file deletion and project patches are undoable as transactions, and the Backups window distinguishes whole-changeset undo from file restore. The local Windows suite passes (427 passed, 2 skipped), and the hosted matrix passes all nine jobs. Work proceeds to Phase 10.5. See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
+- **Current development:** Phase 10.5 controller and adapter work is implemented locally: project manifests support v2 transforms, structural actions are exposed to adapters, safe transforms follow the owner setting, destructive/content edits carry operation review metadata, and selection/history state tracks moves. The Windows suite passes (437 passed, 2 skipped); changed-file Ruff checks pass. Hosted cross-platform CI and the Phase 10.5 documentation gate remain. Phase 10.6 will add per-operation approval controls to the popup. See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python

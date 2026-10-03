@@ -60,11 +60,13 @@ Actions run one at a time on a single worker thread, in submission order.
 
 ## Approvals
 
-Five actions return a plan instead of acting:
+Actions that need a preview or trusted decision return a plan instead of acting:
 
 | Action | Plan summary title |
 | --- | --- |
 | `file.delete` | Delete file? |
+| `folder.delete` | Folder delete? |
+| `file.rename`, `file.move`, `folder.create`, `folder.rename`, `folder.move` | Structural action summary |
 | `text.save_as` (only when the target exists) | Overwrite file? |
 | `project_patch.apply` | Apply project patch? |
 | `backup.restore` | Restore from backup? |
@@ -88,6 +90,14 @@ At the core action layer, `text.save` and `patch.save` do not ask for approval. 
 carry the SHA-256 of the bytes the client read, and they refuse with `source_changed` if
 the file no longer matches. The CLI/MCP adapters add their own approval policy before
 these actions run; see [the adapter boundary](#cli-and-mcp-adapter-boundary-version-110).
+All one-op structural actions use the changeset transaction engine and create undoable
+history. The desktop presents a review for these actions. For CLI/MCP origins, the adapter
+lets version 2 `mkdir`, `create` and move/rename operations proceed without a prompt by
+default; the owner can enable `ask_before_structural_writes` to request one summary
+approval. Content edits (`patch`) retain the existing approval rules, and delete
+operations remain approval-gated. The adapter includes an operation list with destructive
+and content-edit flags in its trusted approval request; per-operation selection is the
+next review-window tranche.
 
 ## Events
 
@@ -157,7 +167,7 @@ cannot change the root, disable forced backups, or supply approval.
 Read-only and proposal operations do not import Tk. When an approved write needs review,
 the adapter runs its CLI action or MCP stdio loop on a worker and services a local Tk
 approval window from the process main thread. The window receives an `ApprovalRequest`
-with the exact planned diff and paths; only an explicit local button decision can
+with the planned diff, affected paths and operation metadata; only an explicit local button decision can
 resolve it. The approval capability is never included in an MCP tool schema or CLI
 argument. See the [integration guide](agent-integration.md) for limits, commands and
 settings.
@@ -190,14 +200,20 @@ Fields in *italics* are optional. Every action is available headlessly.
 | `file.name` | `name`, *`extension`*, *`timestamp`* | Preview a new file name |
 | `file.create` | `folder`, `name`, `content`, *`extension`*, *`timestamp`* | Never overwrites |
 | `file.delete` | `path` | **Approval** |
-| `patch.schema` | *`project`* | The patch JSON example |
+| `file.rename` | `path`, `name` | Undoable project transform |
+| `file.move` | `path`, `to` | Undoable project transform |
+| `folder.create` | `path` | Undoable project transform |
+| `folder.rename` | `path`, `name` | Undoable project transform |
+| `folder.move` | `path`, `to` | Undoable project transform |
+| `folder.delete` | `path`, *`recursive`* | **Approval**; recursive removal is destructive |
+| `patch.schema` | *`project`* | Patch JSON example; project mode returns the v2 changeset template |
 | `patch.load` | `path` | Read a patch or manifest file |
 | `patch.validate` | `path`, `patch`, `sha256`, *`force_indent`* | Returns a preview and `plan_id` |
 | `patch.result` | `plan_id` | The patched text |
 | `patch.save` | `plan_id`, *`suffix`*, *`backup`* | Guarded by fingerprint |
 | `project_patch.add_entry` | `root`, `path`, `manifest` | Adds a file entry to a manifest |
-| `project_patch.validate` | `root`, `manifest`, *`force_indent`* | Per-file review; `plan_id` only when valid |
-| `project_patch.apply` | `plan_id`, *`backup`* | **Approval**; all files or none |
+| `project_patch.validate` | `root`, `manifest`, *`force_indent`* | Reviews v1 file patches or v2 changeset operations; `plan_id` only when valid |
+| `project_patch.apply` | `plan_id`, *`backup`* | Applies the reviewed changeset as a transaction; adapter approval follows the operation classes and settings |
 | `backup.list` | *`scope`* (`project`/`user`) | Generations with integrity status |
 | `backup.preview` | `scope`, `generation`, *`targets`* | Current vs backup; returns `plan_id` |
 | `backup.restore` | `plan_id` | **Approval**; saves a pre-restore copy first |

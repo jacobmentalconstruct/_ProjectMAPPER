@@ -71,7 +71,7 @@ class ExposureTests(SessionCase):
 
     def test_unexposed_actions_are_refused_and_do_nothing(self):
         session = self.session(Approver(True))
-        for action, payload in (("file.delete", {"path": "a.py"}), ("project.set_root", {"path": str(self.outside)}),
+        for action, payload in (("project.set_root", {"path": str(self.outside)}),
                                 ("text.save_as", {"path": "a.py", "text": "x"}), ("backup.restore", {"plan_id": "x"}),
                                 ("no.such.action", {})):
             with self.subTest(action=action):
@@ -332,6 +332,93 @@ class ProjectPatchTests(SessionCase):
         outcome = session.call("project_patch.apply", {"plan_id": plan, "backup": False})
         self.assertEqual(outcome["error"]["code"], "invalid_input")
         self.assertEqual(self.a.read_bytes(), b"alpha = 1\n")
+
+
+class StructuralTransformTests(SessionCase):
+    def test_safe_transforms_apply_without_approval_by_default(self):
+        session = self.session()
+        (self.root / "container").mkdir()
+        (self.root / "folder").mkdir()
+        created = session.call("folder.create", {"path": "new_folder"})
+        self.assertEqual(created["status"], "succeeded", created)
+        moved = session.call("file.rename", {"path": "a.py", "name": "renamed.py"})
+        self.assertEqual(moved["status"], "succeeded", moved)
+        moved_again = session.call("file.move", {"path": "b.py", "to": "container/b.py"})
+        self.assertEqual(moved_again["status"], "succeeded", moved_again)
+        renamed_folder = session.call("folder.rename", {"path": "folder", "name": "renamed_folder"})
+        self.assertEqual(renamed_folder["status"], "succeeded", renamed_folder)
+        moved_folder = session.call("folder.move", {"path": "renamed_folder", "to": "container/renamed_folder"})
+        self.assertEqual(moved_folder["status"], "succeeded", moved_folder)
+        self.assertFalse(self.a.exists())
+        self.assertEqual((self.root / "renamed.py").read_bytes(), b"alpha = 1\n")
+        self.assertTrue((self.root / "container" / "b.py").is_file())
+        self.assertTrue((self.root / "container" / "renamed_folder").is_dir())
+        history = session.call("history.query", {"text": "file.move"})["data"]["operations"]
+        self.assertEqual(len(history), 1)
+        self.assertEqual(set(history[0]["paths"]), {str(self.b), str(self.root / "container" / "b.py")})
+        self.assertEqual(self.backups(session), 5)
+
+    def test_destructive_transforms_require_trusted_approval(self):
+        session = self.session()
+        for action, payload in (("file.delete", {"path": "a.py"}),
+                                ("folder.delete", {"path": "empty", "recursive": True})):
+            with self.subTest(action=action):
+                if action == "folder.delete":
+                    (self.root / "empty").mkdir()
+                    (self.root / "empty" / "child.txt").write_text("keep?", encoding="utf-8")
+                result = session.call(action, payload)
+                self.assertEqual((result["status"], result["error"]["code"]),
+                                 ("approval_required", "approval_required"))
+        self.assertTrue(self.a.exists())
+        self.assertTrue((self.root / "empty" / "child.txt").exists())
+
+    def test_approved_delete_actions_apply_and_record_undo(self):
+        folder = self.root / "folder-to-delete"
+        folder.mkdir()
+        (folder / "child.txt").write_text("contents", encoding="utf-8")
+        approver = Approver(True)
+        session = self.session(approver)
+        deleted_file = session.call("file.delete", {"path": "a.py"})
+        self.assertEqual(deleted_file["status"], "succeeded", deleted_file)
+        deleted_folder = session.call("folder.delete", {"path": "folder-to-delete", "recursive": True})
+        self.assertEqual(deleted_folder["status"], "succeeded", deleted_folder)
+        self.assertFalse(self.a.exists())
+        self.assertFalse(folder.exists())
+        self.assertEqual([request.operations[0]["op"] for request in approver.requests], ["delete", "delete_dir"])
+        self.assertEqual(self.backups(session), 2)
+
+    def test_non_destructive_v2_create_and_mkdir_apply_without_approval(self):
+        session = self.session()
+        manifest = {"version": 2, "description": "safe creates", "ops": [
+            {"op": "mkdir", "path": "generated"},
+            {"op": "create", "path": "generated/note.txt", "content": "created\n"},
+        ]}
+        validated = session.call("project_patch.validate", {"manifest": manifest})
+        self.assertTrue(validated["data"]["valid"], validated)
+        applied = session.call("project_patch.apply", {"plan_id": validated["data"]["plan_id"]})
+        self.assertEqual(applied["status"], "succeeded", applied)
+        self.assertEqual((self.root / "generated" / "note.txt").read_text(encoding="utf-8"), "created\n")
+        self.assertEqual(self.backups(session), 1)
+
+    def test_v2_content_edits_still_require_approval(self):
+        session = self.session()
+        manifest = {"version": 2, "ops": [{"op": "patch", "path": "a.py", "hunks": [
+            {"search_block": "alpha = 1", "replace_block": "alpha = 9"}]}]}
+        validated = session.call("project_patch.validate", {"manifest": manifest})
+        applied = session.call("project_patch.apply", {"plan_id": validated["data"]["plan_id"]})
+        self.assertEqual(applied["status"], "approval_required")
+        self.assertEqual(self.a.read_bytes(), b"alpha = 1\n")
+
+    def test_approval_request_includes_structural_operation_metadata(self):
+        approver = Approver(False)
+        session = self.session(approver)
+        # Requiring approval for structural writes also covers normally safe moves.
+        session.settings = Settings(ask_before_structural_writes=True)
+        (self.root / "nested").mkdir()
+        result = session.call("file.move", {"path": "a.py", "to": "nested/a.py"})
+        self.assertEqual(result["status"], "cancelled")
+        self.assertEqual(approver.requests[0].operations[0]["op"], "move")
+        self.assertFalse((self.root / "nested" / "a.py").exists())
 
 
 class BoundTests(SessionCase):

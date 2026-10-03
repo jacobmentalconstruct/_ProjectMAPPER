@@ -72,15 +72,16 @@ def _add_common_options(parser):
 def build_parser():
     parser = ProjectMapperArgumentParser(
         prog="projectmapper-cli",
-        description="Scan, compile, export and validate ProjectMapper snapshots and patches.",
+        description="Scan, compile, export and validate ProjectMapper snapshots, patches and project transforms.",
         epilog=(
             "Examples:\n"
             "  projectmapper-cli --root ./my-project scan\n"
             "  projectmapper-cli compile --root ./my-project --exclude '*.log' --include-binary\n"
             "  projectmapper-cli export tree --root ./my-project\n"
             "  projectmapper-cli validate-patch src/app.py patch.json --root ./my-project\n\n"
-            "Patch validation only prepares proposals. apply-patch and apply-project open a\n"
-            "trusted local approval window; denial returns exit code 130."
+            "Validation only prepares proposals. apply-patch and apply-project apply the exact\n"
+            "validated plan. Content edits and deletes need trusted local approval; safe v2\n"
+            "structural transforms apply without a prompt by default."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -118,7 +119,7 @@ def build_parser():
     validate_project.add_argument("manifest_json", type=Path, help="JSON project patch manifest")
 
     apply_project = subparsers.add_parser(
-        "apply-project", help="validate and apply a project patch after local approval")
+        "apply-project", help="validate and apply a project changeset under the approval policy")
     _add_common_options(apply_project)
     apply_project.add_argument("manifest_json", type=Path, help="JSON project patch manifest")
 

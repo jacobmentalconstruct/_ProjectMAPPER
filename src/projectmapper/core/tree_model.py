@@ -47,5 +47,20 @@ class LogicalTree:
         for descendant in self.descendants(path):
             self.selection[str(descendant)] = state
 
+    def remap(self, old, new):
+        """Move selection overrides with a renamed path or an entire folder subtree."""
+        old, new = Path(old), Path(new)
+        moved = {}
+        for key, state in self.selection.items():
+            path = Path(key)
+            try:
+                suffix = path.relative_to(old)
+            except ValueError:
+                moved[key] = state
+            else:
+                moved[str(new / suffix)] = state
+        self.selection = moved
+        return self.selection
+
     def selected(self, path):
         return self.selection.get(str(Path(path)), "unchecked") == "checked"

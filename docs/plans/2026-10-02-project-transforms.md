@@ -5,7 +5,9 @@ Date: 2026-10-02
 Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
 accepted and released. Cross-platform CI passed all nine platform/version jobs in run
 `37139891049`. Steps 10.0–10.4 are complete. Phase 10.4 passed the full local suite and all
-nine Windows/macOS/Linux × Python 3.10/3.13/3.14 hosted jobs in run `37148797317`.**
+nine Windows/macOS/Linux × Python 3.10/3.13/3.14 hosted jobs in run `37148797317`. Phase
+10.5 controller and adapter implementation is in progress; local full-suite and changed-file
+lint checks pass, while the documentation and hosted CI gates remain.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
@@ -41,12 +43,13 @@ Current status (2026-10-03; refreshed after hosted CI run `37148797317`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.4 are complete; 10.5 is next:** `.dev-log/10-project-transforms.md`
+- **Steps 10.0–10.4 are complete; 10.5 is active:** `.dev-log/10-project-transforms.md`
   records the entry gate and acceptance; D1–D7 are present in section 17 of the main plan.
   The shared executor applies content and structural operations, quarantines deletes until
   commit, and rolls back failures. Hosted run `37148797317` passed all nine Windows,
   macOS and Linux jobs on Python 3.10, 3.13 and 3.14 with backup manifest v2 and changeset
-  undo. Continue at step 10.5.
+  undo. Phase 10.5 now adds v2 changesets, adapter actions, selection remapping and
+  approval classification; finish its docs and hosted CI gate before proceeding.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -79,7 +82,10 @@ move, new folder, delete) runs through the same engine, so they all get the same
 validation, backup and undo. Later, moves generate their own reference fix-ups (imports,
 paths) as derived patch ops that the user can switch off.
 
-## 2. Current state (read from the code, 2026-10-02)
+## 2. Baseline before Phase 10 implementation (code state, 2026-10-02)
+
+This dated table records the starting point for the plan; later implementation progress is
+tracked in section 0 and the dated step notes below.
 
 | Capability | Where | State |
 |---|---|---|
@@ -478,6 +484,16 @@ ancestor name alone cannot make an otherwise valid target look like the managed 
   Update the adapter session docstring, the developer guide and the session tests to match.
 - Gate: action tests per new action. The adapter classification test passes. Selection
   survives move/rename. History records structural ops with both paths.
+
+**Implementation progress (2026-10-03):** v2 validation/apply and schema example are
+implemented; `file.rename`, `file.move`, `folder.create`, `folder.rename`, `folder.move`,
+`folder.delete`, and `file.delete` are adapter-classified and covered. Selection remapping,
+dual-path dirty marking, operation metadata and the `ask_before_structural_writes` setting
+are wired through the controller and agent boundary. Version 1 manifests remain accepted.
+The popup still makes one decision for the whole request; per-operation destructive
+selection and re-simulation remain in 10.6. Local verification currently passes 437 tests
+with 2 skips, and Ruff passes on all changed Python files. Hosted CI, docs accuracy search,
+and a final gate review remain before accepting 10.5.
 
 ### 10.6a — Tooltips for every existing control
 - `ToolTip` helper, the tooltip text registry, and tooltips for every control listed in

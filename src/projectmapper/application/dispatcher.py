@@ -11,7 +11,7 @@ from uuid import uuid4
 from .contracts import ActionError, ApprovalPlan, Context, Event, Request, Result, TERMINAL
 
 # Request fields that may appear in events: they name a target and never carry file content.
-TARGET_KEYS = ("path", "root", "folder", "generation", "scope")
+TARGET_KEYS = ("path", "root", "folder", "from", "to", "generation", "scope")
 
 
 class Dispatcher:

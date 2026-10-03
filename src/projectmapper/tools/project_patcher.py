@@ -24,6 +24,12 @@ EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-has
     {"description": "Describe the change", "search_block": "old", "replace_block": "new", "use_patch_indent": False}]}
 EXAMPLE_MANIFEST = {"version": 1, "description": "Project patch", "files": [EXAMPLE_ENTRY]}
 SKELETON_MANIFEST = {"version": 1, "files": []}
+EXAMPLE_CHANGESET = {"version": 2, "description": "Project transform", "ops": [
+    {"op": "patch", "path": "src/example.py", "hunks": [
+        {"description": "Describe the change", "search_block": "old", "replace_block": "new",
+         "use_patch_indent": False}]},
+    {"op": "create", "path": "src/new_module.py", "content": "# New file\n"},
+    {"op": "move", "from": "src/old_name.py", "to": "src/new_name.py"}]}
 
 
 def _ends_with_newline(text):
@@ -37,6 +43,7 @@ class ProjectPatchSession:
             raise PatchError("Project patch root must be a folder.")
         self.manifest = copy.deepcopy(self._parse(manifest))
         self.results = []
+        self.outcomes = []
         self._force_indent = False
         self._reviewed_operations = []
         self._validate_manifest()
@@ -48,10 +55,16 @@ class ProjectPatchSession:
                 manifest = json.loads(manifest)
             except json.JSONDecodeError as exc:
                 raise PatchError(f"Invalid project patch JSON: {exc.msg}.") from exc
-        if not isinstance(manifest, dict) or not isinstance(manifest.get("files"), list):
-            raise PatchError("Project patch must be an object with a 'files' list.")
-        if manifest.get("version", 1) != 1:
+        if not isinstance(manifest, dict):
+            raise PatchError("Project patch must be an object.")
+        version = manifest.get("version", 1)
+        if version == 2:
+            parse_changeset(manifest)
+            return manifest
+        if version != 1:
             raise PatchError("Unsupported project patch version.")
+        if not isinstance(manifest.get("files"), list):
+            raise PatchError("Version 1 project patch must have a 'files' list.")
         if not manifest["files"]:
             raise PatchError("Add at least one file entry.")
         return manifest
@@ -67,6 +80,8 @@ class ProjectPatchSession:
         return candidate
 
     def _validate_manifest(self):
+        if self.manifest.get("version", 1) == 2:
+            return
         seen = set()
         for index, entry in enumerate(self.manifest["files"], 1):
             if not isinstance(entry, dict):
@@ -88,7 +103,41 @@ class ProjectPatchSession:
         """Validate every file independently; plan results exist only when all are valid."""
         self._force_indent = force_indent
         self.results = []
+        self.outcomes = []
         self._reviewed_operations = []
+        if self.manifest.get("version", 1) == 2:
+            simulation = VirtualTree(self.root).simulate(
+                parse_changeset(self.manifest), force_indent=force_indent)
+            errors = {item["index"]: item for item in simulation.errors}
+            warnings = {}
+            for item in simulation.warnings:
+                warnings.setdefault(item["index"], []).append(item["message"])
+            outcomes = []
+            for index, detail in enumerate(simulation.operations):
+                kind = detail["op"]
+                relative = detail.get("path") or f"{detail.get('from')} → {detail.get('to')}"
+                error = errors.get(index)
+                item = {"index": index, "op": kind, "relative_path": relative,
+                        "status": "error" if error else "ready",
+                        "error": error["error"] if error else None,
+                        "path": detail.get("resolved_paths", [self.root])[0],
+                        "paths": detail.get("resolved_paths", []),
+                        "source": detail.get("from"), "destination": detail.get("to"),
+                        "warnings": warnings.get(index, [])}
+                if "original" in detail:
+                    item.update(original=detail["original"], patched=detail["patched"],
+                                additions=DiffFile(relative, detail["original"], detail["patched"]).additions,
+                                deletions=DiffFile(relative, detail["original"], detail["patched"]).deletions)
+                elif kind == "create":
+                    item.update(original="", patched=detail["content"].decode("utf-8"))
+                elif kind == "delete":
+                    item.update(original=detail.get("content", b"").decode("utf-8", "replace"), patched="")
+                outcomes.append(item)
+            self.outcomes = outcomes
+            if not simulation.errors:
+                self._reviewed_operations = copy.deepcopy(simulation.operations)
+                self.results = outcomes
+            return outcomes
         outcomes, results = [], []
         tree = VirtualTree(self.root)
         for entry in self.manifest["files"]:
@@ -122,6 +171,7 @@ class ProjectPatchSession:
             self.results = results
         else:
             self._reviewed_operations = []
+        self.outcomes = outcomes
         return outcomes
 
     def validate_all(self, force_indent=False):
@@ -138,7 +188,7 @@ class ProjectPatchSession:
         and returning a description of where the bytes were stored. Backups are captured
         before mutation; deletes stay quarantined until the entire changeset commits.
         """
-        if not self.results:
+        if not self._reviewed_operations:
             self.validate_all(self._force_indent)
         simulation = Simulation(operations=copy.deepcopy(self._reviewed_operations))
         result = apply_operations(self.root, simulation, backup=backup, record=record,
@@ -149,5 +199,9 @@ class ProjectPatchSession:
 
 
 def project_patch_diff(results):
-    return unified_diff_text(DiffFile(result["relative_path"], result["original"], result["patched"])
-                             for result in results)
+    diffs = [DiffFile(result["relative_path"], result["original"], result["patched"])
+             for result in results if "original" in result and "patched" in result]
+    text = unified_diff_text(diffs)
+    structural = [f"{result.get('op', 'operation').upper()} {result['relative_path']}"
+                  for result in results if "original" not in result]
+    return "\n".join(part for part in (text, "\n".join(structural)) if part)

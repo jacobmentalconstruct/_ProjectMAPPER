@@ -20,19 +20,23 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings, Settings())
         self.assertEqual((settings.max_result_bytes, settings.max_resource_bytes), (256 * 1024, 1024 * 1024))
         self.assertTrue(settings.ask_before_single_file_writes)
+        self.assertFalse(settings.ask_before_structural_writes)
         self.assertEqual(settings.problems, ())
 
     def test_round_trip(self):
-        saved = save_settings({"max_result_bytes": 65536, "ask_before_single_file_writes": False}, self.path)
+        saved = save_settings({"max_result_bytes": 65536, "ask_before_single_file_writes": False,
+                               "ask_before_structural_writes": True}, self.path)
         loaded = load_settings(self.path)
         self.assertEqual(loaded, saved)
         self.assertEqual(loaded.max_result_bytes, 65536)
         self.assertFalse(loaded.ask_before_single_file_writes)
+        self.assertTrue(loaded.ask_before_structural_writes)
         self.assertEqual(loaded.max_resource_bytes, 1024 * 1024)
 
     def test_saving_an_invalid_value_writes_nothing(self):
         for values in ({"max_result_bytes": 10}, {"max_result_bytes": True},
-                       {"ask_before_single_file_writes": "no"}, {"colour": "red"}):
+                       {"ask_before_single_file_writes": "no"},
+                       {"ask_before_structural_writes": "sometimes"}, {"colour": "red"}):
             with self.subTest(values=values):
                 with self.assertRaises(ValueError):
                     save_settings(values, self.path)
@@ -41,12 +45,14 @@ class SettingsTests(unittest.TestCase):
     def test_bad_values_fall_back_one_by_one_and_are_reported(self):
         self.path.parent.mkdir(parents=True)
         self.path.write_text(json.dumps({"max_result_bytes": 999_999_999, "approval_timeout_seconds": 30,
-                                         "ask_before_single_file_writes": 1, "extra": 1}), encoding="utf-8")
+                                         "ask_before_single_file_writes": 1,
+                                         "ask_before_structural_writes": 1, "extra": 1}), encoding="utf-8")
         settings = load_settings(self.path)
         self.assertEqual(settings.max_result_bytes, 256 * 1024)
         self.assertEqual(settings.approval_timeout_seconds, 30)
         self.assertTrue(settings.ask_before_single_file_writes)
-        self.assertEqual(len(settings.problems), 3)
+        self.assertFalse(settings.ask_before_structural_writes)
+        self.assertEqual(len(settings.problems), 4)
 
     def test_unreadable_or_malformed_file_never_stops_the_app(self):
         self.path.parent.mkdir(parents=True)

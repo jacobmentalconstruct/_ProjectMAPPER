@@ -3,6 +3,7 @@ import json
 import unittest
 from tests.support import temporary_directory, tk_root
 
+from projectmapper.application.controller import create_application
 from projectmapper.tools.patcher import PatchError
 from projectmapper.tools.project_patcher import ProjectPatchSession, project_patch_diff
 from projectmapper.app import ProjectMapperApp
@@ -26,6 +27,38 @@ class ProjectPatchTests(unittest.TestCase):
         results = session.validate_all()
         self.assertEqual([r["relative_path"] for r in results], ["README.md", "requirements.txt"])
         self.assertEqual(project_patch_diff(results), "(No differences)")
+
+    def test_v2_manifest_reviews_and_applies_mixed_project_operations(self):
+        manifest = {"version": 2, "description": "mixed transform", "ops": [
+            {"op": "patch", "path": "README.md", "hunks": [
+                {"search_block": "# ProjectMapper Snapshot Compiler",
+                 "replace_block": "# ProjectMapper Project Mapper"}]},
+            {"op": "mkdir", "path": "src"},
+            {"op": "create", "path": "src/new.py", "content": "value = 1\n"},
+            {"op": "move", "from": "requirements.txt", "to": "src/requirements.txt"},
+        ]}
+        session = ProjectPatchSession(self.root, manifest)
+        outcomes = session.review()
+        self.assertTrue(all(item["status"] == "ready" for item in outcomes), outcomes)
+        self.assertIn("MKDIR src", project_patch_diff(outcomes))
+        records = []
+
+        session.apply_all(record=lambda items, changeset: records.append(changeset),
+                          recover=lambda _items: "recovery")
+
+        self.assertEqual((self.root / "README.md").read_text(encoding="utf-8"),
+                         "# ProjectMapper Project Mapper\n")
+        self.assertEqual((self.root / "src/new.py").read_bytes(), b"value = 1\n")
+        self.assertEqual((self.root / "src/requirements.txt").read_text(encoding="utf-8"),
+                         "tk>=0.1.0\n")
+        self.assertFalse((self.root / "requirements.txt").exists())
+        self.assertEqual(records[0]["forward"]["version"], 2)
+
+    def test_project_schema_returns_version_2_changeset_example(self):
+        app, _ = create_application(self.root)
+        self.addCleanup(app.close)
+        result = app.execute("patch.schema", {"project": True})
+        self.assertEqual(json.loads(result.data["text"])["version"], 2)
 
     def test_rejects_duplicates_traversal_parts_missing_and_binary(self):
         cases = [

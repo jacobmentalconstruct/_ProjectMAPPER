@@ -141,6 +141,38 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(sorted(f["target"] for f in generation.files), ["b.txt", "c.txt"])
         self.assertEqual(self.store.read(generation.id, "c.txt"), b"cold\n")
 
+    def test_v2_project_transform_can_apply_and_undo_without_content_backup_blobs(self):
+        source = self.write("source.txt", b"move me\n")
+        manifest = {"version": 2, "ops": [
+            {"op": "mkdir", "path": "new-folder"},
+            {"op": "create", "path": "new-folder/created.txt", "content": "created\n"},
+            {"op": "move", "from": "source.txt", "to": "new-folder/moved.txt"},
+        ]}
+        preview = self.app.execute("project_patch.validate", {
+            "root": str(self.root), "manifest": json.dumps(manifest)})
+        self.assertTrue(preview.data["valid"], preview.data)
+        self.assertEqual([item["op"] for item in preview.data["operations"]],
+                         ["mkdir", "create", "move"])
+        pending = self.app.execute("project_patch.apply", {"plan_id": preview.data["plan_id"]})
+        self.assertEqual(pending.status, "awaiting_approval", pending.error)
+        self.approve(pending.operation_id, True)
+        applied = self.app.dispatcher.wait(pending.operation_id)
+        self.assertEqual(applied.status, "succeeded", applied.error)
+        self.assertFalse(source.exists())
+
+        (generation,) = [item for item in self.store.list() if item.kind == "changeset"]
+        self.assertEqual(generation.files, [])
+        undo = self.app.execute("backup.preview", {"scope": "project", "generation": generation.id})
+        self.assertEqual(undo.status, "succeeded", undo.error)
+        restore = self.app.execute("backup.restore", {"plan_id": undo.data["plan_id"]})
+        self.assertEqual(restore.status, "awaiting_approval", restore.error)
+        self.approve(restore.operation_id, True)
+        restored = self.app.dispatcher.wait(restore.operation_id)
+
+        self.assertEqual(restored.status, "succeeded", restored.error)
+        self.assertEqual(source.read_bytes(), b"move me\n")
+        self.assertFalse((self.root / "new-folder").exists())
+
     def test_requested_backup_failure_stops_apply_before_any_replacement(self):
         self.write("b.txt", b"old\n")
         with patch.object(BackupStore, "create", side_effect=BackupError("Backup was not written: disk full")):

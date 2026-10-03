@@ -6,8 +6,9 @@ trusted, so this session adds (plan section 12B, decisions F2–F5):
   never exposed by accident
 - confinement of every path field to the project root; the root never changes
 - backups forced on for every write
-- a trusted human approver, never the agent, for project applies and (unless the
-  owner's settings waive it) single-file writes, shown the exact diff that will be written
+- a trusted human approver, never the agent, for content edits and destructive changes;
+  safe structural transforms can run without a prompt when the owner leaves the default
+  setting in place
 - results bounded to the owner's limit, with every cut stated
 """
 
@@ -36,14 +37,20 @@ READS = {
     "patch.schema": (), "patch.load": ("path",), "patch.validate": ("path",), "patch.result": (),
     "project_patch.add_entry": ("root", "path"), "project_patch.validate": ("root",),
     "backup.list": (), "history.query": (),
+    "file.rename": ("path",), "file.move": ("path", "to"),
+    "folder.create": ("path",), "folder.rename": ("path",),
+    "folder.move": ("path", "to"), "folder.delete": ("path",),
 }
-WRITES = {"text.save": ("path",), "patch.save": (), "file.create": ("folder",), "project_patch.apply": ()}
+WRITES = {"text.save": ("path",), "patch.save": (), "file.create": ("folder",),
+          "project_patch.apply": (), "file.delete": ("path",),
+          "file.rename": ("path",), "file.move": ("path", "to"),
+          "folder.create": ("path",), "folder.rename": ("path",),
+          "folder.move": ("path", "to"), "folder.delete": ("path",)}
 EXPOSED = {**READS, **WRITES}
 NOT_EXPOSED = {
     "project.set_root": "The project root is fixed when the adapter starts.",
     "project.dirty": "Desktop bookkeeping; writes mark the project themselves.",
     "text.save_as": "It overwrites without a fingerprint; use text.save or file.create.",
-    "file.delete": "Deleting files is left to the desktop.",
     "vendor.export": "It writes outside the project.",
     "backup.preview": "Restoring backups is left to the desktop.",
     "backup.restore": "Restoring backups is left to the desktop.",
@@ -65,6 +72,7 @@ class ApprovalRequest:
     message: str
     paths: tuple
     diff: str
+    operations: tuple = ()
 
 
 def _outcome(action, status, data=None, error=None):
@@ -205,18 +213,30 @@ class AdapterSession:
         if result.status == "awaiting_approval":
             summary = result.data["summary"]
             diff = self._project_diffs.pop(payload.get("plan_id"), None)
-            if self.approver is not None and diff is None:  # never ask without the exact preview
+            operations = tuple(summary.get("operations", ()))
+            structural = action in {"project_patch.apply", "file.rename", "file.move", "folder.create",
+                                    "folder.rename", "folder.move", "folder.delete", "file.delete"}
+            non_destructive = bool(operations) and all(
+                not item.get("destructive") and not item.get("content_edit") for item in operations)
+            if (structural and non_destructive and
+                    not self.settings.ask_before_structural_writes):
+                self._resolve_approval(operation, True)
+                result = dispatcher.wait(operation, None)
+            elif self.approver is not None and action in {"project_patch.apply", "patch.save"} and diff is None:
+                # Never approve content edits without their exact reviewed preview.
                 dispatcher.cancel(operation)
                 return _outcome(action, "failed", error={
                     "code": "stale_plan", "message": "No reviewed preview for this plan. Validate again."})
-            decision = self._ask(ApprovalRequest(action, self.origin, summary.get("title", ""),
-                                                 summary.get("message", ""), tuple(summary.get("paths", ())), diff))
-            if decision is True:
-                self._resolve_approval(operation, True)
-                result = dispatcher.wait(operation, None)
             else:
-                dispatcher.cancel(operation)
-                return _approval_required(action) if decision is None else _denied(action)
+                decision = self._ask(ApprovalRequest(action, self.origin, summary.get("title", ""),
+                                                     summary.get("message", ""),
+                                                     tuple(summary.get("paths", ())), diff or "", operations))
+                if decision is True:
+                    self._resolve_approval(operation, True)
+                    result = dispatcher.wait(operation, None)
+                else:
+                    dispatcher.cancel(operation)
+                    return _approval_required(action) if decision is None else _denied(action)
         outcome = _outcome(action, result.status, result.data, result.error)
         if result.status == "succeeded":
             self._remember(action, result.data)

@@ -54,25 +54,28 @@ installed `projectmapper-mcp.exe`. Keep the project root fixed in this configura
 the server does not expose a root-switching tool. The server supports MCP's current
 discovery protocol and the legacy initialize handshake through the Python SDK.
 
-The server exposes these 27 sorted, allow-listed tools:
+The server exposes these sorted, allow-listed tools:
 
 `application.diagnostics`, `backup.list`, `capture.configure`, `exclusions.inspect`,
-`exclusions.update`, `file.create`, `file.name`, `history.query`, `output.location`,
+`exclusions.update`, `file.create`, `file.delete`, `file.move`, `file.name`, `file.rename`,
+`folder.create`, `folder.delete`, `folder.move`, `folder.rename`, `history.query`, `output.location`,
 `patch.load`, `patch.result`, `patch.save`, `patch.schema`, `patch.validate`,
 `project.scan`, `project_patch.add_entry`, `project_patch.apply`,
 `project_patch.validate`, `selection.set`, `snapshot.compile`, `snapshot.export`,
 `snapshot.require`, `state.get`, `text.find`, `text.open`, `text.replace`, and
 `text.save`. They cover project state, selection and exclusions, snapshots, file and
-patch operations, project-patch operations and content-free history. The server also
+patch operations, structural transforms and content-free history. The server also
 exposes:
 
 - `projectmapper://tree` for the current tree scan.
 - `projectmapper://snapshot/{projection}` for a compiled `tree`, `filedump`, `combined`
   or `manifest` projection.
 
-Validate a proposal before applying it. `project_patch.validate` returns a review and a
-single-use `plan_id` when every file is valid; `project_patch.apply` applies that exact
-plan. For one file, use `text.open`, then `patch.validate`, then `patch.save`, or use
+Validate a proposal before applying it. `project_patch.validate` accepts the legacy
+version 1 `files` format and version 2 `ops` changesets; it returns a review and a
+single-use `plan_id` only when every operation is valid. `project_patch.apply` applies
+that exact plan. Version 2 includes `patch`, `create`, `mkdir`, `move`/`move_dir`, `delete`
+and `delete_dir` operations. For one file, use `text.open`, then `patch.validate`, then `patch.save`, or use
 `text.save` with the SHA-256 returned by `text.open`. `file.create` never overwrites.
 
 ## CLI examples
@@ -90,8 +93,8 @@ projectmapper-cli history --root C:\work\my-project
 JSON is the default output; use `--text` for a concise human-readable result. Shared
 options may appear before or after a command. `--exclude PATTERN` can be repeated.
 `validate-patch` and `validate-project` only prepare proposals. The `apply-patch` and
-`apply-project` commands ask the local user through the trusted approval window; they do
-not use terminal input or command-line approval flags.
+The apply commands use the trusted approval window when the action's approval policy
+requires it; they do not use terminal input or command-line approval flags.
 
 Exit codes are stable: `0` succeeded, `1` action or I/O failure, `2` usage or invalid
 input, `3` stale snapshot/plan/source, `4` approval is required but no local approval
@@ -99,11 +102,13 @@ window is available, `5` unsafe path, and `130` denied or cancelled.
 
 ## Approval and safety
 
-The approval window is owned by the local adapter process. It shows the action, affected
-paths and exact proposed diff. Deny is focused by default; closing the window, pressing
-Escape, or reaching the configured timeout denies the request. Project-wide changes
-always ask once for the validated plan. Single-file writes ask by default; the desktop
-Settings window can waive prompts for fingerprint-guarded single-file writes.
+The approval window is owned by the local adapter process. Its request includes the
+action, affected paths, operation metadata and any available content diff. Deny is focused by default; closing the window, pressing
+Escape, or reaching the configured timeout denies the request. Project content edits and
+deletes require trusted approval. Safe version 2 structural operations (`mkdir`, exclusive
+`create`, and moves/renames) run without an adapter prompt by default; enable **Ask before
+non-destructive project transforms** to get one summary approval. Single-file writes ask
+by default; the desktop Settings window can waive prompts for fingerprint-guarded writes.
 
 An MCP tool argument, JSON field, CLI flag, stdin value, or MCP elicitation answer cannot
 approve a write. Agent input schemas contain no approval field. The popup is the only
@@ -113,9 +118,9 @@ the approval boundary does not protect against desktop-control software.
 All agent paths are confined to the configured project root. Linked targets, `.parts/`
 and ProjectMapper's `_projectmapper/` output folder are refused for agent writes. The
 adapter forces backups for `text.save`, `patch.save` and `project_patch.apply`; agents
-cannot disable those backups. File creation is exclusive and cannot overwrite. Delete,
-overwrite-via-Save-As, backup restore/prune, vendor export and root switching are not
-exposed.
+cannot disable those backups. Structural transforms also create undoable changeset records.
+File creation is exclusive and cannot overwrite. Overwrite-via-Save-As, backup
+restore/prune, vendor export and root switching are not exposed.
 
 ## User settings
 
@@ -133,6 +138,7 @@ Defaults and allowed ranges:
 | Maximum resource read | 1 MiB | 4 KiB–64 MiB |
 | Approval timeout | 120 seconds | 10–3,600 seconds |
 | Ask before single-file writes | Yes | On/off |
+| Ask before non-destructive project transforms | No | On/off |
 
 An agent may request a lower tool-result limit for an individual call, never a higher
 one. Results that are cut include truncation metadata. Text previously served truncated

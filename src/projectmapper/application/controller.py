@@ -26,7 +26,8 @@ try:
     from ..core.vtree import VirtualTree
     from ..core.diagnostics import collect_diagnostics
     from ..tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
-    from ..tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
+    from ..tools.project_patcher import (ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY,
+                                         EXAMPLE_CHANGESET)
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.backups import BackupError, BackupStore
     from ..core.writes import atomic_write_bytes
@@ -44,7 +45,8 @@ except ImportError:
     from core.vtree import VirtualTree
     from core.diagnostics import collect_diagnostics
     from tools.patcher import PatchSession, validate_target, apply_patch_text, PatchError
-    from tools.project_patcher import ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY, EXAMPLE_MANIFEST
+    from tools.project_patcher import (ProjectPatchSession, project_patch_diff, EXAMPLE_ENTRY,
+                                       EXAMPLE_CHANGESET)
     from core.diff import DiffFile, unified_diff_text
     from core.backups import BackupError, BackupStore
     from core.writes import atomic_write_bytes
@@ -116,6 +118,10 @@ class Controller:
             "backup.prune": self._backup_prune, "history.query": self._history_query,
         }.items():
             self.dispatcher.register(name, handler)
+        for name in ("file.rename", "file.move", "folder.create", "folder.rename",
+                     "folder.move", "folder.delete"):
+            self.dispatcher.register(name, lambda payload, context, action=name:
+                                     self._structural_action(action, payload, context))
 
     def execute(self, action, payload=None, *, origin="desktop", request_id=None, timeout=30):
         kwargs = {"request_id": request_id} if request_id else {}
@@ -180,6 +186,9 @@ class Controller:
             for path, data, mode in items:
                 store = BackupStore.for_target(path, self.state.root)
                 groups.setdefault((store.scope, str(store.directory)), (store, []))[1].append((path, data, mode))
+            if not groups and kind == "changeset":
+                store = BackupStore.for_project(self.state.root)
+                groups[(store.scope, str(store.directory))] = (store, [])
             names = []
             for store, files in groups.values():
                 generation = store.create(kind, action, context.operation_id, files,
@@ -188,10 +197,112 @@ class Controller:
             return ", ".join(names)
         return write
 
-    def _changed(self, path):
+    def _changed(self, path, new_path=None):
         with self.lock:
-            if path.is_relative_to(self.state.root):
-                self.state.mark_dirty("file_transformed", (path,))
+            def absolute(value):
+                candidate = Path(value)
+                return (candidate if candidate.is_absolute() else self.state.root / candidate).resolve()
+            paths = [absolute(path)]
+            if new_path is not None:
+                paths.append(absolute(new_path))
+                self.tree_model.remap(paths[0], paths[1])
+            affected = [item for item in paths if item.is_relative_to(self.state.root)]
+            if affected:
+                self.state.mark_dirty("file_transformed", affected)
+
+    def _structural_action(self, action, payload, context):
+        """Review and transactionally apply one safe path operation."""
+        required = {"file.rename": ("path", "name"), "file.move": ("path", "to"),
+                    "folder.create": ("path",), "folder.rename": ("path", "name"),
+                    "folder.move": ("path", "to"), "folder.delete": ("path",)}[action]
+        optional = ("recursive",) if action == "folder.delete" else ()
+        inputs(payload, required, optional)
+        root = self.state.root
+
+        def relative(value):
+            candidate = Path(value)
+            candidate = candidate if candidate.is_absolute() else root / candidate
+            candidate = validate_target(candidate)
+            if not candidate.is_relative_to(root):
+                raise ActionError("unsafe_path", "Project transforms must stay inside the project root.")
+            return candidate.relative_to(root).as_posix()
+
+        def sibling_name(source, name):
+            if (not isinstance(name, str) or not name.strip() or name in {".", ".."}
+                    or "/" in name or "\\" in name):
+                raise ActionError("invalid_input", "Name must be one file or folder name.")
+            parent = Path(source).parent
+            return (parent / name).as_posix()
+
+        source = payload.get("path")
+        if action == "folder.create":
+            operation = {"op": "mkdir", "path": relative(source)}
+        elif action == "folder.delete":
+            recursive = payload.get("recursive", False)
+            if not isinstance(recursive, bool):
+                raise ActionError("invalid_input", "recursive must be true or false.")
+            operation = {"op": "delete_dir", "path": relative(source)}
+            if recursive:
+                operation["recursive"] = True
+        elif action in {"file.rename", "folder.rename"}:
+            original = relative(source)
+            destination = sibling_name(original, payload["name"])
+            operation = {"op": "move_dir" if action == "folder.rename" else "move",
+                         "from": original, "to": relative(destination)}
+        else:
+            original = relative(source)
+            destination = relative(payload["to"])
+            operation = {"op": "move_dir" if action == "folder.move" else "move",
+                         "from": original, "to": destination}
+        manifest = {"version": 2, "description": action.replace(".", " "), "ops": [operation]}
+        simulation = VirtualTree(root).simulate(parse_changeset(manifest))
+        if not simulation.valid:
+            detail = simulation.errors[0]["error"]
+            raise ActionError("unsafe_path", str(detail))
+        detail = simulation.operations[0]
+        destructive = operation["op"] in {"delete_dir"}
+        targets = detail.get("resolved_paths", [])
+        if operation["op"] == "delete_dir":
+            targets = [validate_target(root / path) for path in detail.get("before", {})]
+        label = (operation.get("path") or
+                 f"{operation.get('from')} → {operation.get('to')}")
+        summary = {"index": 0, "op": operation["op"], "target": label,
+                   "destructive": destructive, "content_edit": False}
+        generation = self.state.generation
+
+        def approved(ctx):
+            ctx.check_cancelled()
+            if generation != self.state.generation:
+                raise ActionError("stale_plan", "Project changed while awaiting approval. Review again.")
+            saved = []
+            def record(items, changeset):
+                writer = self._generation_writer("changeset", action, ctx, changeset=changeset)
+                saved.append(writer(items))
+            try:
+                result = apply_operations(
+                    root, simulation, record=record, forward=manifest,
+                    recover=self._generation_writer("recovery", action, ctx),
+                    operation_id=ctx.operation_id)
+            except SourceChangedError as exc:
+                raise ActionError("source_changed", str(exc)) from exc
+            except RecoveryRequiredError as exc:
+                raise ActionError("recovery_required", str(exc)) from exc
+            except PathSafetyError as exc:
+                raise ActionError("io_error", str(exc)) from exc
+            if operation["op"] in {"move", "move_dir"}:
+                self._changed(operation["from"], operation["to"])
+            else:
+                for path in result["paths"]:
+                    self._changed(path)
+            return {"paths": [str(path) for path in result["paths"]],
+                    "count": len(result["paths"]), "changeset": saved[-1] if saved else "recorded"}
+
+        paths = [str(path) for path in targets]
+        message = (f"Apply {operation['op']} to {label}?\n\n"
+                   + ("This removes the selected folder and its contents.\n\n" if destructive else "")
+                   + "The operation is recorded for undo.")
+        return ApprovalPlan({"title": f"{action.replace('.', ' ').title()}?", "message": message,
+                             "paths": paths, "operations": [summary]}, approved)
 
     def _save(self, payload, context):
         inputs(payload, ("path", "text", "sha256"), ("suffix", "backup"))
@@ -497,9 +608,12 @@ class Controller:
             self._changed(path)
             return {"paths": [str(changed) for changed in result["paths"]],
                     "path": str(path), "changeset": saved[-1] if saved else "recorded"}
-        return ApprovalPlan({"title": "Delete file?", "path": str(path),
+        operation_summary = {"index": 0, "op": "delete", "target": relative,
+                             "destructive": True, "content_edit": False}
+        return ApprovalPlan({"title": "Delete file?", "path": str(path), "paths": [str(path)],
                              "message": f"Permanently delete this file?\n\n{path}",
-                             "sha256": fingerprint(original), "generation": generation}, approved)
+                             "sha256": fingerprint(original), "generation": generation,
+                             "operations": [operation_summary]}, approved)
 
     def _dirty(self, payload, context):
         inputs(payload, ("reason",), ("paths",))
@@ -616,7 +730,7 @@ class Controller:
 
     def _schema(self, payload, context):
         inputs(payload, (), ("project",))
-        schema = EXAMPLE_MANIFEST if payload.get("project") else {
+        schema = EXAMPLE_CHANGESET if payload.get("project") else {
             "hunks": [{"description": "Describe the change", "search_block": "old", "replace_block": "new", "use_patch_indent": False}]}
         return {"text": json.dumps(schema, indent=2)}
 
@@ -690,10 +804,12 @@ class Controller:
         errors = [item["error"] for item in outcomes if item["status"] == "error"]
         # Every file is reviewed; only a completely valid manifest becomes an applicable plan.
         key = None if errors else self._store_plan("project_patch", session)
+        visible = [{k: str(v) if isinstance(v, Path) else
+                    [str(path) for path in v] if k == "paths" else v
+                    for k, v in item.items() if k != "original_bytes"} for item in outcomes]
         return {"valid": not errors, "plan_id": key, "count": len(outcomes), "errors": errors,
                 "diff": project_patch_diff([item for item in outcomes if item["status"] != "error"]),
-                "files": [{k: str(v) if isinstance(v, Path) else v for k, v in item.items() if k != "original_bytes"}
-                          for item in outcomes]}
+                "files": visible, "operations": visible}
 
     def _project_apply(self, payload, context):
         inputs(payload, ("plan_id",), ("backup",))
@@ -719,18 +835,44 @@ class Controller:
                 raise
             finally:
                 self.plans.pop(payload["plan_id"], None)
+            moves = [(Path(item["source"]), Path(item["destination"]))
+                     for item in session.outcomes if item.get("op") in {"move", "move_dir"}]
+            remapped = {(self.state.root / path).resolve() for pair in moves for path in pair}
+            for old, new in moves:
+                self._changed(old, new)
             for path in paths:
-                self._changed(path)
+                if path not in remapped:
+                    self._changed(path)
             return {"paths": [str(p) for p in paths], "count": len(paths)}
-        stats = [DiffFile(r["relative_path"], r["original"], r["patched"]) for r in session.results]
-        lines = [f"+{d.additions} / -{d.deletions}   {d.relative_path}" for d in stats[:20]]
-        if len(stats) > 20:
-            lines.append(f"… and {len(stats) - 20} more file(s)")
-        total = f"+{sum(d.additions for d in stats)} / -{sum(d.deletions for d in stats)}"
-        message = (f"Apply validated changes to {len(stats)} file(s) ({total})?\n\n" + "\n".join(lines)
-                   + "\n\nAll files will be rechecked before writing.")
+        stats = [DiffFile(r["relative_path"], r["original"], r["patched"])
+                 for r in session.results if "original" in r and "patched" in r]
+        if session.manifest.get("version", 1) == 2:
+            lines = [f"{item['op'].upper():12} {item['relative_path']}"
+                     for item in session.outcomes[:20]]
+            if len(session.outcomes) > 20:
+                lines.append(f"… and {len(session.outcomes) - 20} more operation(s)")
+            message = (f"Apply {len(session.outcomes)} validated project operation(s)?\n\n"
+                       + "\n".join(lines) + "\n\nAll targets will be rechecked before writing.")
+            operations = [{"index": item["index"], "op": item["op"],
+                           "target": item["relative_path"],
+                           "destructive": item["op"] in {"delete", "delete_dir"},
+                           "content_edit": item["op"] == "patch"}
+                          for item in session.outcomes]
+        else:
+            lines = [f"+{d.additions} / -{d.deletions}   {d.relative_path}" for d in stats[:20]]
+            if len(stats) > 20:
+                lines.append(f"… and {len(stats) - 20} more file(s)")
+            total = f"+{sum(d.additions for d in stats)} / -{sum(d.deletions for d in stats)}"
+            message = (f"Apply validated changes to {len(stats)} file(s) ({total})?\n\n" + "\n".join(lines)
+                       + "\n\nAll files will be rechecked before writing.")
+            operations = [{"index": index, "op": "patch", "target": item["relative_path"],
+                           "destructive": False, "content_edit": True}
+                          for index, item in enumerate(session.results)]
+        approval_paths = list(dict.fromkeys(
+            str(path) for item in session.outcomes
+            for path in (item.get("paths") or [item["path"]])))
         return ApprovalPlan({"title": "Apply project patch?", "message": message,
-                             "paths": [str(r["path"]) for r in session.results]}, approved)
+                             "paths": approval_paths, "operations": operations}, approved)
 
     def _compile(self, payload, context):
         inputs(payload, ())

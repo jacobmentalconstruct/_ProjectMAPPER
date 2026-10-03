@@ -37,7 +37,7 @@ _PROJECTIONS = {
 # MCP tool field schemas supplement the required/optional names extracted from
 # the same ``inputs(...)`` contracts that the action handlers enforce.
 _FIELD_TYPES = {
-    "path": "string", "root": "string", "folder": "string", "name": "string",
+    "path": "string", "root": "string", "folder": "string", "name": "string", "to": "string",
     "text": "string", "sha256": "string", "suffix": "string", "backup": "boolean",
     "category": "string", "outcome": "string", "limit": "integer", "start": "integer", "scope": "string",
     "generation": "string", "targets": "array", "keep": "integer", "include": "array",
@@ -48,7 +48,7 @@ _FIELD_TYPES = {
     "patch": "object", "force_indent": "boolean", "plan_id": "string", "manifest": "object",
     "output": "string", "include_tree": "boolean", "source_root": "string",
     "export_root": "string", "make_zip": "boolean", "revision": "integer",
-    "max_bytes": "integer",
+    "max_bytes": "integer", "recursive": "boolean",
 }
 
 _DESCRIPTIONS = {
@@ -64,8 +64,15 @@ _ACTION_DESCRIPTIONS = {
     "patch.validate": "Validate a single-file patch and return its review without writing.",
     "patch.save": "Apply a previously validated single-file patch; approval may be required.",
     "project_patch.validate": "Validate a multi-file project patch and return its review without writing.",
-    "project_patch.apply": "Apply a previously validated multi-file project patch; approval is required.",
+    "project_patch.apply": "Apply a validated project changeset. Content edits and deletes require trusted approval; safe structural operations follow the owner's setting.",
     "text.save": "Save changed text to a project file; approval may be required.",
+    "file.delete": "Delete a project file after trusted approval; a backup changeset is kept for undo.",
+    "file.rename": "Rename a project file. The change is recorded for undo.",
+    "file.move": "Move a project file within the project. The change is recorded for undo.",
+    "folder.create": "Create a project folder. The change is recorded for undo.",
+    "folder.rename": "Rename a project folder within the project. The change is recorded for undo.",
+    "folder.move": "Move a project folder within the project. The change is recorded for undo.",
+    "folder.delete": "Delete an empty project folder, or recursively delete its contents when requested. Approval is required for destructive changes.",
 }
 
 
@@ -113,6 +120,16 @@ def action_input_contracts():
                 break
         else:
             raise RuntimeError(f"Action handler {method_name} has no inputs() contract.")
+    # These actions share Controller._structural_action's validator, whose contract
+    # depends on the registered action name rather than a distinct handler method.
+    contracts.update({
+        "file.rename": (("path", "name"), ()),
+        "file.move": (("path", "to"), ()),
+        "folder.create": (("path",), ()),
+        "folder.rename": (("path", "name"), ()),
+        "folder.move": (("path", "to"), ()),
+        "folder.delete": (("path",), ("recursive",)),
+    })
     return contracts
 
 
@@ -255,8 +272,11 @@ def create_server(root, *, session=None, approver=None):
             _tool_function(serialized, action, contracts[action]), name=action,
             description=_ACTION_DESCRIPTIONS.get(action, f"Run the {action} action."),
             annotations=ToolAnnotations(readOnlyHint=action not in {
-                "text.save", "patch.save", "file.create", "project_patch.apply"},
-                destructiveHint=action in {"text.save", "patch.save", "project_patch.apply"},
+                "text.save", "patch.save", "file.create", "project_patch.apply", "file.delete",
+                "file.rename", "file.move", "folder.create", "folder.rename", "folder.move",
+                "folder.delete"},
+                destructiveHint=action in {"text.save", "patch.save", "project_patch.apply",
+                                           "file.delete", "folder.delete"},
                 idempotentHint=action in {"state.get", "project.scan", "exclusions.inspect",
                                           "snapshot.require", "application.diagnostics"}),
             structured_output=True,

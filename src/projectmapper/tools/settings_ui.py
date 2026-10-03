@@ -42,14 +42,18 @@ class SettingsWindow:
         self.ask_before_single = tk.BooleanVar(self.top, self.settings.ask_before_single_file_writes)
         ttk.Checkbutton(body, text="Ask before each single-file write", variable=self.ask_before_single).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(12, 4))
-        ttk.Label(body, text="Multi-file project changes always ask for approval.",
-                  wraplength=480).grid(row=5, column=0, columnspan=3, sticky="w", pady=(2, 6))
+        self.ask_before_structural = tk.BooleanVar(self.top, self.settings.ask_before_structural_writes)
+        ttk.Checkbutton(body, text="Ask before non-destructive project transforms",
+                        variable=self.ask_before_structural).grid(
+            row=5, column=0, columnspan=3, sticky="w", pady=(4, 2))
+        ttk.Label(body, text="Destructive operations still need your approval.",
+                  wraplength=480).grid(row=6, column=0, columnspan=3, sticky="w", pady=(2, 6))
         self.status = tk.StringVar(self.top, "\n".join(self.settings.problems))
         ttk.Label(body, textvariable=self.status, foreground="#A33", wraplength=480).grid(
-            row=6, column=0, columnspan=3, sticky="w", pady=(2, 6))
+            row=7, column=0, columnspan=3, sticky="w", pady=(2, 6))
 
         buttons = ttk.Frame(body)
-        buttons.grid(row=7, column=0, columnspan=3, sticky="e", pady=(12, 0))
+        buttons.grid(row=8, column=0, columnspan=3, sticky="e", pady=(12, 0))
         ttk.Button(buttons, text="Cancel", command=self.top.destroy).pack(side=tk.RIGHT, padx=(8, 0))
         ttk.Button(buttons, text="Save", command=self.save).pack(side=tk.RIGHT)
         body.columnconfigure(2, weight=1)
@@ -65,6 +69,7 @@ class SettingsWindow:
                 "max_resource_bytes": int(self.resource_kib.get()) * 1024,
                 "approval_timeout_seconds": int(self.timeout_seconds.get()),
                 "ask_before_single_file_writes": bool(self.ask_before_single.get()),
+                "ask_before_structural_writes": bool(self.ask_before_structural.get()),
             }
             saved = save_settings(values)
         except (OSError, ValueError) as exc:

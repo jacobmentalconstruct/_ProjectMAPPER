@@ -21,7 +21,8 @@ NUMBERS = {
     "max_resource_bytes": (1024 * 1024, 4 * 1024, 64 * 1024 * 1024),
     "approval_timeout_seconds": (120, 10, 3600),
 }
-FLAGS = {"ask_before_single_file_writes": True}
+FLAGS = {"ask_before_single_file_writes": True,
+         "ask_before_structural_writes": False}
 
 
 def settings_path():
@@ -44,6 +45,7 @@ class Settings:
     max_resource_bytes: int = NUMBERS["max_resource_bytes"][0]
     approval_timeout_seconds: int = NUMBERS["approval_timeout_seconds"][0]
     ask_before_single_file_writes: bool = FLAGS["ask_before_single_file_writes"]
+    ask_before_structural_writes: bool = FLAGS["ask_before_structural_writes"]
     problems: tuple = ()
 
     def to_dict(self):

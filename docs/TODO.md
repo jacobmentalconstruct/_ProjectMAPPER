@@ -20,9 +20,11 @@ CI acceptance is complete through Phase 10.4. Hosted run `37145383336` passed th
 matrix; Phase 10.4 backup manifest v2, changeset recording, whole-changeset undo, and
 Backups-window wording pass the Windows full suite (427 passed, 2 skipped) and hosted run
 [`37148797317`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37148797317)
-across all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Continue with step 10.5 in
-the [Phase 10 plan](plans/2026-10-02-project-transforms.md). Keep compatibility claims tied
-to the tested matrix.
+across all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Phase 10.5 is implemented
+locally and passes Windows Python 3.13 (437 passed, 2 skipped) plus changed-file Ruff;
+refresh the cross-platform matrix after the tranche is committed. Follow progress in the
+[Phase 10 plan](plans/2026-10-02-project-transforms.md). Keep compatibility claims tied to
+the tested matrix.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

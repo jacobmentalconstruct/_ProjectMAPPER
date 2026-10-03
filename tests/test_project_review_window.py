@@ -8,7 +8,7 @@ from unittest.mock import patch
 from tests.support import temporary_directory, tk_root
 from projectmapper.app import ProjectMapperApp
 from projectmapper.application.controller import create_application
-from projectmapper.tools.project_patcher import EXAMPLE_MANIFEST
+from projectmapper.tools.project_patcher import EXAMPLE_CHANGESET, EXAMPLE_MANIFEST
 from projectmapper.tools.project_patcher_ui import SKELETON
 
 ORIGINAL = "".join(f"line {i}\n" for i in range(30))
@@ -167,7 +167,7 @@ class ReviewWindowTests(unittest.TestCase):
 
     def test_copy_schema_copies_the_full_example(self):
         self.window.copy_schema()
-        self.assertEqual(json.loads(self.window.top.clipboard_get()), EXAMPLE_MANIFEST)
+        self.assertEqual(json.loads(self.window.top.clipboard_get()), EXAMPLE_CHANGESET)
 
     def test_approval_summary_lists_per_file_counts(self):
         self.valid_manifest()
