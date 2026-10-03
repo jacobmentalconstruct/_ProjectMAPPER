@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Cross-platform matrix:** Hosted CI run [`37133646697`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37133646697) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
+- **Cross-platform matrix:** Hosted CI run [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14; the Windows Python 3.10 suite reports 407 passed. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
@@ -24,7 +24,7 @@ verification records. End-user instructions remain in the root `README.md`.
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Remaining work:** [TODO.md](TODO.md): Phase 10 project transforms, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): Phase 10 transaction executor and later project-transform steps, the Tcl mechanism behind E4,
   two recorded test events, and star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's

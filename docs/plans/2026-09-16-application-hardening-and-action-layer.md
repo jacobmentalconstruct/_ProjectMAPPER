@@ -6,12 +6,12 @@ Status (2026-10-03): **Phases 0–9 are complete. Phase 9 shipped as v1.1.0** (c
 `79775c7`, tag `v1.1.0`, pushed to `origin/main`; no GitHub release or package-index
 upload). Its acceptance evidence is in `docs/acceptance/v1.1.0.md` and implementation
 record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI was the next
-work item and is now accepted: hosted CI run `37133646697` passes all nine Windows, macOS and
+work item and is now accepted: hosted CI run `37139891049` passes all nine Windows, macOS and
 Linux jobs on Python 3.10/3.13/3.14. Tracebacks found hidden-parent `root.update()` calls
 across several UI tests; those roots now stay viewable while processing events. A regression
 also covers UTF-8 BOMs, mixed line endings, final-newline preservation and indentation
 through project-patch apply. Phase 10, project transforms, is active after its 10.0 entry
-record; step 10.2 is underway in
+record; steps 10.1 and 10.2 are accepted, and step 10.3 is next in
 `docs/plans/2026-10-02-project-transforms.md`. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
 renumbered 5–8; see the decision log (section 17) for the sequence and scope.**
@@ -48,7 +48,8 @@ destructive operations. Approval stays with a trusted human adapter.
 ## 2. Current state and gap
 
 Current as of 2026-10-03: Phase 9 is accepted and released as v1.1.0; cross-platform CI
-is accepted in run `37133646697`; Phase 10 project transforms is active at step 10.2. Historical entry
+is accepted in run `37139891049`; Phase 10 project transforms is active after acceptance of
+step 10.2, with 10.3 next. Historical entry
 observations and repairs are retained in the dated tranche journals; they are not current
 defects.
 
@@ -66,7 +67,7 @@ defects.
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | v1.0.0 released on GitHub 2026-09-25. v1.1.0 tagged and pushed 2026-10-02; wheel/sdist and isolated install verified locally. No GitHub release or package-index upload for v1.1.0. Cross-platform CI passes all nine matrix jobs. | Phase 10 project transforms is active (see `docs/plans/2026-10-02-project-transforms.md`). |
 | Transports | Phase 9 CLI and stdio MCP adapters are implemented and released in v1.1.0. The adapters use public actions, root confinement, bounded outputs, forced backups and trusted human approval. | Preserve the approval boundary; Phase 10 extends project patches with structural operations. |
-| Acceptance evidence | Phase 9 accepted in `docs/acceptance/v1.1.0.md`; release commit/tag/push recorded in `.dev-log/09-cli-and-mcp.md`. Cross-platform CI accepted in run `37133646697`; Phase 10 entry recorded in `.dev-log/10-project-transforms.md`. | Phase 10 step 10.2 is underway. |
+| Acceptance evidence | Phase 9 accepted in `docs/acceptance/v1.1.0.md`; release commit/tag/push recorded in `.dev-log/09-cli-and-mcp.md`. Cross-platform CI accepted in run `37139891049`; Phase 10 entry and steps 10.1–10.2 recorded in `.dev-log/10-project-transforms.md`. | Phase 10 step 10.3 is next. |
 
 ### Historical baseline issues — resolved, retained for context only
 
@@ -902,3 +903,4 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-10-02 | **Line endings baked in** (owner: "rectifying … with a solution that is baked in"). Seven tracked files (`dispatcher.py`, `exclusions.py` (mixed), `files.py`, `paths.py`, `project_patcher.py`, `text_editor.py`, `tests/test_error_wording.py`) had CRLF working copies. Each was proven byte-identical to `HEAD` after CR removal, then normalized to LF; no content changed.<br>Prevention:<br>- `.gitattributes` `* text=auto eol=lf` (`*.bat` stay CRLF; images, `.lnk`, `.zip`, `.sqlite3` binary).<br>- `.editorconfig` (LF, UTF-8, final newline; CRLF for `.bat`).<br>- `tests/test_line_endings.py`: the working tree must have no CR in owned text files (`src`, `tests`, `docs`, `tools`, `.dev-log` except `archive`, plus root text files), and root `.bat` files must be CRLF only. Verified: it passes on the normalized tree and fails on a CRLF probe file.<br>Full suite not yet run on Windows after this change (the sandbox has no pytest/Tk); run it before 9.2. | Owner decision; done 2026-10-02. |
 | 2026-10-02 | **Tooltips: all or nothing** (owner: "If we add any tool tips we update all controls to match"). Phase 10 step 10.6a adds a `ToolTip` helper, one text registry, tooltips for every existing control and a coverage test that fails on any untipped control. Later steps add their own. Plan: `2026-10-02-project-transforms.md` §3.8 C. | Owner decision. |
 | 2026-10-03 | Cross-platform CI and Phase 10.1 accepted in hosted run `37133646697`: all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs passed. Aqua focus-sensitive F5 delivery is tested by invoking the registered Tcl binding directly. Project patch coverage checks BOM, mixed line endings, final-newline state and relative indentation end to end. Phase 10.1 path and changeset foundations are accepted; work proceeds at 10.2. | E3/F0 follow-up and Phase 10.1 complete; Phase 10 active. |
+| 2026-10-03 | Phase 10.2 accepted in hosted run `37139891049`: all nine Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs passed (407 Windows 3.10 tests). The virtual tree validates sequential operations without disk writes; the shared hunk engine is now in `core.hunks`, retaining its `tools.patcher` import surface and physical newline/indentation behavior. Proceed to the transaction executor at 10.3. | Phase 10.2 complete; step 10.3 next. |

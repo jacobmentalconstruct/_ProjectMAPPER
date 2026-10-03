@@ -14,13 +14,15 @@ Aqua metrics, an approval-denial hang, and hidden-root Tk event
 loops. The final fixes use viewable roots in the affected tests and the shared desktop test
 fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CRLF/CR/LF
 endings, no final newline, and relative indentation through validation and write. Hosted run
-[`37133646697`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37133646697)
+[`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
-CI acceptance is complete; Phase 10 is underway at step 10.2.
+CI acceptance is complete; Phase 10 steps 10.0–10.2 are complete and the next step is 10.3,
+the transaction executor. See [the Phase 10 plan](plans/2026-10-02-project-transforms.md)
+and its journal for current progress.
 
-Local full-suite results remain unreliable in this desktop sandbox because temporary-file
-operations intermittently raise `PermissionError` and pytest cache creation races. Python
-compilation and `git diff --check` are available locally; hosted CI is the full-suite
+The full local suite cannot run reliably in this Windows desktop sandbox: its ACLs deny
+creation and cleanup of nested temporary test fixtures, even when `TEMP` is redirected into
+the project. Focused tests and compilation run locally; hosted CI is the full-suite
 verification source. Keep compatibility claims tied to the tested matrix.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
