@@ -19,10 +19,10 @@ Current status (2026-10-03; refreshed after hosted CI run `37125335567`):
   sizing, Aqua metrics, and an approval-denial hang. Latest run `37125335567` passed Linux
   and Windows on Python 3.10/3.13/3.14 and macOS 3.14. macOS 3.10/3.13 passed denied
   restore, minimum-size layout and spinbox theme tests, then emitted no further test output
-  after 32% until canceled at six minutes. A 60-second traceback in run `37126035883`
-  located the wait at `root.update()` in `test_keyboard_traversal_reaches_controls`,
-  with the parent root withdrawn. The test now deiconifies the root before focus
-  traversal; hosted verification is pending and cross-platform acceptance remains open.
+  after 32% until canceled at six minutes. Tracebacks in runs `37126035883` and
+  `37126599081` located two waits at `root.update()` in Backups UI tests with the parent
+  root withdrawn. Both tests now deiconify their roots before Tk processes events; hosted
+  verification is pending and cross-platform acceptance remains open.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

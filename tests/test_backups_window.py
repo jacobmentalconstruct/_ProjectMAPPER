@@ -162,6 +162,8 @@ class BackupsWindowTests(unittest.TestCase):
         self.assertIs(self.app.open_backups(), window)
         self.assertEqual(self.keys(window), [])
         self.save("v2\n")
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
         window.top.focus_force()
         self.root.update()
         window.top.event_generate("<F5>", when="now")
