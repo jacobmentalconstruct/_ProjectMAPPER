@@ -9,9 +9,9 @@ and an AI model, in both directions:
   across a project. Every file is validated and shown as a diff; multi-file changes
   apply only after you approve the exact preview.
 
-It runs locally, needs only Python and Tkinter, and has no third-party runtime
-dependencies. See [CHANGELOG.md](CHANGELOG.md) for release notes. Development plans
-and architecture notes are indexed in [docs/README.md](docs/README.md).
+It runs locally and needs only Python and Tkinter for the desktop and CLI. The MCP
+adapter uses an optional SDK extra. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Development plans and architecture notes are indexed in [docs/README.md](docs/README.md).
 
 ## Install and quick start
 
@@ -23,6 +23,7 @@ to work (the app uses only the standard library and Tk) but have not been tested
 ```bash
 pip install .                      # from a checkout or vendor export
 projectmapper path/to/your/project # or: python -m projectmapper path/to/your/project
+projectmapper-cli --root path/to/your/project scan
 ```
 
 On Windows without installing: run `setup_env.bat` once, then
@@ -32,6 +33,12 @@ current directory.
 Then: review the tree, uncheck what you do not want, click **Compile Snapshot**, and
 use **Export Tree MD** / **Export Filedump MD** to share it. To bring changes back,
 right-click a file (**Tokenizing Patcher…**) or a folder (**Project Patcher…**).
+
+For agent workflows, the install also provides `projectmapper-cli`. The optional MCP
+server is installed with `pip install ".[mcp]"`; both adapters confine access to one
+project root and use a trusted local approval window for project writes and, by default,
+single-file writes. See the
+[agent integration guide](docs/agent-integration.md) for setup, settings and examples.
 
 ![ProjectMapper screenshot](assets/Screenshots/Screenshot_ex01.PNG)
 

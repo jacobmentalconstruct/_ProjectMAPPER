@@ -1,1 +1,13 @@
+# Line endings (decision 2026-10-02): every text file is LF in the repository and in the
+# working tree, whatever the local core.autocrlf setting. Windows batch files are the one
+# exception and stay CRLF. tests/test_line_endings.py enforces this on the working tree.
+* text=auto eol=lf
 *.bat text eol=crlf
+
+# Binary: never normalized, never diffed as text.
+*.png binary
+*.PNG binary
+*.ico binary
+*.lnk binary
+*.zip binary
+*.sqlite3 binary

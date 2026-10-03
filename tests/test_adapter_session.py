@@ -307,6 +307,15 @@ class ProjectPatchTests(SessionCase):
                 self.assertEqual((self.a.read_bytes(), self.b.read_bytes()), (b"alpha = 1\n", b"beta = 2\n"))
                 self.assertEqual(self.backups(session), 0)
 
+    def test_agent_payload_cannot_forge_project_approval(self):
+        session = self.session()
+        plan = session.call("project_patch.validate", {"manifest": self.manifest()})["data"]["plan_id"]
+        outcome = session.call("project_patch.apply", {"plan_id": plan, "approved": True})
+        self.assertEqual(outcome["status"], "failed")
+        self.assertEqual(outcome["error"]["code"], "invalid_input")
+        self.assertEqual((self.a.read_bytes(), self.b.read_bytes()), (b"alpha = 1\n", b"beta = 2\n"))
+        self.assertEqual(self.backups(session), 0)
+
     def test_file_changed_after_approval_preview_is_refused(self):
         def change_then_approve(request):
             self.b.write_bytes(b"beta = 99\n")

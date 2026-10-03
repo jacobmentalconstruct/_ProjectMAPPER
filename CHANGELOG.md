@@ -2,6 +2,35 @@
 
 All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.python.org/pep-0440/).
 
+## 1.1.0 — 2026-10-02
+
+Local CLI and MCP adapters let agent clients inspect, snapshot and transform a project
+through the shared action layer, with root confinement, forced backups and local human
+approval for writes. See [the integration guide](docs/agent-integration.md).
+
+### Added
+
+- **`projectmapper-cli`**: JSON-first scan, compile, export, patch validation, approved
+  patch application and session history commands, with stable exit codes.
+- **`projectmapper-mcp`**: optional stdio MCP server (`pip install ".[mcp]"`) with
+  action-derived tool schemas, bounded results, tree/snapshot resources and support for
+  current and legacy protocol clients.
+- **Trusted approval window for agent writes**: displays affected paths and the exact
+  proposed diff; denial, close and timeout leave files unchanged. Project applies always
+  ask; a desktop setting controls single-file approval prompts.
+- Desktop **Settings…** controls for result/resource limits, approval timeout and the
+  single-file approval preference.
+- [CLI and MCP integration guide](docs/agent-integration.md) and Phase 9 acceptance
+  evidence.
+
+### Changed
+
+- Agent writes are confined to their configured project root and keep backups where
+  supported. The agent cannot disable those backups or approve a write through a tool
+  argument, flag, stdin or MCP elicitation.
+- The desktop action layer and its v1.0 contracts remain unchanged; the adapters add
+  their own allow-list, path checks, size limits and approval boundary.
+
 ## 1.0.0 — 2026-09-25
 
 The first stable release. Every shared action has a documented contract

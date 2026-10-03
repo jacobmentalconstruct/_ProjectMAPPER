@@ -1,7 +1,10 @@
 # Desktop action inventory
 
-Tranche 2 review, 2026-09-16. The desktop calls the same Controller/Dispatcher as
-headless in-process clients. This is not a CLI/MCP transport or a process sandbox.
+Tranche 2 review, 2026-09-16; adapter notes added for Phase 9 on 2026-10-02. The
+desktop calls the same Controller/Dispatcher as headless in-process clients. The CLI
+and MCP adapters add a separate allow-list and root confinement; neither is an
+operating-system process sandbox. See [agent-integration.md](agent-integration.md) for
+their public command and tool surfaces.
 
 | Desktop operation | Shared action |
 | --- | --- |
@@ -68,7 +71,7 @@ Phase 7 contract notes (2026-09-24):
   named. The history keeps 500 operations in the session, never evicts unfinished
   ones, stores no file contents, and does not record its own queries.
 - `create_application(root, dispatcher=None)` optionally accepts a dispatcher (additive).
-- Error codes: the full set is 18 codes, each with a human label in
+- Error codes: the full set is 19 codes, each with a human label in
   `application/errors.py` (`describe(error)` → "Label: detail"; unknown codes →
   "Operation failed"). Clients should branch on codes and show labels. A test fails
   if a new code appears without a label.

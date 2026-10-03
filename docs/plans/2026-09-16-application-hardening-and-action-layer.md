@@ -17,8 +17,11 @@ at step 8.4), verified release artifacts and the acceptance report
 `docs/acceptance/v1.0.0.md`; tagged `v1.0.0`. With owner approval on 2026-09-25, `main`
 and the tag were pushed and the GitHub release "ProjectMapper 1.0.0" published (wheel and
 sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is open: entry written
-2026-09-25, approved 2026-09-26 with owner decisions F0–F6 (section 17); step 9.1 (adapter
-foundation) implemented and reviewed 2026-09-26 with 369 passing tests on Python 3.10/3.13/3.14.
+2026-09-25, approved 2026-09-26 with owner decisions F0–F6 (section 17); steps 9.1–9.4
+(adapter foundation, CLI, MCP server, trusted approval and boundary proofs) implemented
+and reviewed. The full suite passed on Python 3.10, 3.13 and 3.14 on 2026-10-02;
+step 9.5 documentation, acceptance and local artifact verification are complete. The
+local release commit/tag and any publication remain owner-controlled.
 Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
 acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
 
@@ -754,11 +757,23 @@ Design: section 12B. Opens only after Phase 8 is accepted.
       the `initialize` handshake). Decided 2026-09-26: F0–F6 in section 17.
 - [x] Adapter foundation (step 9.1): session, root confinement, exposure allow-list,
       forced backups, approval requests, result bounds, user settings (2026-09-26).
-- [ ] CLI over public actions with JSON output, exit codes and approval rule.
-- [ ] Local stdio MCP server: tools, resources, bounded results and schemas.
-- [ ] Trusted approval adapter; prove agents cannot approve, forge or reuse decisions.
-- [ ] Protocol conformance, denial/stale-plan, payload-bound and content-free-history tests.
-- [ ] Agent integration guide; changelog; release as a minor version with owner approval.
+- [x] CLI over public actions with JSON output, exit codes and approval rule (step 9.2).
+- [x] Local stdio MCP server: tools, resources, bounded results and schemas (step 9.3).
+- [x] Trusted approval adapter; prove agents cannot approve, forge or reuse decisions
+      (step 9.4, 2026-10-02).
+- [x] Protocol conformance, denial/stale-plan, payload-bound and content-free-history tests
+      (step 9.4; full suites on Python 3.10/3.13/3.14).
+- [x] Agent integration guide, README, changelog, action inventory and developer guide
+      (step 9.5, 2026-10-02).
+- [x] Phase 9 acceptance addendum for section 15 condition 14 and the CLI/MCP row
+      (step 9.5, `docs/acceptance/v1.1.0.md`).
+- [x] Full suites on Python 3.10/3.13/3.14; clean wheel and sdist built; isolated wheel
+      install and entry points verified (step 9.5, 2026-10-02).
+- [x] Commit and local `v1.1.0` tag; push `main` and the tag under the owner's explicit
+      instruction on 2026-10-02. No package-index or GitHub release is part of this push.
+
+Phase 10 (project transforms) follows: `docs/plans/2026-10-02-project-transforms.md`. Steps
+9.2–9.4 must leave room for it (that plan's section 0).
 
 Gate: an agent client can scan, read, compile, export and validate/propose patches
 through MCP; every approval-required action either receives a trusted human decision
@@ -890,3 +905,6 @@ gates are recorded in `.dev-log/02-review-followthrough.md` and
 | 2026-09-25 | Phase 8 accepted: `docs/acceptance/v1.0.0.md`. Tranche 8 parked; `v1.0.0` tagged locally at the parking commit. Publication (push, GitHub release, package index) awaits explicit owner approval. | Tranche 8 close. |
 | 2026-09-25 | Published with owner approval ("push main and the tag, and create the GitHub release"): `main` fast-forwarded `8270af2..fb4ebc7`; tag `v1.0.0` → `fb4ebc7`; GitHub release "ProjectMapper 1.0.0" (Latest) with `projectmapper-1.0.0-py3-none-any.whl` (sha256 `5fbbee01…`) and `projectmapper-1.0.0.tar.gz` (sha256 `f8c73a09…`). These were rebuilt from the tagged commit; all 112 archive members are byte-identical to the build verified in clean locations from `2d7fd1b` (only archive timestamps differ). Downloaded assets match the published checksums. Not published to PyPI. | Owner decision. |
 | 2026-09-26 | Phase 9 entry decisions:<br>- **F0:** Phase 9 first; cross-platform CI next.<br>- **F1:** the official `mcp` SDK as the optional extra `projectmapper[mcp]`, its dependency set measured before adoption; the GUI and CLI stay dependency-free.<br>- **F2 (owner: "Agents must be able to transform files ( safely )"; "Agents can change multiple files BUT can we just keep an HITL via popup"):** agents may use `patch.validate`/`patch.save`, `text.save`, `file.create` and `project_patch.validate`/`project_patch.apply`. Every agent write is confined to the root (links, `.parts/`, `_projectmapper/` refused), fingerprint-guarded, backed up with backups forced on, and attributed. Not exposed: `file.delete`, `text.save_as`, backup restore/prune and previews, `vendor.export`, `project.set_root`.<br>- **F3:** a trusted approval popup in the adapter process: exact per-file diff, default deny, one decision per plan, timeout denies, never answerable through the agent, stdin, tool arguments or elicitation, never blocks the stdio loop. Project apply always asks; single-file writes ask unless a setting waives it. Recorded limit: anything able to click on the desktop could answer it.<br>- **F4:** the CLI follows the same rule and popup; no terminal confirmation.<br>- **F5 (owner: "the user sets this in advance in settings and we leave the default setting as you recommend"):** limits in a per-user settings file with a desktop Settings window; defaults 256 KB per tool result and 1 MB per resource read; an agent may request less, never more. The file also holds the approval timeout and the single-file approval switch.<br>- **F6:** `projectmapper-cli`, `projectmapper-mcp`, `python -m projectmapper.cli`/`.mcp`; release 1.1.0.<br>- Stop condition revised: adapter processes import `tkinter` only when an approval popup is needed. | Owner decisions; section 12B amended. Entry approved ("yes, record it and continue with 9.1"). |
+| 2026-10-02 | **Phase 10, project transforms, planned** in `docs/plans/2026-10-02-project-transforms.md` (start at its section 0). Owner decisions there:<br>- **D1:** Phase 9 finishes first.<br>- **D2:** agents may send every op. Non-destructive ops (mkdir/create/move) apply without a prompt by default; a new setting `ask_before_structural_writes` (default false) restores one summary approval. Content edits keep Phase 9's rules. Deletes need a per-op human approval (Approve selected / all / Deny all), and a partial approval re-simulates. **This amends F3** ("project apply always asks") for Phase 10 onward.<br>- **D3:** deletes are quarantined, then purged.<br>- **D4:** undo lives in Backups.<br>- **D5:** ops under `.git`/`.hg`/`.svn` are refused.<br>- **D6:** derived fix-ups are on by default.<br>- **D7:** manifest `version: 2` with `ops`, and v1 stays accepted.<br>Owner requirement: every tooltip, schema button, label, description and doc is updated with its behaviour (plan §3.8). Phase 9 steps 9.2–9.4 must leave room for this (plan §0). Release: 1.2.0 (Phase 9 is 1.1.0 per F6). | Owner decisions, 2026-10-02. No code changed. |
+| 2026-10-02 | **Line endings baked in** (owner: "rectifying … with a solution that is baked in"). Seven tracked files (`dispatcher.py`, `exclusions.py` (mixed), `files.py`, `paths.py`, `project_patcher.py`, `text_editor.py`, `tests/test_error_wording.py`) had CRLF working copies. Each was proven byte-identical to `HEAD` after CR removal, then normalized to LF; no content changed.<br>Prevention:<br>- `.gitattributes` `* text=auto eol=lf` (`*.bat` stay CRLF; images, `.lnk`, `.zip`, `.sqlite3` binary).<br>- `.editorconfig` (LF, UTF-8, final newline; CRLF for `.bat`).<br>- `tests/test_line_endings.py`: the working tree must have no CR in owned text files (`src`, `tests`, `docs`, `tools`, `.dev-log` except `archive`, plus root text files), and root `.bat` files must be CRLF only. Verified: it passes on the normalized tree and fails on a CRLF probe file.<br>Full suite not yet run on Windows after this change (the sandbox has no pytest/Tk); run it before 9.2. | Owner decision; done 2026-10-02. |
+| 2026-10-02 | **Tooltips: all or nothing** (owner: "If we add any tool tips we update all controls to match"). Phase 10 step 10.6a adds a `ToolTip` helper, one text registry, tooltips for every existing control and a coverage test that fails on any untipped control. Later steps add their own. Plan: `2026-10-02-project-transforms.md` §3.8 C. | Owner decision. |

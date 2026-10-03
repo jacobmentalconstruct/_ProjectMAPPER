@@ -21,12 +21,14 @@ import tkinter.font as tkFont
 if __package__:
     from .tree_view import TreeProjection
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
+                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow,
+                        SettingsWindow)
     from .core import format_diagnostics, scan_project_tree
 else:
     from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
-                       TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow)
+                       TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow,
+                       SettingsWindow)
     from core import format_diagnostics, scan_project_tree
 # === [SECTION: IMPORTS] END ===
 
@@ -609,6 +611,7 @@ class ProjectMapperApp:
         self.widgets["project_path_entry"].bind("<Return>", lambda _event: self.choose_root_from_entry())
 
         self._make_button(top_frame, "Choose...", self.choose_root_dialog, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.RIGHT)
+        self._make_button(top_frame, "Settings…", self.open_settings, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=5)
         self._make_button(top_frame, "↑", self.navigate_to_parent, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=5)
 
         paned = ttk.PanedWindow(self.root, orient=tk.VERTICAL)
@@ -871,6 +874,16 @@ class ProjectMapperApp:
             return existing
         self.history_window = HistoryWindow(self)
         return self.history_window
+
+    def open_settings(self):
+        """Open or raise the per-user settings window."""
+        existing = getattr(self, "settings_window", None)
+        if existing is not None and existing.top.winfo_exists():
+            existing.top.deiconify()
+            existing.top.lift()
+            return existing
+        self.settings_window = SettingsWindow(self)
+        return self.settings_window
 
     def open_project_patcher(self, folder):
         try:
@@ -1318,6 +1331,5 @@ def main(argv=None):
 if __name__ == "__main__":
     main()
 # === [SECTION: ENTRYPOINT] END ===
-
 
 

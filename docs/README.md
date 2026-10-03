@@ -3,20 +3,25 @@
 This folder contains development plans, architecture decisions, and implementation
 verification records. End-user instructions remain in the root `README.md`.
 
-## Current state (2026-09-25)
+## Current state (2026-10-02)
 
 - **Released:** v1.0.0 on GitHub (tag `v1.0.0` → `fb4ebc7`, wheel and sdist attached; not on
   PyPI). Accepted against the plan's stop conditions 1–13:
   [acceptance/v1.0.0.md](acceptance/v1.0.0.md).
-- **In progress:** Phase 9, CLI and MCP adapters. Entry approved 2026-09-26 with owner
+- **Phase 9 complete; v1.1.0 pushed:** CLI and MCP adapters.
+  Entry approved 2026-09-26 with owner
   decisions F0–F6 (plan section 17): agents may transform files, including multi-file
   patches, behind root confinement, forced backups and an approval popup; result limits
-  are user settings. Step 9.1, the shared adapter foundation
-  (`src/projectmapper/adapters/`, `core/settings.py`), is done: 369 tests pass. Next: 9.2, the CLI.
+  are user settings. Steps 9.1–9.5 are implemented and verified. Version 1.1.0 is tagged
+  and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
+  `.dev-log/09-cli-and-mcp.md` and
+  [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
 - **Tested platform:** Windows 10, Python 3.10–3.14. macOS and Linux are untested.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
-- **Test:** `python -m pytest` (335 tests). `pytest.ini` sets `--capture=sys`; keep it
+- **Test:** `python -m pytest`; the Phase 9.4 full suite passed with 389 tests on Python
+  3.10 and 3.14 (180 subtests each), and 388 passed plus one optional MCP SDK skip on
+  3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
 - **Deferred work:** [TODO.md](TODO.md): cross-platform CI, the Tcl mechanism behind E4,
@@ -28,10 +33,13 @@ verification records. End-user instructions remain in the root `README.md`.
 ## Active plan
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
+- [Project transforms: Phase 10, planned 2026-10-02, starts after Phase 9](plans/2026-10-02-project-transforms.md)
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)
+- [CLI and MCP agent integration guide](agent-integration.md)
 - [v1.0.0 acceptance report](acceptance/v1.0.0.md)
+- [v1.1.0 Phase 9 acceptance addendum](acceptance/v1.1.0.md)
 - [Deferred work (post-1.0 TODO)](TODO.md)
 
 ## Phase history
@@ -56,8 +64,10 @@ completed and parked (271 tests on Python 3.10/3.13/3.14); its record is
 `.dev-log/07-history-and-clarity.md`. Phase 8, full acceptance, documentation and
 v1.0.0, is completed and parked (335 tests on Python 3.10/3.13/3.14; `v1.0.0` tagged,
 pushed and released on GitHub 2026-09-25). Its acceptance report is [acceptance/v1.0.0.md](acceptance/v1.0.0.md); its record is
-`.dev-log/08-acceptance-and-v1.md`. Phase 9, CLI and MCP adapters, is open; its entry record is
-`.dev-log/09-cli-and-mcp.md` (approved 2026-09-26; step 9.1 done). `ui-map.md` maps every desktop entry point to its test.
+`.dev-log/08-acceptance-and-v1.md`. Phase 9, CLI and MCP adapters, is implemented and
+accepted in v1.1.0; its entry record is `.dev-log/09-cli-and-mcp.md`
+(approved 2026-09-26; steps 9.1–9.5 complete). `ui-map.md` maps every desktop entry point
+to its test.
 
 ## Conventions
 

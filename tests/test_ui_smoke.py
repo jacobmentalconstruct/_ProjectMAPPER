@@ -176,6 +176,24 @@ class SnapshotButtonTests(DesktopCase):
 
 
 class MainWindowButtonTests(DesktopCase):
+    def test_settings_button_edits_persistent_adapter_settings(self):
+        path = self.user.parent / "settings.json"
+        with patch.dict(os.environ, {"PROJECTMAPPER_SETTINGS": str(path)}):
+            self.button(self.root, "Settings…").invoke()
+            window = self.app.settings_window
+            self.addCleanup(window.top.destroy)
+            window.result_kib.set("512")
+            window.resource_kib.set("2048")
+            window.timeout_seconds.set("45")
+            window.ask_before_single.set(False)
+            self.assertTrue(window.save())
+            from projectmapper.core.settings import load_settings
+            saved = load_settings(path)
+        self.assertEqual(saved.max_result_bytes, 512 * 1024)
+        self.assertEqual(saved.max_resource_bytes, 2048 * 1024)
+        self.assertEqual(saved.approval_timeout_seconds, 45)
+        self.assertFalse(saved.ask_before_single_file_writes)
+
     def test_diagnostics_button_reports(self):
         with patch("projectmapper.app.messagebox.showinfo") as info, \
                 patch("projectmapper.app.messagebox.showwarning") as warning:

@@ -29,9 +29,14 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+mcp = ["mcp>=2.2.0,<3"]
 
 [project.gui-scripts]
 projectmapper = "projectmapper.app:main"
+
+[project.scripts]
+projectmapper-cli = "projectmapper.cli:main"
+projectmapper-mcp = "projectmapper.mcp:main"
 
 [project.urls]
 Repository = "https://github.com/jacobmentalconstruct/_ProjectMAPPER"

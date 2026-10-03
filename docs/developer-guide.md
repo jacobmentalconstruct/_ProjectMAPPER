@@ -2,12 +2,14 @@
 
 Everything ProjectMapper does to a project goes through one in-process action layer. The
 desktop window is one client of it. Code in the same interpreter can drive the same
-actions without Tk. This guide describes that contract for version 1.0. The desktop
-controls that call each action are listed in [action-inventory.md](action-inventory.md)
-and [ui-map.md](ui-map.md).
+actions without Tk. This guide describes the core action contract introduced in version
+1.0. The desktop controls that call each action are listed in
+[action-inventory.md](action-inventory.md) and [ui-map.md](ui-map.md). CLI/MCP process
+contracts are documented in [agent-integration.md](agent-integration.md).
 
-The layer is in-process only. There is no CLI or network transport yet (planned as
-Phase 9), and it is not a sandbox: code in the same interpreter is trusted.
+The action layer itself is in-process and not a sandbox: code in the same interpreter is
+trusted. Phase 9 adds a local CLI and stdio MCP adapter with an explicit action
+allow-list, root confinement, size bounds and a separate trusted approval window.
 
 ## Headless use
 
@@ -82,9 +84,10 @@ operation. Any other value denies it (status `cancelled`). Rules:
 - A clean-up removes only the generations that still match, and reports the others as
   `prune_incomplete`.
 
-`text.save` and `patch.save` do not ask for approval. They carry the SHA-256 of the
-bytes the client read, and they refuse with `source_changed` if the file no longer
-matches.
+At the core action layer, `text.save` and `patch.save` do not ask for approval. They
+carry the SHA-256 of the bytes the client read, and they refuse with `source_changed` if
+the file no longer matches. The CLI/MCP adapters add their own approval policy before
+these actions run; see [the adapter boundary](#cli-and-mcp-adapter-boundary-version-110).
 
 ## Events
 
@@ -116,6 +119,7 @@ wording ("Label: message"), and a test checks that every code raised has a label
 | Code | Label | Typical cause |
 | --- | --- | --- |
 | `invalid_input` | Invalid request | Missing or unknown fields, bad values, malformed patch JSON, a manifest path outside the root; any other `ValueError` from the engines |
+| `approval_required` | Approval required | Adapter operation needs a local approval window, but none is available; the write is refused |
 | `not_found` | Not found | Unknown operation, plan, backup generation or file |
 | `unsafe_path` | That location is not allowed | A linked path (symlink or junction), the read-only `.parts` folder, a target inside `_projectmapper/`, or a delete outside the project |
 | `source_changed` | The file changed on disk | `text.save`/`patch.save` fingerprint mismatch; a restore or project-apply target changed after its preview |
@@ -142,6 +146,21 @@ hold action, origin, status, times, duration, approval, affected paths, error an
 generations. They never hold file contents. The category is the action's prefix
 (`snapshot`, `backup`, …) or `internal` for recorded problems. The history keeps 500
 records per session and is not persisted.
+
+## CLI and MCP adapter boundary (version 1.1.0)
+
+The adapters create one `AdapterSession` for a fixed project root. They expose only the
+allow-listed actions, confine all path arguments, force backups on backed-up writes, and
+bound tool results by user settings. The MCP server also caps resource reads. An agent
+cannot change the root, disable forced backups, or supply approval.
+
+Read-only and proposal operations do not import Tk. When an approved write needs review,
+the adapter runs its CLI action or MCP stdio loop on a worker and services a local Tk
+approval window from the process main thread. The window receives an `ApprovalRequest`
+with the exact planned diff and paths; only an explicit local button decision can
+resolve it. The approval capability is never included in an MCP tool schema or CLI
+argument. See the [integration guide](agent-integration.md) for limits, commands and
+settings.
 
 ## Actions
 
