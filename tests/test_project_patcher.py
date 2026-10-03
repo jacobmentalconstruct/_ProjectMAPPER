@@ -50,6 +50,16 @@ class ProjectPatchTests(unittest.TestCase):
         with self.assertRaisesRegex(PatchError, "Source changed"):
             session.validate_all()
 
+    def test_repository_ancestor_named_like_output_folder_does_not_block_target(self):
+        nested = self.root / "nested-project"
+        nested.mkdir()
+        (nested / "file.txt").write_bytes(b"old\n")
+        session = ProjectPatchSession(nested, {"files": [{"path": "file.txt", "hunks": [
+            {"search_block": "old", "replace_block": "new"},
+        ]}]})
+
+        self.assertEqual(session.validate_all()[0]["patched"], "new\n")
+
     def test_apply_preserves_bom_mixed_line_endings_and_relative_indentation(self):
         original = b"\xef\xbb\xbfhead\r\n\told\rchild\nlast"
         target = self.root / "mixed.py"

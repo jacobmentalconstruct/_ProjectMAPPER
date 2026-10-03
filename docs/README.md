@@ -24,7 +24,7 @@ verification records. End-user instructions remain in the root `README.md`.
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Remaining work:** [TODO.md](TODO.md): Phase 10 transaction executor and later project-transform steps, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): Phase 10 transaction executor (underway) and later project-transform steps, the Tcl mechanism behind E4,
   two recorded test events, and star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's

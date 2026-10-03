@@ -4,7 +4,7 @@ Date: 2026-10-02
 
 Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
 accepted and released. Cross-platform CI passed all nine platform/version jobs in run
-`37139891049`. Steps 10.0–10.2 are complete; step 10.3 is next.**
+`37139891049`. Steps 10.0–10.2 are complete; step 10.3 is underway.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
@@ -37,10 +37,11 @@ Current status (2026-10-03; refreshed after hosted CI run `37139891049`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.2 are complete:** `.dev-log/10-project-transforms.md` records the entry
+- **Steps 10.0–10.2 are complete; 10.3 is underway:** `.dev-log/10-project-transforms.md` records the entry
   gate and acceptance; D1–D7 are present in section 17 of the main plan. The 407-test
-  Windows suite and all nine hosted matrix jobs passed for 10.2. Continue with the 10.3
-  transaction executor.
+  Windows suite and all nine hosted matrix jobs passed for 10.2. The v1 patch apply path
+  now delegates to the core transaction module; the structural operation executor and
+  its quarantine/no-overwrite rollback gates remain to be implemented.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -413,6 +414,12 @@ implementation and focused-test evidence.
 - Gate: fault-injection tests in the style of `test_safety_regressions.py`. Fail at every
   op index and check full rollback. Fail during rollback and check the recovery generation.
   Test a locked folder rename on Windows. Test POSIX overwrite refusal.
+
+**Progress 2026-10-03:** The v1 multi-file patch path delegates to `core.transaction`,
+which stages outputs, rechecks content and stat identity before replacement, invokes the
+backup callback before the first write, and raises a typed recovery error when rollback
+cannot safely restore. Structural operations, quarantine, and no-replace rename support
+remain part of this step's acceptance gate.
 
 ### 10.4 — Backups v2 and undo
 - Backup manifest v2 with the `changeset` record and the new kind. Make `_validate`

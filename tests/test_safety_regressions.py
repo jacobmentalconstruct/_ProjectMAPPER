@@ -10,6 +10,7 @@ from projectmapper.core.diagnostics import collect_diagnostics
 from projectmapper.tools.patcher import PatchError, PatchSession
 from projectmapper.tools.project_patcher import ProjectPatchSession
 from projectmapper.core.writes import stage_bytes
+from projectmapper.core.transaction import RecoveryRequiredError
 from projectmapper.app import ProjectMapperApp, S_UNCHECKED, compile_snapshot
 
 
@@ -36,12 +37,38 @@ class WriteSafetyTests(unittest.TestCase):
             scratch = stage_bytes(destination, data, **kwargs)
             (self.folder / "a.txt").write_bytes(b"external")
             return scratch
-        with patch("projectmapper.tools.project_patcher.stage_bytes", side_effect=stage):
+        with patch("projectmapper.core.transaction.stage_bytes", side_effect=stage):
             with self.assertRaises(PatchError):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"external")
         self.assertEqual((self.folder / "b.txt").read_bytes(), b"old\r\n")
         self.assertFalse(list(self.folder.glob('.project-patch-*')))
+
+    def test_backup_runs_before_any_replacement_and_failure_writes_nothing(self):
+        session = self.session()
+
+        def fail_backup(items):
+            self.assertEqual([data for _, data, _ in items], [b"old\r\n", b"old\r\n"])
+            self.assertEqual((self.folder / "a.txt").read_bytes(), b"old\r\n")
+            self.assertEqual((self.folder / "b.txt").read_bytes(), b"old\r\n")
+            raise OSError("backup unavailable")
+
+        with self.assertRaisesRegex(PatchError, "backup unavailable"):
+            session.apply_all(backup=fail_backup)
+        self.assertEqual((self.folder / "a.txt").read_bytes(), b"old\r\n")
+        self.assertEqual((self.folder / "b.txt").read_bytes(), b"old\r\n")
+
+    def test_stat_identity_change_is_detected_even_when_bytes_match(self):
+        session = self.session()
+        target = self.folder / "a.txt"
+        info = target.stat()
+        import os
+        os.utime(target, ns=(info.st_atime_ns, info.st_mtime_ns + 1_000_000))
+        self.assertEqual(target.read_bytes(), b"old\r\n")
+
+        with self.assertRaisesRegex(PatchError, "Source changed"):
+            session.apply_all()
+        self.assertEqual((self.folder / "b.txt").read_bytes(), b"old\r\n")
 
     def test_replacement_failure_restores_only_committed_files(self):
         session = self.session()
@@ -52,7 +79,7 @@ class WriteSafetyTests(unittest.TestCase):
                 (self.folder / "b.txt").write_bytes(b"external")
                 raise PermissionError("injected replacement failure")
             return replace(source, destination)
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing_replace):
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing_replace):
             with self.assertRaises(PatchError):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"old\r\n")
@@ -67,8 +94,8 @@ class WriteSafetyTests(unittest.TestCase):
                 (self.folder / "a.txt").write_bytes(b"external after first replacement")
                 raise PermissionError("injected failure")
             return replace(source, destination)
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing_replace):
-            with self.assertRaisesRegex(PatchError, "[Rr]ecovery"):
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing_replace):
+            with self.assertRaisesRegex(RecoveryRequiredError, "[Rr]ecovery"):
                 session.apply_all()
         self.assertEqual((self.folder / "a.txt").read_bytes(), b"external after first replacement")
 

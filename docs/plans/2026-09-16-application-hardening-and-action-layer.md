@@ -11,7 +11,7 @@ Linux jobs on Python 3.10/3.13/3.14. Tracebacks found hidden-parent `root.update
 across several UI tests; those roots now stay viewable while processing events. A regression
 also covers UTF-8 BOMs, mixed line endings, final-newline preservation and indentation
 through project-patch apply. Phase 10, project transforms, is active after its 10.0 entry
-record; steps 10.1 and 10.2 are accepted, and step 10.3 is next in
+record; steps 10.1 and 10.2 are accepted, and step 10.3 is underway in
 `docs/plans/2026-10-02-project-transforms.md`. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
 renumbered 5–8; see the decision log (section 17) for the sequence and scope.**
@@ -67,7 +67,7 @@ defects.
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | v1.0.0 released on GitHub 2026-09-25. v1.1.0 tagged and pushed 2026-10-02; wheel/sdist and isolated install verified locally. No GitHub release or package-index upload for v1.1.0. Cross-platform CI passes all nine matrix jobs. | Phase 10 project transforms is active (see `docs/plans/2026-10-02-project-transforms.md`). |
 | Transports | Phase 9 CLI and stdio MCP adapters are implemented and released in v1.1.0. The adapters use public actions, root confinement, bounded outputs, forced backups and trusted human approval. | Preserve the approval boundary; Phase 10 extends project patches with structural operations. |
-| Acceptance evidence | Phase 9 accepted in `docs/acceptance/v1.1.0.md`; release commit/tag/push recorded in `.dev-log/09-cli-and-mcp.md`. Cross-platform CI accepted in run `37139891049`; Phase 10 entry and steps 10.1–10.2 recorded in `.dev-log/10-project-transforms.md`. | Phase 10 step 10.3 is next. |
+| Acceptance evidence | Phase 9 accepted in `docs/acceptance/v1.1.0.md`; release commit/tag/push recorded in `.dev-log/09-cli-and-mcp.md`. Cross-platform CI accepted in run `37139891049`; Phase 10 entry and steps 10.1–10.2 recorded in `.dev-log/10-project-transforms.md`. | Phase 10 step 10.3 is underway. |
 
 ### Historical baseline issues — resolved, retained for context only
 

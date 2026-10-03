@@ -1,24 +1,22 @@
 """Validated, all-or-nothing multi-file patches for one project root."""
 
 import json
-import os
-import stat
 import copy
 
 from .patcher import PatchError, validate_target
 try:
     from ..core.diff import DiffFile, unified_diff_text
-    from ..core.writes import atomic_write_bytes, stage_bytes
     from ..core.config import OUTPUT_ROOT_NAME
-    from ..core.paths import SourceChangedError, resolve_in_root
+    from ..core.paths import resolve_in_root
     from ..core.changeset import ChangeSet, Operation
+    from ..core.transaction import apply_patches
     from ..core.vtree import VirtualTree
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
-    from core.writes import atomic_write_bytes, stage_bytes
     from core.config import OUTPUT_ROOT_NAME
-    from core.paths import SourceChangedError, resolve_in_root
+    from core.paths import resolve_in_root
     from core.changeset import ChangeSet, Operation
+    from core.transaction import apply_patches
     from core.vtree import VirtualTree
 
 
@@ -58,11 +56,11 @@ class ProjectPatchSession:
 
     def _resolve(self, relative):
         candidate = resolve_in_root(self.root, relative)
-        # Snapshots and managed backups live here; checked on the absolute path so a
-        # patch root nested inside an output folder cannot reach the store either. A
-        # project may itself be named after the reserved child folder.
-        parts = (*self.root.parent.parts, *candidate.relative_to(self.root).parts)
-        if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in parts):
+        # Refuse the project's own output folder and roots directly inside one. Ancestor
+        # names alone are ambiguous: hosted runners and workspace folders may share them.
+        parts = candidate.relative_to(self.root).parts
+        if (self.root.parent.name.casefold() == OUTPUT_ROOT_NAME.casefold()
+                or any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in parts)):
             raise PatchError(f"The {OUTPUT_ROOT_NAME} output folder cannot be patched: {relative}")
         return candidate
 
@@ -102,10 +100,12 @@ class ProjectPatchSession:
             detail = simulation.operations[0]
             result = {"path": self._resolve(entry["path"]), "relative_path": entry["path"],
                       "original_bytes": detail["original_bytes"], "original": detail["original"],
-                      "patched": detail["patched"], "sha256": detail["sha256"]}
+                      "patched": detail["patched"], "sha256": detail["sha256"],
+                      "identity": detail["before"][detail["path"]]["identity"]}
             results.append(result)
             diff = DiffFile(entry["path"], result["original"], result["patched"])
-            outcomes.append({**result, "status": "changed" if diff.changed else "no_change", "error": None,
+            visible = {key: value for key, value in result.items() if key != "identity"}
+            outcomes.append({**visible, "status": "changed" if diff.changed else "no_change", "error": None,
                              "hunk_count": len(entry["hunks"]), "additions": diff.additions,
                              "deletions": diff.deletions, "diff_hunks": diff.hunks,
                              "empty_result": result["patched"] == "" and result["original"] != "",
@@ -132,71 +132,9 @@ class ProjectPatchSession:
         """
         if not self.results:
             self.validate_all()
-        results = copy.deepcopy(self.results)
-        scratch = []
-        committed = []
-        recovery_errors = []
-        cleanup_errors = []
-        failure = None
-        try:
-            for result in results:
-                destination = validate_target(result["path"])
-                if destination.read_bytes() != result["original_bytes"]:
-                    raise SourceChangedError(f"Source changed after validation: {result['relative_path']}")
-                result["mode"] = stat.S_IMODE(destination.stat().st_mode)
-                result["output_bytes"] = (b"\xef\xbb\xbf" if result["original_bytes"].startswith(b"\xef\xbb\xbf") else b"") + result["patched"].encode("utf-8")
-                staged = stage_bytes(destination, result["output_bytes"], mode=result["mode"], prefix=".project-patch-")
-                scratch.append((staged, result))
-            for _, result in scratch:
-                if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
-                    raise SourceChangedError(f"Source changed during staging: {result['relative_path']}")
-            if backup is not None:
-                backup([(result["path"], result["original_bytes"], result["mode"]) for result in results])
-            for staged, result in scratch:
-                if validate_target(result["path"]).read_bytes() != result["original_bytes"]:
-                    raise SourceChangedError(f"Source changed before replacement: {result['relative_path']}")
-                os.replace(staged, result["path"])
-                committed.append(result)
-        except Exception as exc:
-            failure = exc
-            unrestored = []
-            for result in reversed(committed):
-                try:
-                    destination = validate_target(result["path"])
-                    if destination.read_bytes() != result["output_bytes"]:
-                        raise PatchError("External change preserved")
-                    atomic_write_bytes(destination, result["original_bytes"], mode=result["mode"])
-                except (OSError, PatchError) as rollback_exc:
-                    recovery_errors.append(f"{result['relative_path']}: {rollback_exc}")
-                    unrestored.append(result)
-            if unrestored:
-                # The originals exist only in memory now; make them durable before reporting.
-                if recover is None:
-                    recovery_errors.append("original bytes were not saved (no recovery store configured)")
-                else:
-                    try:
-                        location = recover([(r["path"], r["original_bytes"], r["mode"]) for r in unrestored])
-                        recovery_errors.append(f"originals saved in recovery backup {location}")
-                    except Exception as store_exc:
-                        recovery_errors.append(f"originals could not be saved: {store_exc}")
-        finally:
-            for staged, _ in scratch:
-                try:
-                    staged.unlink(missing_ok=True)
-                except OSError as exc:
-                    cleanup_errors.append(f"{staged}: {exc}")
-        if failure is not None or cleanup_errors:
-            prefix = "Recovery required" if recovery_errors else ("Project patch rolled back" if committed and failure else "Project patch stopped")
-            detail = f"{prefix}: {failure or 'temporary file cleanup failed'}"
-            if recovery_errors:
-                detail += "; " + "; ".join(recovery_errors)
-            if cleanup_errors:
-                detail += "; cleanup: " + "; ".join(cleanup_errors)
-            # Keep a named refusal's type (e.g. SourceChangedError) so its error code survives.
-            named = isinstance(failure, PatchError) and getattr(failure, "code", None)
-            raise (type(failure) if named else PatchError)(detail) from failure
+        paths = apply_patches(self.results, backup=backup, recover=recover)
         self.results = []
-        return [result["path"] for result in results]
+        return paths
 
 
 def project_patch_diff(results):

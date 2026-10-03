@@ -172,7 +172,8 @@ class Dispatcher:
             # Keep the code choice inline: the error-wording test reads every literal code here.
             named = getattr(exc, "code", None) if isinstance(exc, ValueError) else None
             self._finish(operation, "failed", error={
-                "code": "unsafe_path" if named == "unsafe_path" else "source_changed" if named == "source_changed"
+                "code": "recovery_required" if named == "recovery_required" else
+                "unsafe_path" if named == "unsafe_path" else "source_changed" if named == "source_changed"
                 else "io_error" if isinstance(exc, OSError) else "invalid_input" if isinstance(exc, ValueError)
                 else "action_failed", "message": str(exc)})
 

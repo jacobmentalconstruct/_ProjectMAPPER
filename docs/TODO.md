@@ -16,9 +16,10 @@ fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CR
 endings, no final newline, and relative indentation through validation and write. Hosted run
 [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
-CI acceptance is complete; Phase 10 steps 10.0–10.2 are complete and the next step is 10.3,
-the transaction executor. See [the Phase 10 plan](plans/2026-10-02-project-transforms.md)
-and its journal for current progress.
+CI acceptance is complete; Phase 10 steps 10.0–10.2 are complete and step 10.3, the
+transaction executor, is underway. Its first slice moves v1 patch application into the
+core transaction module; structural execution and rollback remain. See [the Phase 10
+plan](plans/2026-10-02-project-transforms.md) and its journal for current progress.
 
 The full local suite cannot run reliably in this Windows desktop sandbox: its ACLs deny
 creation and cleanup of nested temporary test fixtures, even when `TEMP` is redirected into

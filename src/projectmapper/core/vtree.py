@@ -32,6 +32,7 @@ class _Node:
     original_bytes: bytes = None
     original_mode: int = None
     disk_backed: bool = True
+    original_identity: tuple = None
 
 @dataclass
 class Simulation:
@@ -111,12 +112,15 @@ class VirtualTree:
         if path.is_symlink():
             raise UnsafePathError("Linked paths cannot be changed.")
         try:
-            mode = stat.S_IMODE(path.stat().st_mode)
+            info = path.stat()
+            mode = stat.S_IMODE(info.st_mode)
             if path.is_dir():
-                node = _Node(rel, "dir", mode=mode, original_mode=mode)
+                node = _Node(rel, "dir", mode=mode, original_mode=mode,
+                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns))
             elif path.is_file():
                 data = path.read_bytes()
-                node = _Node(rel, "file", data, mode, data, mode)
+                node = _Node(rel, "file", data, mode, data, mode,
+                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns))
             else:
                 raise PathSafetyError(f"Target is not a regular file or folder: {relative}.")
         except FileNotFoundError as exc:
@@ -180,7 +184,7 @@ class VirtualTree:
                 continue
             digest = hashlib.sha256(node.data).hexdigest() if node.kind == "file" else None
             before[node.path] = {"kind": node.kind, "sha256": digest,
-                                 "mode": node.mode}
+                                 "mode": node.mode, "identity": node.original_identity}
         return before
 
     @staticmethod

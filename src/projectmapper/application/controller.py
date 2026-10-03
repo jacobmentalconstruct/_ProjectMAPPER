@@ -27,6 +27,7 @@ try:
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.backups import BackupError, BackupStore
     from ..core.writes import atomic_write_bytes
+    from ..core.transaction import RecoveryRequiredError
 except ImportError:
     from core.state import ProjectState
     from core.tree import scan_project_tree
@@ -41,6 +42,7 @@ except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.backups import BackupError, BackupStore
     from core.writes import atomic_write_bytes
+    from core.transaction import RecoveryRequiredError
 
 
 
@@ -607,7 +609,7 @@ class Controller:
             except PatchError as exc:
                 for item in session.results:
                     self._changed(item["path"])
-                if "Recovery required" in str(exc):
+                if isinstance(exc, RecoveryRequiredError):
                     raise ActionError("recovery_required", str(exc)) from exc
                 raise
             finally:
