@@ -6,29 +6,22 @@ starting point. Decisions behind them are in the plan's decision log
 
 ## 1. Cross-platform CI (in progress; decision E3)
 
-The v1.1.0 suite was run on Windows with Python 3.10, 3.13 and 3.14. macOS and Linux
-remain unverified. Decision F0 put this after Phase 9, which is now complete. The GitHub
-Actions matrix is in `.github/workflows/tests.yml` for Windows, macOS and Linux on Python
-3.10, 3.13 and 3.14; it also checks Tk window creation and uses Xvfb on Linux. First hosted
-run `37121817805` exposed platform issues and was cancelled after collecting logs: Linux
-had a clipped History toolbar and an unfriendly file-collision message; Windows had a lazy
-tree test that expanded a folder before it was rendered; macOS exposed combobox popdown
-styling and font-metric layout assumptions. Follow-up run `37122836384` passed Linux on
-Python 3.10, 3.13 and 3.14. Windows still failed the lazy-tree test because the test
-fixture used an unresolved temporary path; macOS 3.14 also measured the main window at
-811 px and found two toolbar controls clipped at fixed test widths. Windows was cancelled
-after capturing failures because macOS 3.10/3.13 stopped producing output after
-`test_backups.py` and before the CLI test file. The next run passed Linux and Windows on all
-three Python versions; macOS 3.14 still clipped controls in Backups and Project Patcher,
-and macOS 3.10/3.13 repeated the same stall. These follow-up changes use resolved fixture
-paths, measured minimum window widths, a larger Aqua allowance for native button metrics,
-an 820 px compact-screen threshold matching the measured 811 px minimum, and a Project
-Patcher minimum width based on both side-by-side panes. macOS jobs now emit per-test
-verbose progress. Immediate denial now passes on macOS 3.10/3.13. Their latest runs then
-stalled at the next Backups layout check; that test now shows the parent root while
-measuring the child window. The item remains open until all hosted jobs pass and
-platform-specific failures are resolved. Keep platform classifiers and tested-platform
-claims conservative until then.
+Phase 9 is complete and v1.1.0 is tagged and pushed. Decision F0 puts cross-platform CI
+next. The workflow in `.github/workflows/tests.yml` covers Windows, macOS and Linux on
+Python 3.10, 3.13 and 3.14, checks Tk startup, and uses Xvfb for Linux UI tests. Runs
+`37121817805` through `37124673080` identified and fixed platform-specific behavior,
+fixture paths, toolbar sizing, Aqua metrics, and an approval-denial hang. The latest run,
+`37125335567`, passed all Linux and Windows jobs plus macOS 3.14. On macOS 3.10 and 3.13,
+the denied-restore test, minimum-size control-layout test, and spinbox theme test all
+passed; after the last one at 32% the suite stopped producing output. The run was canceled
+after six minutes. This no longer points to the layout test. The next run adds a repeating
+60-second Python traceback dump to the macOS jobs to identify where the process is waiting.
+
+Local full-suite results remain unreliable in this desktop sandbox because temporary-file
+operations intermittently raise `PermissionError` and pytest cache creation races. Python
+compilation and `git diff --check` are available locally; hosted CI is the full-suite
+verification source. Keep platform classifiers and tested-platform claims conservative
+until every matrix job passes.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

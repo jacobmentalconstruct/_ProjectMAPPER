@@ -52,7 +52,9 @@ jobs:
 
       - name: Run test suite (macOS, verbose)
         if: runner.os == 'macOS'
-        run: python -m pytest -ra -vv
+        run: >-
+          python -c "import faulthandler, pytest; faulthandler.dump_traceback_later(60, repeat=True);
+          raise SystemExit(pytest.main(['-ra', '-vv']))"
 
       - name: Run test suite
         if: runner.os == 'Windows'

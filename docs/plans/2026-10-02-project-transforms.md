@@ -2,36 +2,26 @@
 
 Date: 2026-10-02
 
-Status: **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is accepted and released.
-Cross-platform CI is the next recorded work item; Phase 10 implementation has not started.**
+Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
+accepted and released. Cross-platform CI remains the active next item; Phase 10
+implementation has not started.**
 Proposed as Phase 10, following the
 conventions of `2026-09-16-application-hardening-and-action-layer.md` (entry record,
 implementation/review cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status (2026-10-03; refreshed after first hosted CI run):
+Current status (2026-10-03; refreshed after hosted CI run `37125335567`):
 
 - **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
-  cross-platform CI is the next work item; Phase 10 follows it.
-  The first hosted CI run (`37121817805`) found platform-specific UI sizing and test
-  assumptions, a Linux file-collision message mismatch, and a macOS ttk combobox styling
-  assumption. These are being addressed before the CI gate is considered complete.
-  Follow-up run `37122836384` passed Linux for Python 3.10/3.13/3.14. Windows exposed
-  one remaining fixture-path normalization problem; macOS 3.14 exposed fixed-width test
-  assumptions and an 811 px main-window minimum. Those are corrected in the pending
-  follow-up. macOS 3.10/3.13 stalled during their CLI test phase and were cancelled after
-  four minutes; this remains an unresolved verification concern.
-  Run `37123428552` confirms Linux and Windows are green on all three Python versions.
-  macOS 3.14 still reports clipped Backups and Project Patcher buttons at the measured
-  minimum; macOS 3.10/3.13 stop producing output after `test_backups.py` and before the
-  CLI test file, and were cancelled after three minutes.
-  The pending change derives Project Patcher's minimum width from both panes together and
-  enables verbose per-test output on macOS. That localized the 3.10/3.13 stall to a denied
-  backup restore; denied approvals now settle immediately without queuing a cancelled
-  continuation, and that test now passes on both interpreters. The next Backups layout
-  check still stalls, so it now deiconifies its parent before measuring the Toplevel.
-  This adjustment still needs hosted verification.
+  cross-platform CI is the next work item; Phase 10 follows it. Runs `37121817805` through
+  `37124673080` identified and fixed platform-specific behavior, fixture paths, toolbar
+  sizing, Aqua metrics, and an approval-denial hang. Latest run `37125335567` passed Linux
+  and Windows on Python 3.10/3.13/3.14 and macOS 3.14. macOS 3.10/3.13 passed denied
+  restore, minimum-size layout and spinbox theme tests, then emitted no further test output
+  after 32% until canceled at six minutes. The last completed test was not the layout
+  check. The macOS command now schedules repeating 60-second Python traceback dumps to
+  locate the wait; cross-platform acceptance remains open.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
