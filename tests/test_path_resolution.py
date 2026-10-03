@@ -17,7 +17,7 @@ class RootResolutionTests(unittest.TestCase):
     def test_rejects_absolute_drive_and_traversal_paths(self):
         invalid = ("/outside.py", r"C:\outside.py", "../outside.py", r"src\..\outside.py")
         for relative in invalid:
-            with self.subTest(relative=relative), self.assertRaises(UnsafePathError):
+            with self.subTest(relative=relative), self.assertRaises(PathSafetyError):
                 resolve_in_root(self.root, relative)
 
     def test_refuses_project_root_and_version_control_directories_case_insensitively(self):

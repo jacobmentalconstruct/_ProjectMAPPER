@@ -42,7 +42,9 @@ def resolve_in_root(root, relative, *, allow_root=False):
     relative_path = Path(normalized)
     if (relative_path.is_absolute() or windows_path.is_absolute() or windows_path.drive
             or ".." in relative_path.parts or ".." in windows_path.parts):
-        raise UnsafePathError("Choose a relative path inside the project root.")
+        # Keep malformed manifest paths on the engine's established invalid_input
+        # contract. Linked paths and protected metadata still use unsafe_path below.
+        raise PathSafetyError("Choose a relative path inside the project root.")
 
     root_path = validate_target(Path(root).absolute())
     candidate = validate_target((root_path / relative_path).absolute())
