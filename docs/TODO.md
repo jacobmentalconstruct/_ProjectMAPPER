@@ -15,7 +15,10 @@ fixture paths, toolbar sizing, Aqua metrics, and an approval-denial hang. The la
 the denied-restore test, minimum-size control-layout test, and spinbox theme test all
 passed; after the last one at 32% the suite stopped producing output. The run was canceled
 after six minutes. This no longer points to the layout test. The next run adds a repeating
-60-second Python traceback dump to the macOS jobs to identify where the process is waiting.
+60-second Python traceback dump identified the wait in
+`test_keyboard_traversal_reaches_controls`: `root.update()` was called while the parent
+root was withdrawn. The test now deiconifies its parent before processing focus traversal;
+the change is awaiting a full hosted matrix run.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

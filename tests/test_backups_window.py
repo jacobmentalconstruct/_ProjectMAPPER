@@ -211,6 +211,8 @@ class BackupsWindowTests(unittest.TestCase):
         self.save("v2\n")
         window = self.open()
         self.select(window, 0)
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
         self.root.update()  # focus traversal only visits viewable (drawn) widgets
         chain, current = [], window.generation_list
         for _ in range(60):

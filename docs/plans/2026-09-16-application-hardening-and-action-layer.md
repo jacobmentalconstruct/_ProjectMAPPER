@@ -7,9 +7,11 @@ Status (2026-10-03): **Phases 0–9 are complete. Phase 9 shipped as v1.1.0** (c
 upload). Its acceptance evidence is in `docs/acceptance/v1.1.0.md` and implementation
 record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI is the next
 work item; macOS and Linux remain unverified. The latest matrix passes Linux and Windows
-on Python 3.10/3.13/3.14 and macOS 3.14. macOS 3.10/3.13 stop producing test output after
-32%; traceback diagnostics are being added. Phase 10, project transforms, is fully planned
-in `docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
+on Python 3.10/3.13/3.14 and macOS 3.14. A traceback located the macOS 3.10/3.13 stall in
+`test_keyboard_traversal_reaches_controls`, which ran `root.update()` while the parent root
+was withdrawn. The test now shows that root before focus traversal; hosted verification is
+pending. Phase 10, project transforms, is fully planned in
+`docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
 renumbered 5–8; see the decision log (section 17) for the sequence and scope.**
 
@@ -44,20 +46,21 @@ destructive operations. Approval stays with a trusted human adapter.
 
 ## 2. Current state and gap
 
-Current as of v1.0.0 (released 2026-09-25) and the Phase 9 entry decisions (2026-09-26). Historical entry observations and
+Current as of 2026-10-03: Phase 9 is accepted and released as v1.1.0; cross-platform CI
+is the active follow-up, and Phase 10 remains planned. Historical entry observations and
 repairs are retained in the dated tranche journals; they are not current defects.
 
 | Area | Current state | Required difference |
 | --- | --- | --- |
 | Structure | Package `src/projectmapper/` (moved 2026-09-23, Phase 4). Tk presentation lives in `app.py` and `tree_view.py`; application services, core machinery and tools have separate modules. | Preserve these boundaries in later work. |
-| Action routing | Desktop domain operations use Controller/Dispatcher; trusted approval is separate from ordinary requests. | Phase 9 adapters use this seam only, and must add root confinement and an action allow-list (entry finding: core actions accept paths outside the project). |
+| Action routing | Desktop and Phase 9 adapters use Controller/Dispatcher; adapters enforce root confinement, an action allow-list, bounded output, forced backups and trusted human approval. | Preserve this shared seam and the approval boundary. |
 | State | Controller owns ProjectState and LogicalTree; desktop compatibility properties delegate to them. | Preserve one authoritative owner as later views are added. |
 | Scanning | Fresh metadata scans and batched lazy rendering are implemented; selection is independent of widgets. | Maintain measured performance and navigation/selection regressions. |
 | Project patches | Phase 5 complete: all-files validation with per-file errors, review list, Source/Diff/Result views, hunk navigation, keyboard shortcuts, approval with per-file counts. | Keep complete-manifest application; per-hunk apply stays deferred. |
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Resolved in Phase 8 (decision E2): the text editor's **Keep backup** covers Save and Save As overwrites. |
 | History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | Phase 8 step 8.2: the action area has four short rows instead of two long ones; the tree's name column stretches; the status bar can no longer be squeezed out. Step 8.4: the log starts at 5 lines, so the tree gets more of the default window. The minimum size is the measured requested width × 560 px (647×560 at Tk scaling 1.33 on the Windows test machine). A test shows every button, checkbox and entry fully visible and unclipped at that size, at least 4 tree rows and 3 log lines. | None known; other scalings and platforms are unmeasured. |
-| Testing | Phase 9 full suite: 389 tests on Python 3.10 and 3.14; 388 plus one optional-SDK skip on 3.13 (`docs/acceptance/v1.1.0.md`). Tk start-up workaround remains `--capture=sys` (decision E4). | Cross-platform CI is next per F0; keep platform claims conservative until Windows, macOS and Linux jobs pass. |
+| Testing | Phase 9 Windows suite: 389 tests on Python 3.10 and 3.14; 388 plus one optional-SDK skip on 3.13 (`docs/acceptance/v1.1.0.md`). Hosted CI passes Linux and Windows on 3.10/3.13/3.14 and macOS 3.14; macOS 3.10/3.13 are under diagnosis. Tk start-up workaround remains `--capture=sys` (decision E4). | Keep platform claims conservative until the full matrix passes. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
 | Repository/release | v1.0.0 released on GitHub 2026-09-25. v1.1.0 tagged and pushed 2026-10-02; wheel/sdist and isolated install verified locally. No GitHub release or package-index upload for v1.1.0. | Cross-platform CI is next per F0; Phase 10 project transforms follows (see `docs/plans/2026-10-02-project-transforms.md`). |
 | Transports | Phase 9 CLI and stdio MCP adapters are implemented and released in v1.1.0. The adapters use public actions, root confinement, bounded outputs, forced backups and trusted human approval. | Preserve the approval boundary; Phase 10 extends project patches with structural operations. |
