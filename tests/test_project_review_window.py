@@ -207,7 +207,8 @@ class ReviewLayoutTests(unittest.TestCase):
 
     def test_every_control_visible_at_minimum_size(self):
         window = self.window
-        window.top.geometry("720x500")
+        width, height = window.top.minsize()
+        window.top.geometry(f"{width}x{height}")
         self.root.update()
         top = window.top
         width, height = top.winfo_width(), top.winfo_height()

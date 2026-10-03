@@ -111,7 +111,7 @@ class LazyProjectionTests(unittest.TestCase):
 
     def test_snapshot_contents_equal_before_and_after_expansion(self):
         fixture = temporary_directory(self)
-        self.base = Path(fixture.name) / "project"
+        self.base = (Path(fixture.name) / "project").resolve()
         folder = self.base / "folder"
         folder.mkdir(parents=True)
         (folder / "included.txt").write_text("included")

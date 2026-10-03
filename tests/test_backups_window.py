@@ -171,7 +171,8 @@ class BackupsWindowTests(unittest.TestCase):
         self.save("v2\n")
         window = self.open()
         self.select(window, 0)
-        window.top.geometry("760x520")
+        width, height = window.top.minsize()
+        window.top.geometry(f"{width}x{height}")
         self.root.update()
         top = window.top
 

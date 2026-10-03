@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. The new nine-job cross-platform workflow is active; its first run exposed platform-specific layout, error-message and lazy-tree test issues, which are being fixed before acceptance.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. The nine-job workflow's first run exposed layout, error-message and lazy-tree test issues. The follow-up passed all Linux jobs; Windows and macOS fixes are in progress, with all platform claims held conservative until the matrix is green.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python

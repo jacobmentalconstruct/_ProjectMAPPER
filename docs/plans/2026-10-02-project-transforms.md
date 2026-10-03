@@ -17,6 +17,11 @@ Current status (2026-10-03; refreshed after first hosted CI run):
   The first hosted CI run (`37121817805`) found platform-specific UI sizing and test
   assumptions, a Linux file-collision message mismatch, and a macOS ttk combobox styling
   assumption. These are being addressed before the CI gate is considered complete.
+  Follow-up run `37122836384` passed Linux for Python 3.10/3.13/3.14. Windows exposed
+  one remaining fixture-path normalization problem; macOS 3.14 exposed fixed-width test
+  assumptions and an 811 px main-window minimum. Those are corrected in the pending
+  follow-up. macOS 3.10/3.13 stalled during their CLI test phase and were cancelled after
+  four minutes; this remains an unresolved verification concern.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

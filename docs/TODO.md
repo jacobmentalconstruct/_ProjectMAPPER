@@ -13,9 +13,15 @@ Actions matrix is in `.github/workflows/tests.yml` for Windows, macOS and Linux 
 run `37121817805` exposed platform issues and was cancelled after collecting logs: Linux
 had a clipped History toolbar and an unfriendly file-collision message; Windows had a lazy
 tree test that expanded a folder before it was rendered; macOS exposed combobox popdown
-styling and font-metric layout assumptions. Fixes are in progress. The item remains open
-until all hosted jobs pass and platform-specific failures are resolved. Keep platform
-classifiers and tested-platform claims conservative until then.
+styling and font-metric layout assumptions. Follow-up run `37122836384` passed Linux on
+Python 3.10, 3.13 and 3.14. Windows still failed the lazy-tree test because the test
+fixture used an unresolved temporary path; macOS 3.14 also measured the main window at
+811 px and found two toolbar controls clipped at fixed test widths. Windows was cancelled
+after capturing failures because macOS 3.10/3.13 had stalled in the CLI test phase. These
+new fixes use resolved fixture paths, measured minimum window widths and reduced main
+toolbar padding. The item remains open until all hosted jobs pass and platform-specific
+failures are resolved. Keep platform classifiers and tested-platform claims conservative
+until then.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

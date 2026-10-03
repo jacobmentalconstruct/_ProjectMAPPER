@@ -595,7 +595,7 @@ class ProjectMapperApp:
         self.root.geometry("1200x850")
 
         top_frame = tk.Frame(self.root, bg=THEME["panel_bg"])
-        top_frame.pack(fill=tk.X, padx=10, pady=8)
+        top_frame.pack(fill=tk.X, padx=4, pady=8)
 
         tk.Label(top_frame, text="Project Root:", bg=THEME["panel_bg"], fg=THEME["text"]).pack(side=tk.LEFT)
         self.widgets["selected_root_var"] = tk.StringVar(value=str(self.initial_root))
@@ -1338,4 +1338,3 @@ def main(argv=None):
 if __name__ == "__main__":
     main()
 # === [SECTION: ENTRYPOINT] END ===
-
