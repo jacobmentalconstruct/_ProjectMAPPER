@@ -29,7 +29,9 @@ Current status (2026-10-03; refreshed after first hosted CI run):
   The pending change derives Project Patcher's minimum width from both panes together and
   enables verbose per-test output on macOS. That localized the 3.10/3.13 stall to a denied
   backup restore; denied approvals now settle immediately without queuing a cancelled
-  continuation. This fix still needs hosted verification.
+  continuation, and that test now passes on both interpreters. The next Backups layout
+  check still stalls, so it now deiconifies its parent before measuring the Toplevel.
+  This adjustment still needs hosted verification.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

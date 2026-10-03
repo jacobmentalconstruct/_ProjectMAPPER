@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, and macOS 3.14. macOS 3.10/3.13 stalled during denial of a backup restore; the dispatcher denial path has been simplified and is pending hosted verification.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. The dispatcher denial fix made the restore-denial test pass on macOS 3.10/3.13; those runs then stalled at the following Backups layout test, which now shows its parent window during geometry checks.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python

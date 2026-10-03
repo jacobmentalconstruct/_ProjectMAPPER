@@ -169,6 +169,9 @@ class BackupsWindowTests(unittest.TestCase):
 
     def test_every_control_visible_at_minimum_size(self):
         self.save("v2\n")
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
+        self.root.update()
         window = self.open()
         self.select(window, 0)
         width, height = window.top.minsize()
