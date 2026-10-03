@@ -3,26 +3,24 @@
 Date: 2026-10-02
 
 Status (2026-10-03): **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is
-accepted and released. Cross-platform CI remains the active next item; Phase 10
-implementation has not started.**
-Proposed as Phase 10, following the
-conventions of `2026-09-16-application-hardening-and-action-layer.md` (entry record,
-implementation/review cycle, stop gate per step, dated `.dev-log/` journal).
+accepted and released. Cross-platform CI passed all nine platform/version jobs in run
+`37131079525`. Step 10.0 is complete; step 10.1 is in progress.**
+Active as Phase 10, following the conventions of
+`2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
+cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status (2026-10-03; refreshed after hosted CI run `37129895448`):
+Current status (2026-10-03; refreshed after hosted CI run `37131079525`):
 
 - **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
-  cross-platform CI is the next work item; Phase 10 follows it. Runs `37121817805` through
+  cross-platform CI preceded Phase 10 and is now accepted. Runs `37121817805` through
   `37124673080` identified and fixed platform-specific behavior, fixture paths, toolbar
-  sizing, Aqua metrics, and an approval-denial hang. Run `37129895448` passed Linux and
-  Windows on Python 3.10/3.13/3.14 and macOS 3.14. Repeating traceback runs
-  `37126035883`–`37129895448` found hidden-parent Tk event-loop waits in Backups, exclusions,
-  History, Project Patcher review, New File context-menu, lazy-tree and shared desktop
-  smoke tests. Their test roots now stay viewable; hosted verification is pending and
-  cross-platform acceptance remains open. A project-patch regression test covers BOMs,
-  mixed physical newlines and relative indentation end to end.
+  sizing, Aqua metrics, and an approval-denial hang. Traceback runs through `37129895448`
+  identified hidden-root Tk event-loop waits in several desktop suites; their roots now stay
+  viewable. Final hosted run `37131079525` passes all nine Windows, macOS and Linux jobs on
+  Python 3.10/3.13/3.14, closing the CI gate. A project-patch regression covers BOMs, mixed
+  physical newlines, final-newline state and relative indentation end to end.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
@@ -36,9 +34,9 @@ Current status (2026-10-03; refreshed after hosted CI run `37129895448`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Phase 10 begins at 10.0 after CI**: write `.dev-log/10-project-transforms.md` as the entry
-  record (template: earlier tranche entries) and copy D1–D7 into the main plan's decision
-  log (section 17).
+- **Step 10.0 is complete:** `.dev-log/10-project-transforms.md` records the entry gate;
+  D1–D7 are present in section 17 of the main plan. Step 10.1 is underway; wait for its
+  full-suite and review gate before starting 10.2.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -381,13 +379,14 @@ review, and a journal entry. Every step depends only on the ones above it.
 Write the Phase 10 entry after Phase 9 acceptance (D1) and copy D1–D7 into the decision
 log. Nothing else starts before this.
 
-### 10.1 — Foundation (no behaviour change)
+### 10.1 — Foundation (preserve v1 behavior; add planned path refusal)
 - Move `ProjectPatchSession._resolve` into `core/paths.resolve_in_root(root, relative)`,
   adding the version-control folder refusal (D5).
 - Add `core/changeset.py`: op dataclasses, parser, v1→v2 normalizer, inverse-op
   definitions.
-- Gate: existing tests unchanged and green. v1 manifests normalize to equivalent `patch`
-  ops. Parser tests cover every malformed shape.
+- Gate: existing v1 review/apply tests stay green; paths inside version-control folders are
+  refused. v1 manifests normalize to equivalent `patch` ops. Parser tests cover malformed
+  manifest and operation shapes.
 
 ### 10.2 — Virtual tree and validator
 - Add `core/vtree.py` with conflict and warning rules from §3.2.

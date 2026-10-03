@@ -4,28 +4,24 @@ These follow-up items remain after v1.1.0. Each names what is known, what is not
 starting point. Decisions behind them are in the plan's decision log
 (`plans/2026-09-16-application-hardening-and-action-layer.md`, section 17).
 
-## 1. Cross-platform CI (in progress; decision E3)
+## 1. Cross-platform CI (complete; decision E3)
 
-Phase 9 is complete and v1.1.0 is tagged and pushed. Decision F0 puts cross-platform CI
-next. The workflow in `.github/workflows/tests.yml` covers Windows, macOS and Linux on
-Python 3.10, 3.13 and 3.14, checks Tk startup, and uses Xvfb for Linux UI tests. Runs
-`37121817805` through `37124673080` identified and fixed platform-specific behavior,
-fixture paths, toolbar sizing, Aqua metrics, and an approval-denial hang. The latest run,
-`37125335567`, passed all Linux and Windows jobs plus macOS 3.14. Repeating traceback
-dumps in subsequent runs identified hidden-root Tk event-loop waits in Backups, exclusions,
-History, Project Patcher review, New File context-menu, and lazy-tree tests. Those tests were
-updated to keep their roots viewable. Run `37129895448` confirmed the lazy-tree tests advance,
-then found the same issue in the shared desktop smoke-test fixture at
-`DesktopCase.pump()`. That fixture now keeps its root viewable, covering its event-pumping
-tests together. A project-patch regression test also now exercises UTF-8 BOM retention,
-mixed CRLF/CR/LF endings, no final newline, and relative indentation through validation and
-write. Both changes await the next hosted matrix run.
+Phase 9 is complete and v1.1.0 is tagged and pushed. The workflow in
+`.github/workflows/tests.yml` covers Windows, macOS and Linux on Python 3.10, 3.13 and
+3.14, checks Tk startup, and uses Xvfb for Linux UI tests. Runs `37121817805` through
+`37129895448` identified and fixed platform-specific behavior, fixture paths, toolbar sizing,
+Aqua metrics, an approval-denial hang, and hidden-root Tk event
+loops. The final fixes use viewable roots in the affected tests and the shared desktop test
+fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CRLF/CR/LF
+endings, no final newline, and relative indentation through validation and write. Hosted run
+[`37131079525`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37131079525)
+passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
+CI acceptance is complete; Phase 10 may proceed.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python
 compilation and `git diff --check` are available locally; hosted CI is the full-suite
-verification source. Keep platform classifiers and tested-platform claims conservative
-until every matrix job passes.
+verification source. Keep compatibility claims tied to the tested matrix.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

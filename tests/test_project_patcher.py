@@ -33,6 +33,9 @@ class ProjectPatchTests(unittest.TestCase):
                        {"path": "README.md", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
             {"files": [{"path": "../README.md", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
             {"files": [{"path": ".parts/reference.py", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
+            {"files": [{"path": ".git/config", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
+            {"files": [{"path": "src/.HG/config", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
+            {"files": [{"path": ".SVN/entries", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
             {"files": [{"path": "missing.txt", "hunks": [{"search_block": "a", "replace_block": "b"}]}]},
         ]
         for manifest in cases:

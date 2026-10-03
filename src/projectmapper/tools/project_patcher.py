@@ -3,7 +3,6 @@
 import hashlib
 import json
 import os
-from pathlib import Path
 import stat
 import copy
 
@@ -12,12 +11,12 @@ try:
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.writes import atomic_write_bytes, stage_bytes
     from ..core.config import OUTPUT_ROOT_NAME
-    from ..core.paths import SourceChangedError
+    from ..core.paths import SourceChangedError, resolve_in_root
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.writes import atomic_write_bytes, stage_bytes
     from core.config import OUTPUT_ROOT_NAME
-    from core.paths import SourceChangedError
+    from core.paths import SourceChangedError, resolve_in_root
 
 
 EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
@@ -59,19 +58,7 @@ class ProjectPatchSession:
         return manifest
 
     def _resolve(self, relative):
-        if not isinstance(relative, str) or not relative.strip():
-            raise PatchError("Each file entry needs a relative path.")
-        rel = relative.replace("\\", "/")
-        candidate = (self.root / Path(rel)).absolute()
-        if Path(rel).is_absolute() or any(part == ".." for part in Path(rel).parts):
-            raise PatchError(f"Unsafe project patch path: {relative}")
-        candidate = validate_target(candidate)
-        try:
-            candidate.relative_to(self.root)
-        except ValueError as exc:
-            raise PatchError(f"Project patch path escapes the project root: {relative}") from exc
-        if any(part.casefold() == ".parts" for part in candidate.relative_to(self.root).parts):
-            raise PatchError("The .parts reference folder is read-only.")
+        candidate = resolve_in_root(self.root, relative)
         # Snapshots and managed backups live here; checked on the absolute path so a
         # patch root inside the output folder cannot reach the store either.
         if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in candidate.parts):

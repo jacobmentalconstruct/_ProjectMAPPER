@@ -17,8 +17,9 @@ Development plans and architecture notes are indexed in [docs/README.md](docs/RE
 
 Requires Python 3.10+ with Tkinter (included with the python.org installers).
 
-**Platform:** tested on Windows 10 with Python 3.10–3.14. macOS and Linux are expected
-to work (the app uses only the standard library and Tk) but have not been tested yet.
+**Platform:** Hosted CI passes Windows, macOS and Linux on Python 3.10, 3.13 and 3.14
+([matrix run](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37131079525)).
+Windows is the development platform; macOS and Linux are verified through the hosted tests.
 
 ```bash
 pip install .                      # from a checkout or vendor export
