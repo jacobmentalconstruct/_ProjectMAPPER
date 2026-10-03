@@ -114,6 +114,8 @@ class HistoryWindowTests(unittest.TestCase):
         self.assertEqual(len(self.rows(window)), 3)
 
     def test_live_updates_from_a_headless_client_are_debounced(self):
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
         window = self.open()
         self.assertEqual(self.rows(window), [])
         calls = []
@@ -144,6 +146,8 @@ class HistoryWindowTests(unittest.TestCase):
 
     def test_every_control_visible_at_minimum_size(self):
         self.save("v2\n")
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
         window = self.open()
         window.top.geometry("760x520")
         self.root.update()
@@ -167,6 +171,8 @@ class HistoryWindowTests(unittest.TestCase):
 
     def test_keyboard_traversal_reaches_controls(self):
         self.save("v2\n")
+        self.root.deiconify()
+        self.addCleanup(self.root.withdraw)
         window = self.open()
         self.root.update()
         chain, current = [], window.operation_list

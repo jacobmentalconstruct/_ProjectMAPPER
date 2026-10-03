@@ -7,10 +7,10 @@ Status (2026-10-03): **Phases 0–9 are complete. Phase 9 shipped as v1.1.0** (c
 upload). Its acceptance evidence is in `docs/acceptance/v1.1.0.md` and implementation
 record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI is the next
 work item; macOS and Linux remain unverified. The latest matrix passes Linux and Windows
-on Python 3.10/3.13/3.14 and macOS 3.14. Tracebacks found three tests calling `root.update()`
-while their parent root was withdrawn: two in the Backups window suite and one in the
-exclusions scan test. Each test now deiconifies its parent before processing events;
-hosted verification is pending. Phase 10, project transforms, is fully planned in
+on Python 3.10/3.13/3.14 and macOS 3.14. Tracebacks found hidden-parent `root.update()` calls
+in the Backups window suite, exclusions scan test and History window layout test. Those
+tests (and adjacent History event-pumping tests) now show their parent before processing
+events; hosted verification is pending. Phase 10, project transforms, is fully planned in
 `docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
 phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
 renumbered 5–8; see the decision log (section 17) for the sequence and scope.**

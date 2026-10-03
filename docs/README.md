@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37127134972` confirmed the two Backups tests now advance, then found another hidden-root `update()` in the exclusions scan test. That test now deiconifies its root; full-matrix verification is pending.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37127677601` confirmed the Backups and exclusions fixes advance, then found a withdrawn-root `update()` in the History layout test. History tests that pump Tk events now show their parent first; full-matrix verification is pending.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
