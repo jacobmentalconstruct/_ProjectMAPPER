@@ -8,11 +8,8 @@ from pathlib import Path
 
 from .config import OUTPUT_ROOT_NAME
 from .changeset import ChangeSet
+from .hunks import apply_patch_text
 from .paths import PathSafetyError, SourceChangedError, UnsafePathError, resolve_in_root
-if __package__ == "projectmapper.core":
-    from ..tools.patcher import apply_patch_text
-else:  # Support the app's legacy top-level package layout.
-    from tools.patcher import apply_patch_text
 
 
 _PROTECTED = {".parts", "_projectmapper", ".git", ".hg", ".svn"}
