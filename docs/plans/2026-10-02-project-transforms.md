@@ -26,6 +26,8 @@ Current status (2026-10-03; refreshed after first hosted CI run):
   macOS 3.14 still reports clipped Backups and Project Patcher buttons at the measured
   minimum; macOS 3.10/3.13 stop producing output after `test_backups.py` and before the
   CLI test file, and were cancelled after three minutes.
+  The pending change derives Project Patcher's minimum width from both panes together and
+  enables verbose per-test output on macOS so the repeated 3.10/3.13 stall can be localized.
   - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
     acceptance and release preparation) are complete. Evidence is in
     `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.

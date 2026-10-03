@@ -38,6 +38,10 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.top.protocol("WM_DELETE_WINDOW", self.close)
         self.build_ui()
         self.fit_minimum_width_to(self.toolbar, self.footer, self.nav)
+        self.top.update_idletasks()
+        minimum_width, minimum_height = self.top.minsize()
+        panes_width = self.manifest_pane.winfo_reqwidth() + self.review_pane.winfo_reqwidth() + 48
+        self.top.minsize(max(minimum_width, panes_width), minimum_height)
         self.bind_keys()
 
     def build_ui(self):
@@ -78,7 +82,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
 
         panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=(4, 6))
-        left = self.frame(panes)
+        left = self.manifest_pane = self.frame(panes)
         self.label(left, text="PROJECT PATCH MANIFEST", panel=True).pack(anchor="w", padx=8, pady=(6, 4))
         self.manifest_box = self.editor(left, True)
         self.manifest_box.configure(width=40)  # Requested width; the pane still stretches.
@@ -88,7 +92,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.manifest_box.bind("<<Modified>>", self.changed)
         panes.add(left, weight=2)
 
-        right = self.frame(panes)
+        right = self.review_pane = self.frame(panes)
         panes.add(right, weight=3)
         header = self.frame(right)
         header.pack(fill="x", padx=4, pady=(6, 0))

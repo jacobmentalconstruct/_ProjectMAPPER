@@ -50,8 +50,12 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum python -c "import tkinter as tk; root = tk.Tk(); root.withdraw(); root.update(); root.destroy()"
 
+      - name: Run test suite (macOS, verbose)
+        if: runner.os == 'macOS'
+        run: python -m pytest -ra -vv
+
       - name: Run test suite
-        if: runner.os != 'Linux'
+        if: runner.os == 'Windows'
         run: python -m pytest -ra
 
       - name: Run test suite (virtual display)

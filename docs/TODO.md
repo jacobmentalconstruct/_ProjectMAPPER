@@ -21,9 +21,10 @@ after capturing failures because macOS 3.10/3.13 stopped producing output after
 `test_backups.py` and before the CLI test file. The next run passed Linux and Windows on all
 three Python versions; macOS 3.14 still clipped controls in Backups and Project Patcher,
 and macOS 3.10/3.13 repeated the same stall. These follow-up changes use resolved fixture
-paths, measured minimum window widths, a larger
-Aqua allowance for native button metrics, and an 820 px compact-screen threshold matching
-the measured 811 px minimum. The item remains open until all hosted jobs pass and
+paths, measured minimum window widths, a larger Aqua allowance for native button metrics,
+an 820 px compact-screen threshold matching the measured 811 px minimum, and a Project
+Patcher minimum width based on both side-by-side panes. macOS jobs now emit per-test
+verbose progress to locate the repeated stall. The item remains open until all hosted jobs pass and
 platform-specific failures are resolved. Keep platform classifiers and tested-platform
 claims conservative until then.
 

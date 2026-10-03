@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. The hosted matrix now passes Linux and Windows on Python 3.10, 3.13 and 3.14. macOS still needs layout fixes; Python 3.10/3.13 stall after the backup suite, so platform claims remain conservative until all jobs pass.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14. macOS 3.14 still has Project Patcher width clipping; macOS 3.10/3.13 stall after the backup suite, so platform claims remain conservative until all jobs pass.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
