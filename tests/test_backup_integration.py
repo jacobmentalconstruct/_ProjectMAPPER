@@ -163,7 +163,7 @@ class IntegrationTests(unittest.TestCase):
                 first.write_bytes(b"external edit\n")
                 return None
             raise PermissionError("injected")
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing):
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing):
             return self.apply(manifest(("c1.txt", "orig1", "new1"), ("c2.txt", "orig2", "new2")))
 
     def test_rollback_conflict_saves_originals_in_a_recovery_generation(self):
@@ -199,7 +199,7 @@ class IntegrationTests(unittest.TestCase):
                 (self.root / "c1.txt").write_bytes(b"external edit\n")
                 return None
             raise PermissionError("injected")
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing), \
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing), \
                 self.assertRaises(PatchError) as raised:
             session.apply_all()
         self.assertIn("Recovery required", str(raised.exception))

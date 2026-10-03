@@ -25,7 +25,8 @@ def _recheck(result, when):
         data = destination.read_bytes()
         after = destination.stat()
     except OSError as exc:
-        raise SourceChangedError(f"Source changed {when}: {result['relative_path']}") from exc
+        raise SourceChangedError(
+            f"Source changed {when}: {result['relative_path']} ({exc})") from exc
     if (_identity(before) != _identity(after)
             or _identity(after) != result["identity"]
             or data != result["original_bytes"]):

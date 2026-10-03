@@ -93,7 +93,7 @@ class HistoryTests(unittest.TestCase):
                 (self.root / "c1.txt").write_bytes(b"external\n")
                 return None
             raise PermissionError("injected")
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing):
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing):
             operation = self.approved("project_patch.apply", {"plan_id": preview.data["plan_id"]})
         rec = self.record(operation)
         self.assertEqual(rec["status"], "recovery_required")

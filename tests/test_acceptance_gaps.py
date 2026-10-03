@@ -225,7 +225,7 @@ class G4FailureInjectionTests(ProjectCase):
                 raise PermissionError("injected cleanup failure")
             return real_unlink(path, missing_ok=missing_ok)
         pending = self.app.execute("project_patch.apply", {"plan_id": preview.data["plan_id"]})
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=failing_replace), \
+        with patch("projectmapper.core.transaction.os.replace", side_effect=failing_replace), \
                 patch.object(Path, "unlink", failing_unlink):
             self.approve(pending.operation_id, True)
             result = self.app.dispatcher.wait(pending.operation_id)
@@ -264,7 +264,7 @@ class G5CancellationDuringApplyTests(ProjectCase):
             if not cancelled:
                 cancelled.append(self.app.dispatcher.cancel(pending.operation_id).status)
             return real(src, dst)
-        with patch("projectmapper.tools.project_patcher.os.replace", side_effect=replace_then_cancel):
+        with patch("projectmapper.core.transaction.os.replace", side_effect=replace_then_cancel):
             self.approve(pending.operation_id, True)
             result = self.app.dispatcher.wait(pending.operation_id)
         both = ((self.root / "README.md").read_bytes(), self.a.read_bytes())
