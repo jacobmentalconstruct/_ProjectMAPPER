@@ -14,9 +14,9 @@ Aqua metrics, an approval-denial hang, and hidden-root Tk event
 loops. The final fixes use viewable roots in the affected tests and the shared desktop test
 fixture. A project-patch regression test exercises UTF-8 BOM retention, mixed CRLF/CR/LF
 endings, no final newline, and relative indentation through validation and write. Hosted run
-[`37131079525`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37131079525)
+[`37133646697`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37133646697)
 passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Cross-platform
-CI acceptance is complete; Phase 10 is underway at step 10.1.
+CI acceptance is complete; Phase 10 is underway at step 10.2.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

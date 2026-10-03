@@ -1,32 +1,31 @@
 """Validated, all-or-nothing multi-file patches for one project root."""
 
-import hashlib
 import json
 import os
 import stat
 import copy
 
-from .patcher import PatchError, apply_patch_text, validate_target
+from .patcher import PatchError, validate_target
 try:
     from ..core.diff import DiffFile, unified_diff_text
     from ..core.writes import atomic_write_bytes, stage_bytes
     from ..core.config import OUTPUT_ROOT_NAME
     from ..core.paths import SourceChangedError, resolve_in_root
+    from ..core.changeset import ChangeSet, Operation
+    from ..core.vtree import VirtualTree
 except ImportError:
     from core.diff import DiffFile, unified_diff_text
     from core.writes import atomic_write_bytes, stage_bytes
     from core.config import OUTPUT_ROOT_NAME
     from core.paths import SourceChangedError, resolve_in_root
+    from core.changeset import ChangeSet, Operation
+    from core.vtree import VirtualTree
 
 
 EXAMPLE_ENTRY = {"path": "src/example.py", "sha256": "optional-original-file-hash", "hunks": [
     {"description": "Describe the change", "search_block": "old", "replace_block": "new", "use_patch_indent": False}]}
 EXAMPLE_MANIFEST = {"version": 1, "description": "Project patch", "files": [EXAMPLE_ENTRY]}
 SKELETON_MANIFEST = {"version": 1, "files": []}
-
-
-def _sha256(data):
-    return hashlib.sha256(data).hexdigest()
 
 
 def _ends_with_newline(text):
@@ -60,8 +59,10 @@ class ProjectPatchSession:
     def _resolve(self, relative):
         candidate = resolve_in_root(self.root, relative)
         # Snapshots and managed backups live here; checked on the absolute path so a
-        # patch root inside the output folder cannot reach the store either.
-        if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in candidate.parts):
+        # patch root nested inside an output folder cannot reach the store either. A
+        # project may itself be named after the reserved child folder.
+        parts = (*self.root.parent.parts, *candidate.relative_to(self.root).parts)
+        if any(part.casefold() == OUTPUT_ROOT_NAME.casefold() for part in parts):
             raise PatchError(f"The {OUTPUT_ROOT_NAME} output folder cannot be patched: {relative}")
         return candidate
 
@@ -83,34 +84,25 @@ class ProjectPatchSession:
             if expected is not None and (not isinstance(expected, str) or len(expected) != 64):
                 raise PatchError(f"Invalid sha256 for {entry.get('path')}.")
 
-    def _evaluate(self, entry, force_indent):
-        path = self._resolve(entry["path"])
-        original_bytes = path.read_bytes()
-        actual_hash = _sha256(original_bytes)
-        expected = entry.get("sha256")
-        if expected and expected.casefold() != actual_hash:
-            raise SourceChangedError(f"Source changed; expected sha256 {expected}, found {actual_hash}.")
-        try:
-            original = original_bytes.decode("utf-8-sig")
-        except UnicodeDecodeError as exc:
-            raise PatchError("Not valid UTF-8 text.") from exc
-        if "\x00" in original:
-            raise PatchError("Appears to be binary.")
-        patched = apply_patch_text(original, {"hunks": entry["hunks"]}, force_indent)
-        return {"path": path, "relative_path": entry["path"], "original_bytes": original_bytes,
-                "original": original, "patched": patched, "sha256": actual_hash}
-
     def review(self, force_indent=False):
         """Validate every file independently; plan results exist only when all are valid."""
         self.results = []
         outcomes, results = [], []
+        tree = VirtualTree(self.root)
         for entry in self.manifest["files"]:
-            try:
-                result = self._evaluate(entry, force_indent)
-            except (PatchError, OSError) as exc:
-                outcomes.append({"relative_path": entry["path"], "status": "error", "error": f"{entry['path']}: {exc}",
+            operation = Operation("patch", path=entry["path"], sha256=entry.get("sha256"),
+                                  hunks=tuple(copy.deepcopy(entry["hunks"])))
+            simulation = tree.simulate(ChangeSet(ops=(operation,)), force_indent=force_indent)
+            if not simulation.valid:
+                exc = simulation.errors[0]["error"]
+                outcomes.append({"relative_path": entry["path"], "status": "error",
+                                 "error": f"{entry['path']}: {exc}",
                                  "hunk_count": len(entry["hunks"])})
                 continue
+            detail = simulation.operations[0]
+            result = {"path": self._resolve(entry["path"]), "relative_path": entry["path"],
+                      "original_bytes": detail["original_bytes"], "original": detail["original"],
+                      "patched": detail["patched"], "sha256": detail["sha256"]}
             results.append(result)
             diff = DiffFile(entry["path"], result["original"], result["patched"])
             outcomes.append({**result, "status": "changed" if diff.changed else "no_change", "error": None,

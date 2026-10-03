@@ -18,7 +18,7 @@ Development plans and architecture notes are indexed in [docs/README.md](docs/RE
 Requires Python 3.10+ with Tkinter (included with the python.org installers).
 
 **Platform:** Hosted CI passes Windows, macOS and Linux on Python 3.10, 3.13 and 3.14
-([matrix run](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37131079525)).
+([matrix run](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37133646697)).
 Windows is the development platform; macOS and Linux are verified through the hosted tests.
 
 ```bash

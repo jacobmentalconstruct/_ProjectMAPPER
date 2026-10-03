@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Cross-platform matrix:** Hosted CI run [`37131079525`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37131079525) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
+- **Cross-platform matrix:** Hosted CI run [`37133646697`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37133646697) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
