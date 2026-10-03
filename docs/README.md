@@ -16,8 +16,8 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Cross-platform matrix:** Hosted CI run [`37139891049`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37139891049) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14; the Windows Python 3.10 suite reports 407 passed. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
-- **Current development:** Phase 10.4 is in progress: v2 backup manifests retain forward/inverse changesets, file deletion and project patches are undoable as transactions, and the Backups window distinguishes whole-changeset undo from file restore. The local Windows suite passes (427 passed, 2 skipped); hosted matrix acceptance is pending. See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
+- **Cross-platform matrix:** Hosted CI run [`37148797317`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37148797317) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14 with Phase 10.4 changes. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
+- **Current development:** Phase 10.4 is accepted: v2 backup manifests retain forward/inverse changesets, file deletion and project patches are undoable as transactions, and the Backups window distinguishes whole-changeset undo from file restore. The local Windows suite passes (427 passed, 2 skipped), and the hosted matrix passes all nine jobs. Work proceeds to Phase 10.5. See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
@@ -25,7 +25,7 @@ verification records. End-user instructions remain in the root `README.md`.
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Remaining work:** [TODO.md](TODO.md): finish Phase 10.4 verification, later project-transform steps, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): later project-transform steps, the Tcl mechanism behind E4,
   two recorded test events, and star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's
