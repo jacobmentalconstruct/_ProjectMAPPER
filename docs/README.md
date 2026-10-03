@@ -16,7 +16,7 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37128227007` confirmed the History fixes advance, then found withdrawn-root event processing in Project Patcher review tests. Those UI tests now keep the parent root viewable; full-matrix verification is pending.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified. Hosted CI passes Linux and Windows on Python 3.10, 3.13 and 3.14, plus macOS 3.14. Run `37128773406` confirmed the Project Patcher review tests advance, then found a withdrawn-root event loop in a New File context-menu test. That test now shows the root before tree events; full-matrix verification is pending.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python

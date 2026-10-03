@@ -95,6 +95,7 @@ class CreatorUITests(unittest.TestCase):
         self.app.running_tasks.clear()
 
     def test_context_menu_file_actions_use_selected_file_parent_and_project_root(self):
+        self.root.deiconify()
         child = self.folder / "child"
         child.mkdir()
         target = child / "existing.txt"
