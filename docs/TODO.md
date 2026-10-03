@@ -21,8 +21,10 @@ the parent root was withdrawn: `test_keyboard_traversal_reaches_controls` and
 those tests and found the same hidden-root event-loop call in
 `test_changes_during_running_scan_are_eventually_applied`; that test now deiconifies its
 root. The next run reached the History window and found another hidden-root `update()` in
-its minimum-size layout check. The live-update, layout and keyboard tests now show their
-parent before processing events. Hosted verification is pending.
+its minimum-size layout check; the History live-update, layout and keyboard tests now show
+their parent before processing events. The following run advanced and found hidden-root
+event processing in Project Patcher review tests. Those UI test classes now keep the parent
+root viewable. Hosted verification is pending.
 
 Local full-suite results remain unreliable in this desktop sandbox because temporary-file
 operations intermittently raise `PermissionError` and pytest cache creation races. Python

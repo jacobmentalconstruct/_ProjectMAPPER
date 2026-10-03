@@ -25,7 +25,6 @@ class ReviewWindowTests(unittest.TestCase):
         (self.folder / "b.py").write_bytes(b"same\n")
         (self.folder / "c.py").write_bytes(b"gamma\n")
         self.root = tk_root(self)
-        self.root.withdraw()
         self.app = ProjectMapperApp(self.root, self.folder)
         for timer in self.root.tk.call("after", "info"):
             self.root.after_cancel(timer)
@@ -192,7 +191,6 @@ class ReviewLayoutTests(unittest.TestCase):
         (self.folder / self.relative).parent.mkdir(parents=True)
         (self.folder / self.relative).write_bytes(ORIGINAL.encode())
         self.root = tk_root(self)
-        self.root.withdraw()
         self.app = ProjectMapperApp(self.root, self.folder)
         for timer in self.root.tk.call("after", "info"):
             self.root.after_cancel(timer)
