@@ -2,28 +2,14 @@
 
 Date: 2026-09-16
 
-Status: **Phases 0–3 completed and parked (Phase 3: 124 passing tests, measured
-scan/render improvements; committed 2026-09-23 as `74c9b99`). Plan revised
-2026-09-23 for release. Phase 4, release readiness, completed and parked
-2026-09-23 with 142 passing tests on Python 3.10/3.13/3.14 and verified artifacts;
-tagged `v0.4.0`; `main` pushed to GitHub 2026-09-23. Phase 5, project patch review,
-completed and parked 2026-09-23 with 175 passing tests on Python 3.10/3.13/3.14.
-Phase 6, backup generations, restore and retention, completed and parked 2026-09-24
-with 233 passing tests on Python 3.10/3.13/3.14. Phase 7, history and
-operational clarity, completed and parked 2026-09-24 with 271 passing tests on
-Python 3.10/3.13/3.14. Phase 8, full acceptance, documentation and v1.0.0, completed
-and parked 2026-09-25 with 335 passing tests on Python 3.10/3.13/3.14 (331 on 3.11/3.12
-at step 8.4), verified release artifacts and the acceptance report
-`docs/acceptance/v1.0.0.md`; tagged `v1.0.0`. With owner approval on 2026-09-25, `main`
-and the tag were pushed and the GitHub release "ProjectMapper 1.0.0" published (wheel and
-sdist attached; not on PyPI). Phase 9, CLI and MCP adapters, is open: entry written
-2026-09-25, approved 2026-09-26 with owner decisions F0–F6 (section 17); steps 9.1–9.4
-(adapter foundation, CLI, MCP server, trusted approval and boundary proofs) implemented
-and reviewed. The full suite passed on Python 3.10, 3.13 and 3.14 on 2026-10-02;
-step 9.5 documentation, acceptance and local artifact verification are complete. The
-local release commit/tag and any publication remain owner-controlled.
-Former Phases 4–7 are renumbered 5–8; Phase 9 adds CLI and MCP adapters after final
-acceptance. See the decision log (section 17) and the dated `.dev-log/` journals.**
+Status (2026-10-03): **Phases 0–9 are complete. Phase 9 shipped as v1.1.0** (commit
+`79775c7`, tag `v1.1.0`, pushed to `origin/main`; no GitHub release or package-index
+upload). Its acceptance evidence is in `docs/acceptance/v1.1.0.md` and implementation
+record in `.dev-log/09-cli-and-mcp.md`. Per decision F0, cross-platform CI is the next
+work item; macOS and Linux remain unverified. Phase 10, project transforms, is fully
+planned in `docs/plans/2026-10-02-project-transforms.md` and has not started. Historical
+phase outcomes remain in the journals and acceptance reports. Former Phases 4–7 were
+renumbered 5–8; see the decision log (section 17) for the sequence and scope.**
 
 Implementation was authorized after the initial planning review. Later tranches remain
 subject to their entry records, implementation/review cycles and acceptance gates.
@@ -69,11 +55,11 @@ repairs are retained in the dated tranche journals; they are not current defects
 | Recovery | Phase 6 complete: managed backup generations (project store `_projectmapper/backups/`, per-user store for outside targets) with verified ownership and integrity; durable `recovery` generations on rollback conflict with truthful messages; restore via preview, approval and a `pre-restore` copy; approval-bound keep-N clean-up; a Backups window. The three entry defects (failing repeat saves, `.bak` blocking apply, lost recovery material) are fixed. | Resolved in Phase 8 (decision E2): the text editor's **Keep backup** covers Save and Save As overwrites. |
 | History | Phase 7 complete:<br>- a per-operation, bounded (500), content-free session history with coalesced progress (`history.query`) and a History window<br>- listener, Tk callback, GUI-queue and worker failures surfaced as log line plus internal record<br>- one error-wording catalogue (18 codes)<br>- main log bounded to 2,000 lines<br>All four entry findings are fixed. | History stays session-only (persistence deferred by plan). |
 | Main window layout | Phase 8 step 8.2: the action area has four short rows instead of two long ones; the tree's name column stretches; the status bar can no longer be squeezed out. Step 8.4: the log starts at 5 lines, so the tree gets more of the default window. The minimum size is the measured requested width × 560 px (647×560 at Tk scaling 1.33 on the Windows test machine). A test shows every button, checkbox and entry fully visible and unclipped at that size, at least 4 tree rows and 3 log lines. | None known; other scalings and platforms are unmeasured. |
-| Testing | Phase 8 final: 335 tests pass on Python 3.10, 3.13 and 3.14 (exit codes captured; 331 on 3.11/3.12 at step 8.4); benchmark and layout probe recorded. Step 8.3: the suite runs with `--capture=sys` (`pytest.ini`, decision E4). This removes the intermittent Tk start-up failure: it came from pytest's default fd-level capture, not from the app. Unused imports are removed across `src/`, `tests/` and `tools/`. Two names are kept in `tools/text_toucher.py` as re-exports that a test imports; they are listed in `__all__`. pyflakes now reports only the star-import notices of the `import *` sections in `app.py`, `core/exports.py`, `core/snapshots.py` and `core/helpers.py`. Phase 7 acceptance: 271 regressions, plus two explicit benchmarks and a measured minimum-size layout probe. Development dependencies are declared in `pyproject.toml` (`.[dev]`). | Phase 9 adapter, protocol and approval-boundary tests; then cross-platform CI (`docs/TODO.md`; decision F0: after Phase 9). |
+| Testing | Phase 9 full suite: 389 tests on Python 3.10 and 3.14; 388 plus one optional-SDK skip on 3.13 (`docs/acceptance/v1.1.0.md`). Tk start-up workaround remains `--capture=sys` (decision E4). | Cross-platform CI is next per F0; keep platform claims conservative until Windows, macOS and Linux jobs pass. |
 | Snapshot freshness | Closed in Phase 4 (step 4.3). Previously the signature pass and the capture read were separate. A post-capture re-signature caught persistent changes, but A (signature) → B (captured) → A (recheck) published B as fresh. Captured text and blobs now come from the bytes whose digest is checked against the signature pass; a mismatch raises `source_changed`. | Keep the byte-binding regressions green. |
-| Repository/release | Phase 4 complete (`v0.4.0` tagged and pushed 2026-09-23). Phase 8 step 8.4: version 1.0.0; CHANGELOG 1.0.0 section; classifiers per E3 (Windows; Python 3.10–3.14, each with a passing suite); README platform statement; `docs/developer-guide.md`. Wheel and sdist built in isolation and inspected. Fresh 3.10/3.14 installs, a GUI launch and a vendor export were verified in clean locations. macOS/Linux launch untested. | v1.0.0 released on GitHub 2026-09-25 (tag `v1.0.0` → `fb4ebc7`). PyPI only with owner approval; cross-platform CI (`docs/TODO.md`). |
-| Transports | Action layer is transport-ready; no CLI or MCP adapter exists yet. The Phase 9 entry record (2026-09-25) found that core actions are not confined to the project root, that `text.save`/`patch.save`/`file.create` need no approval, and that MCP revision 2026-07-28 removed the `initialize` handshake. | Phase 9: CLI and stdio MCP adapters over public actions only, per owner decisions F0–F6 (2026-09-26): agents may transform files, including multi-file project patches, with root confinement, forced backups and a trusted approval popup; user-set result limits. |
-| Acceptance evidence | Phase 8 complete: `docs/acceptance/v1.0.0.md` records every section 15 condition 1–13 and every section 14 row for 1.0 with evidence (G1–G6 closed; every UI entry point driven by a test; E4 explained and eliminated from the suite; defects D1–D5 fixed). Recorded, not explained: one silent 3.10 run (Tranche 6), one baseline-copy layout failure (Tranche 7). | Phase 9 acceptance; deferred items in `docs/TODO.md`. |
+| Repository/release | v1.0.0 released on GitHub 2026-09-25. v1.1.0 tagged and pushed 2026-10-02; wheel/sdist and isolated install verified locally. No GitHub release or package-index upload for v1.1.0. | Cross-platform CI is next per F0; Phase 10 project transforms follows (see `docs/plans/2026-10-02-project-transforms.md`). |
+| Transports | Phase 9 CLI and stdio MCP adapters are implemented and released in v1.1.0. The adapters use public actions, root confinement, bounded outputs, forced backups and trusted human approval. | Preserve the approval boundary; Phase 10 extends project patches with structural operations. |
+| Acceptance evidence | Phase 9 accepted in `docs/acceptance/v1.1.0.md`; release commit/tag/push recorded in `.dev-log/09-cli-and-mcp.md`. | Cross-platform CI is next per F0; Phase 10 follows. |
 
 ### Historical baseline issues — resolved, retained for context only
 

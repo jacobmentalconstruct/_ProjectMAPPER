@@ -32,7 +32,8 @@ current directory.
 
 Then: review the tree, uncheck what you do not want, click **Compile Snapshot**, and
 use **Export Tree MD** / **Export Filedump MD** to share it. To bring changes back,
-right-click a file (**Tokenizing Patcher…**) or a folder (**Project Patcher…**).
+right-click a file (**Tokenizing Patcher…**), folder, or empty tree space
+(**Project Patcher…**, which always opens for the configured project root).
 
 For agent workflows, the install also provides `projectmapper-cli`. The optional MCP
 server is installed with `pip install ".[mcp]"`; both adapters confine access to one
@@ -163,11 +164,11 @@ be removed without affecting the application.
 
 ## Creating New Text Files
 
-Right-click a folder or empty space within the tree and choose **New Text File…**
-to open TextTOUCHER. The destination starts at the clicked folder, or at the
-current project root when clicking empty space. The context menu is available
-on files, folders, and empty space: **New Text File…** is disabled on files, and
-**Tokenizing Patcher…** is disabled on folders and empty space.
+Right-click a folder, a file, or empty space within the tree and choose **New Text File…**
+to open TextTOUCHER. The destination starts at the clicked folder, the selected file's
+parent folder, or the current project root when clicking empty space. The context menu is
+available on files, folders, and empty space; **Tokenizing Patcher…** is disabled on
+folders and empty space.
 **Choose Folder…** changes the destination.
 
 Enter a name, choose an extension, and optionally paste or type content. An
@@ -212,8 +213,9 @@ HTML asset dependencies.
 
 ## Project Patches
 
-Right-click a folder or empty tree space and choose **Project Patcher…**. A project
-patch uses the same hunk schema as the single-file patcher, grouped by safe relative
+Right-click a file, folder, or empty tree space and choose **Project Patcher…**. It always
+opens for the configured project root. A project patch uses the same hunk schema as the
+single-file patcher, grouped by safe relative
 paths:
 
 ```json

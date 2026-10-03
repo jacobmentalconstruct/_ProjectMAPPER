@@ -806,7 +806,9 @@ class ProjectMapperApp:
                          state="normal" if allowed else "disabled")
         menu.add_command(label="Open Text Editor…", command=lambda: self.open_text_editor(path),
                          state="normal" if allowed else "disabled")
-        folder = path
+        # A file selection still gives useful context for creation: place a new
+        # file beside it. Folder and empty-space selections target that folder.
+        folder = path.parent if path.is_file() else path
         can_create = folder.is_dir()
         try:
             validate_target(folder)
@@ -818,12 +820,16 @@ class ProjectMapperApp:
         menu.add_command(label="Delete File…", command=lambda: self.delete_file(path),
                          state="normal" if allowed else "disabled")
         menu.add_separator()
-        can_project_patch = folder.is_dir()
-        try:
-            validate_target(folder)
-        except PatchError:
-            can_project_patch = False
-        menu.add_command(label="Project Patcher…", command=lambda: self.open_project_patcher(folder),
+        # Project Patcher operates on the whole project, regardless of which
+        # row opened the context menu.
+        project_root = self.selected_root
+        can_project_patch = bool(project_root and project_root.is_dir())
+        if can_project_patch:
+            try:
+                validate_target(project_root)
+            except PatchError:
+                can_project_patch = False
+        menu.add_command(label="Project Patcher…", command=lambda: self.open_project_patcher(project_root),
                          state="normal" if can_project_patch else "disabled")
         try:
             menu.tk_popup(tree.winfo_rootx() + 40 if keyboard else event.x_root,

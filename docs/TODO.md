@@ -1,15 +1,17 @@
-# Deferred work
+# Remaining engineering work
 
-Items deliberately left for after v1.0.0. Each names what is known, what is not, and a
+These follow-up items remain after v1.1.0. Each names what is known, what is not, and a
 starting point. Decisions behind them are in the plan's decision log
 (`plans/2026-09-16-application-hardening-and-action-layer.md`, section 17).
 
-## 1. Cross-platform CI (decision E3)
+## 1. Cross-platform CI (in progress; decision E3)
 
-v1.0.0 is tested on Windows only; macOS and Linux are expected to work but untested.
-E3 named CI on Windows, Linux and macOS the first post-1.0 item. Decision F0 (2026-09-26):
-it follows Phase 9 (CLI and MCP adapters). Pushing a
-workflow is outward-facing, so it needs owner approval.
+The v1.1.0 suite was run on Windows with Python 3.10, 3.13 and 3.14. macOS and Linux
+remain unverified. Decision F0 put this after Phase 9, which is now complete. The GitHub
+Actions matrix is in `.github/workflows/tests.yml` for Windows, macOS and Linux on Python
+3.10, 3.13 and 3.14; it also checks Tk window creation and uses Xvfb on Linux. The item
+remains open until all hosted jobs pass and platform-specific failures are resolved. Keep
+platform classifiers and tested-platform claims conservative until then.
 
 ## 2. Tk start-up failure under standard-handle swapping (decision E4)
 

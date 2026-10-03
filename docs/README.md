@@ -3,7 +3,7 @@
 This folder contains development plans, architecture decisions, and implementation
 verification records. End-user instructions remain in the root `README.md`.
 
-## Current state (2026-10-02)
+## Current state (2026-10-03)
 
 - **Released:** v1.0.0 on GitHub (tag `v1.0.0` → `fb4ebc7`, wheel and sdist attached; not on
   PyPI). Accepted against the plan's stop conditions 1–13:
@@ -16,15 +16,15 @@ verification records. End-user instructions remain in the root `README.md`.
   and pushed on `main`; no GitHub release or package-index upload was made. Evidence is in
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
-- **Tested platform:** Windows 10, Python 3.10–3.14. macOS and Linux are untested.
+- **Tested platform:** Windows, Python 3.10–3.14. macOS and Linux remain unverified; cross-platform CI is being added.
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
-- **Test:** `python -m pytest`; the Phase 9.4 full suite passed with 389 tests on Python
+- **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
   3.10 and 3.14 (180 subtests each), and 388 passed plus one optional MCP SDK skip on
   3.13. `pytest.ini` sets `--capture=sys`; keep it
   (decision E4, see [TODO.md](TODO.md)). The explicit benchmark is
   `python -m pytest -q -s tests/benchmark_tree.py`.
-- **Deferred work:** [TODO.md](TODO.md): cross-platform CI, the Tcl mechanism behind E4,
+- **Remaining work:** [TODO.md](TODO.md): cross-platform CI verification, the Tcl mechanism behind E4,
   two recorded test events, star-import notices.
 - **How work is done:** in gated tranches (entry record → steps with evidence → review →
   park), recorded in the private `.dev-log/` journal. Material decisions go in the plan's
@@ -33,14 +33,14 @@ verification records. End-user instructions remain in the root `README.md`.
 ## Active plan
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
-- [Project transforms: Phase 10, planned 2026-10-02, starts after Phase 9](plans/2026-10-02-project-transforms.md)
+- [Project transforms: Phase 10, planned 2026-10-02, follows cross-platform CI](plans/2026-10-02-project-transforms.md)
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)
 - [CLI and MCP agent integration guide](agent-integration.md)
 - [v1.0.0 acceptance report](acceptance/v1.0.0.md)
 - [v1.1.0 Phase 9 acceptance addendum](acceptance/v1.1.0.md)
-- [Deferred work (post-1.0 TODO)](TODO.md)
+- [Remaining engineering work](TODO.md)
 
 ## Phase history
 

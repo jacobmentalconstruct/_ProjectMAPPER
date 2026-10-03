@@ -2,19 +2,21 @@
 
 Date: 2026-10-02
 
-Status: **Decisions D1–D7 recorded 2026-10-02; none open. Not started; opens after Phase 9
-acceptance (D1).** Proposed as Phase 10, following the
+Status: **Decisions D1–D7 recorded 2026-10-02; none open. Phase 9 is accepted and released.
+Cross-platform CI is the next recorded work item; Phase 10 implementation has not started.**
+Proposed as Phase 10, following the
 conventions of `2026-09-16-application-hardening-and-action-layer.md` (entry record,
 implementation/review cycle, stop gate per step, dated `.dev-log/` journal).
 
 ## 0. Handoff: resume here (any agent)
 
-Current status after CLI step 9.2 (2026-10-02):
+Current status (2026-10-03):
 
-- **Work order:** finish Phase 9 first (D1), then Phase 10 (this plan).
-  - Steps 9.1 (adapter foundation) and 9.2 (CLI) are complete. The next step is **9.3 MCP**,
-    followed by 9.4 approval popup + Settings window + boundary proofs, and 9.5 docs,
-    acceptance and release.
+- **Work order:** Phase 9 is complete and v1.1.0 is tagged and pushed. Per decision F0,
+  cross-platform CI is the next work item; Phase 10 follows it.
+  - Steps 9.1–9.5 (adapter foundation, CLI, MCP, approval boundary, documentation,
+    acceptance and release preparation) are complete. Evidence is in
+    `.dev-log/09-cli-and-mcp.md` and `docs/acceptance/v1.1.0.md`.
   - Phase 9's source of truth is `docs/plans/2026-09-16-application-hardening-and-action-layer.md`
     (Phase 9, section 12B) and `.dev-log/09-cli-and-mcp.md` ("Revised steps").
 - **Phase 9 must anticipate Phase 10** without implementing it:
@@ -25,7 +27,7 @@ Current status after CLI step 9.2 (2026-10-02):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Phase 10 begins at 10.0**: write `.dev-log/10-project-transforms.md` as the entry
+- **Phase 10 begins at 10.0 after CI**: write `.dev-log/10-project-transforms.md` as the entry
   record (template: earlier tranche entries) and copy D1–D7 into the main plan's decision
   log (section 17).
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
@@ -210,7 +212,8 @@ optional `changeset` record holds the forward ops and the inverse ops. New kind:
   - Files: Rename…, Move…, and Delete (now with backup).
   - Folders: New Folder…, Rename…, Move…, Delete Folder….
   - Each builds a one-op changeset and shows a compact review.
-  - "Tokenizing Patcher…" stays for single files. "Project Patcher…" stays on folders.
+  - "Tokenizing Patcher…" stays for single files. "Project Patcher…" is available from
+    file, folder and empty-space selections and always opens at the project root.
 - **Single → project upgrade:** if JSON pasted into the Tokenizing Patcher has `files` or
   `ops`, show a banner with "Open in Project Patcher". Also add a button that carries the
   current hunks + sha256 into a v2 manifest (reusing `_add_entry` logic). No hard warning

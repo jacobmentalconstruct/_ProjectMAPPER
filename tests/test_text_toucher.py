@@ -94,7 +94,7 @@ class CreatorUITests(unittest.TestCase):
         self.assertFalse((self.folder / "new.txt").exists())
         self.app.running_tasks.clear()
 
-    def test_context_menu_actions_depend_on_target(self):
+    def test_context_menu_file_actions_use_selected_file_parent_and_project_root(self):
         child = self.folder / "child"
         child.mkdir()
         target = child / "existing.txt"
@@ -112,19 +112,19 @@ class CreatorUITests(unittest.TestCase):
             with patch.object(tk.Menu, "tk_popup"):
                 self.app.on_file_context_menu(SimpleNamespace(keysym="F10"))
             with patch.object(self.app, "open_text_toucher") as open_creator:
-                self.assertEqual(self.app.file_context_menu.entrycget(0, "state"),
-                                 "normal" if path == target else "disabled")
-                self.assertEqual(self.app.file_context_menu.entrycget(1, "state"),
-                                 "normal" if path == target else "disabled")
-                self.assertEqual(self.app.file_context_menu.entrycget(2, "state"),
-                                 "disabled" if path == target else "normal")
-                self.assertEqual(self.app.file_context_menu.entrycget(4, "state"),
-                                 "normal" if path == target else "disabled")
-                self.app.file_context_menu.invoke(2)
-                if path == child:
+                with patch.object(self.app, "open_project_patcher") as open_project_patcher:
+                    self.assertEqual(self.app.file_context_menu.entrycget(0, "state"),
+                                     "normal" if path == target else "disabled")
+                    self.assertEqual(self.app.file_context_menu.entrycget(1, "state"),
+                                     "normal" if path == target else "disabled")
+                    self.assertEqual(self.app.file_context_menu.entrycget(2, "state"), "normal")
+                    self.assertEqual(self.app.file_context_menu.entrycget(4, "state"),
+                                     "normal" if path == target else "disabled")
+                    self.assertEqual(self.app.file_context_menu.entrycget(6, "state"), "normal")
+                    self.app.file_context_menu.invoke(2)
                     open_creator.assert_called_once_with(child)
-                else:
-                    open_creator.assert_not_called()
+                    self.app.file_context_menu.invoke(6)
+                    open_project_patcher.assert_called_once_with(self.folder)
 
     def test_mouse_empty_space_uses_root_instead_of_previous_selection(self):
         child = self.folder / "child"
