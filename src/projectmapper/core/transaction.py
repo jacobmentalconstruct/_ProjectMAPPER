@@ -476,7 +476,10 @@ def apply_operations(root, simulation, *, backup=None, record=None, forward=None
             # the virtual plan are checked immediately before their own operation.
             if expected.get("identity") is None:
                 continue
-            baseline.setdefault(relative.casefold(), (relative, expected))
+            # An earlier operation may have moved the object, so ``relative`` can name a
+            # path that does not exist yet. The identity belongs to where it lived at review.
+            origin = expected.get("origin") or relative
+            baseline.setdefault(origin.casefold(), (origin, expected))
 
     initial = {}
     for relative, expected in baseline.values():

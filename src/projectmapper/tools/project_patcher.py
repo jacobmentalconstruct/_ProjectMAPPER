@@ -98,6 +98,9 @@ class ProjectPatchSession:
             expected = entry.get("sha256")
             if expected is not None and (not isinstance(expected, str) or len(expected) != 64):
                 raise PatchError(f"Invalid sha256 for {entry.get('path')}.")
+        # apply_all normalizes through this same strict parser to record undo data, so
+        # unknown fields and malformed hunks must be refused at review, not after approval.
+        parse_changeset(self.manifest)
 
     def review(self, force_indent=False):
         """Validate every file independently; plan results exist only when all are valid."""

@@ -33,6 +33,7 @@ class _Node:
     original_mode: int = None
     disk_backed: bool = True
     original_identity: tuple = None
+    origin_path: str = None  # where the object lived on disk when it was first loaded
 
 @dataclass
 class Simulation:
@@ -116,11 +117,13 @@ class VirtualTree:
             mode = stat.S_IMODE(info.st_mode)
             if path.is_dir():
                 node = _Node(rel, "dir", mode=mode, original_mode=mode,
-                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns))
+                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns),
+                             origin_path=rel)
             elif path.is_file():
                 data = path.read_bytes()
                 node = _Node(rel, "file", data, mode, data, mode,
-                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns))
+                             original_identity=(info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns),
+                             origin_path=rel)
             else:
                 raise PathSafetyError(f"Target is not a regular file or folder: {relative}.")
         except FileNotFoundError as exc:
@@ -183,8 +186,10 @@ class VirtualTree:
             if node is None:
                 continue
             digest = hashlib.sha256(node.data).hexdigest() if node.kind == "file" else None
-            before[node.path] = {"kind": node.kind, "sha256": digest,
-                                 "mode": node.mode, "identity": node.original_identity}
+            # ``identity`` and ``origin`` describe the object as it was on disk at review time;
+            # ``node.path`` is where an earlier operation in the plan has moved it to.
+            before[node.path] = {"kind": node.kind, "sha256": digest, "mode": node.mode,
+                                 "identity": node.original_identity, "origin": node.origin_path}
         return before
 
     @staticmethod

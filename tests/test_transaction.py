@@ -98,6 +98,88 @@ class TransactionTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE((self.root / "folder").stat().st_mode), 0o750)
         self.assertEqual((self.root / "folder" / "nested.txt").read_bytes(), b"nested data\n")
 
+    def tree_state(self):
+        return {path.relative_to(self.root).as_posix(): (path.read_bytes() if path.is_file() else None)
+                for path in sorted(self.root.rglob("*")) if "_projectmapper" not in path.parts}
+
+    def apply_and_undo(self, ops, expected_after):
+        """Apply a plan, check the result, then undo it and require the original tree."""
+        before = self.tree_state()
+        manifest = {"version": 2, "ops": ops}
+        plan = self.simulate(ops)
+        blobs, records = {}, []
+
+        def record(items, changeset):
+            blobs.update({Path(path).relative_to(self.root).as_posix(): data for path, data, _ in items})
+            records.append(changeset)
+
+        apply_operations(self.root, plan, record=record, forward=manifest)
+        self.assertEqual(self.tree_state(), expected_after)
+        undo = prepare_undo(self.root, records[0], lambda key: blobs[key])
+        apply_operations(self.root, undo)
+        self.assertEqual(self.tree_state(), before)
+
+    def test_operations_may_name_an_existing_file_by_its_path_after_an_earlier_move(self):
+        patch = {"search_block": "old", "replace_block": "new"}
+        cases = {
+            "move then patch": (
+                [{"op": "move", "from": "a.txt", "to": "b.txt"},
+                 {"op": "patch", "path": "b.txt", "hunks": [patch]}],
+                {"b.txt": b"new\n"}),
+            "move then delete": (
+                [{"op": "move", "from": "a.txt", "to": "b.txt"}, {"op": "delete", "path": "b.txt"}],
+                {}),
+            "move then move again": (
+                [{"op": "move", "from": "a.txt", "to": "b.txt"}, {"op": "move", "from": "b.txt", "to": "c.txt"}],
+                {"c.txt": b"old\n"}),
+            "patch, move, patch": (
+                [{"op": "patch", "path": "a.txt", "hunks": [patch]},
+                 {"op": "move", "from": "a.txt", "to": "b.txt"},
+                 {"op": "patch", "path": "b.txt", "hunks": [{"search_block": "new", "replace_block": "newer"}]}],
+                {"b.txt": b"newer\n"}),
+        }
+        for label, (ops, expected) in cases.items():
+            with self.subTest(label):
+                self.root = Path(temporary_directory(self).name).resolve()
+                (self.root / "a.txt").write_bytes(b"old\n")
+                self.apply_and_undo(ops, expected)
+
+    def test_directory_move_then_operations_on_its_contents(self):
+        (self.root / "src").mkdir()
+        (self.root / "src" / "a.txt").write_bytes(b"old\n")
+        (self.root / "src" / "gone.txt").write_bytes(b"gone\n")
+        patch = {"search_block": "old", "replace_block": "new"}
+        self.apply_and_undo(
+            [{"op": "move_dir", "from": "src", "to": "lib"},
+             {"op": "patch", "path": "lib/a.txt", "hunks": [patch]},
+             {"op": "delete", "path": "lib/gone.txt"},
+             {"op": "move", "from": "lib/a.txt", "to": "lib/b.txt"}],
+            {"lib": None, "lib/b.txt": b"new\n"})
+
+    def test_moved_source_changed_after_review_is_still_refused(self):
+        source = self.root / "a.txt"
+        source.write_bytes(b"old\n")
+        plan = self.simulate([{"op": "move", "from": "a.txt", "to": "b.txt"},
+                              {"op": "patch", "path": "b.txt", "hunks": [
+                                  {"search_block": "old", "replace_block": "new"}]}])
+        source.write_bytes(b"edited elsewhere\n")
+
+        with self.assertRaisesRegex(SourceChangedError, "Source changed after review"):
+            apply_operations(self.root, plan)
+        self.assertEqual(source.read_bytes(), b"edited elsewhere\n")
+        self.assertFalse((self.root / "b.txt").exists())
+
+    def test_moved_source_removed_after_review_is_refused(self):
+        source = self.root / "a.txt"
+        source.write_bytes(b"old\n")
+        plan = self.simulate([{"op": "move", "from": "a.txt", "to": "b.txt"},
+                              {"op": "delete", "path": "b.txt"}])
+        source.unlink()
+
+        with self.assertRaisesRegex(SourceChangedError, "Source changed after review"):
+            apply_operations(self.root, plan)
+        self.assertFalse((self.root / "b.txt").exists())
+
     def test_backup_callback_runs_before_the_first_mutation(self):
         target = self.root / "a.txt"
         target.write_bytes(b"old\n")

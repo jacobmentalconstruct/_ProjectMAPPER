@@ -54,6 +54,31 @@ class ProjectPatchTests(unittest.TestCase):
         self.assertFalse((self.root / "requirements.txt").exists())
         self.assertEqual(records[0]["forward"]["version"], 2)
 
+    def test_v1_review_refuses_what_apply_would_refuse(self):
+        hunk = {"search_block": "tk>=0.1.0", "replace_block": "tk>=0.2.0"}
+        cases = {
+            "unknown entry field": {"files": [{"path": "requirements.txt", "oops": True, "hunks": [hunk]}]},
+            "unknown top-level field": {"files": [{"path": "requirements.txt", "hunks": [hunk]}], "oops": 1},
+            "hunk without replacement": {"files": [{"path": "requirements.txt",
+                                                    "hunks": [{"search_block": "tk>=0.1.0"}]}]},
+            "non-bool indent flag": {"files": [{"path": "requirements.txt",
+                                                "hunks": [dict(hunk, use_patch_indent="no")]}]},
+        }
+        for label, manifest in cases.items():
+            with self.subTest(label), self.assertRaises(PatchError):
+                ProjectPatchSession(self.root, {"version": 1, **manifest})
+        self.assertEqual((self.root / "requirements.txt").read_text(encoding="utf-8"), "tk>=0.1.0\n")
+
+    def test_v1_with_description_and_optional_sha_still_validates_and_applies(self):
+        import hashlib
+        digest = hashlib.sha256((self.root / "requirements.txt").read_bytes()).hexdigest()
+        session = ProjectPatchSession(self.root, {"version": 1, "description": "bump", "files": [
+            {"path": "requirements.txt", "sha256": digest,
+             "hunks": [{"description": "x", "search_block": "tk>=0.1.0", "replace_block": "tk>=0.2.0"}]}]})
+        self.assertEqual(session.review()[0]["status"], "changed")
+        session.apply_all()
+        self.assertEqual((self.root / "requirements.txt").read_text(encoding="utf-8"), "tk>=0.2.0\n")
+
     def test_project_schema_returns_version_2_changeset_example(self):
         app, _ = create_application(self.root)
         self.addCleanup(app.close)
