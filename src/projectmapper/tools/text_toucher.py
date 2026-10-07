@@ -6,10 +6,10 @@ from tkinter import filedialog, messagebox, ttk
 
 if __package__:
     from .patcher import PatchError, validate_target
-    from .ui_base import ToolWindowMixin
+    from .ui_base import ToolWindowMixin, attach_tooltip
 else:
     from patcher import PatchError, validate_target
-    from ui_base import ToolWindowMixin
+    from ui_base import ToolWindowMixin, attach_tooltip
 
 
 try:
@@ -45,7 +45,8 @@ class TextToucherWindow(ToolWindowMixin):
         path_row.columnconfigure(0, weight=1)
         self.path_label = self.label(path_row, text=str(self.folder), wraplength=520, panel=True)
         self.path_label.grid(row=0, column=0, sticky="w", padx=8, pady=8)
-        self.button(path_row, "Choose Folder…", self.choose_folder, "secondary").grid(row=0, column=1, padx=8)
+        self.button(path_row, "Choose Folder…", self.choose_folder, "secondary",
+                    tooltip_id="new_file.choose_folder").grid(row=0, column=1, padx=8)
         inputs = self.frame(self.top)
         inputs.grid(row=1, column=0, sticky="ew", padx=12, pady=6)
         inputs.columnconfigure(1, weight=1)
@@ -53,9 +54,11 @@ class TextToucherWindow(ToolWindowMixin):
         self.name_entry = tk.Entry(inputs, textvariable=self.name, font=("Arial", 10), relief="flat",
                                    bg=self.colors["field_bg"], fg=self.colors["field_text"],
                                    insertbackground=self.colors["text"], selectbackground=self.colors["selection"])
+        attach_tooltip(self.name_entry, "new_file.name", self.colors)
         self.name_entry.grid(row=0, column=1, sticky="ew", padx=6, pady=8)
         self.extension_box = ttk.Combobox(inputs, textvariable=self.extension, values=EXTENSIONS,
                                           state="readonly", width=9, style="TextToucher.TCombobox")
+        attach_tooltip(self.extension_box, "new_file.extension", self.colors)
         self.extension_box.grid(row=0, column=2, padx=8)
         # Style this dropdown's popdown only, rather than all comboboxes in the app.
         try:
@@ -77,6 +80,7 @@ class TextToucherWindow(ToolWindowMixin):
                                bg=self.colors["log_bg"], fg=self.colors["text"],
                                insertbackground=self.colors["text"], selectbackground=self.colors["selection"],
                                selectforeground=self.colors["text"], relief="flat", padx=10, pady=8)
+        attach_tooltip(self.content, "new_file.content", self.colors)
         self.content.grid(row=0, column=0, sticky="nsew")
         vertical = ttk.Scrollbar(editor, command=self.content.yview, style="TextToucher.Vertical.TScrollbar")
         vertical.grid(row=0, column=1, sticky="ns")
@@ -87,8 +91,10 @@ class TextToucherWindow(ToolWindowMixin):
         footer = self.frame(self.top)
         footer.grid(row=4, column=0, sticky="ew", padx=12, pady=8)
         footer.columnconfigure(0, weight=1)
-        self.checkbutton(footer, "Append date/time to filename", self.timestamp).grid(row=0, column=0, sticky="w")
-        self.create_button = self.button(footer, "Create File", self.create, "success")
+        self.checkbutton(footer, "Append date/time to filename", self.timestamp,
+                         tooltip_id="new_file.timestamp").grid(row=0, column=0, sticky="w")
+        self.create_button = self.button(footer, "Create File", self.create, "success",
+                                         tooltip_id="new_file.create")
         self.create_button.grid(row=0, column=1, padx=6, pady=6)
         self.preview_label = self.label(self.top, textvariable=self.destination, bg=self.colors["app_bg"], wraplength=620)
         self.preview_label.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 6))

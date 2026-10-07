@@ -17,7 +17,7 @@ verification records. End-user instructions remain in the root `README.md`.
   `.dev-log/09-cli-and-mcp.md` and
   [acceptance/v1.1.0.md](acceptance/v1.1.0.md).
 - **Cross-platform matrix:** Hosted CI run [`37151399734`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37151399734) passes all nine Windows, macOS, and Linux jobs on Python 3.10, 3.13, and 3.14 with Phase 10.5 changes. Windows remains the directly tested development platform; the other platforms are verified by this hosted matrix.
-- **Current development:** Phase 10.5 is accepted: project manifests support v2 transforms, structural actions are exposed to adapters, safe transforms follow the owner setting, destructive/content edits carry operation review metadata, and selection/history state tracks moves. The Windows suite passes (437 passed, 2 skipped); changed-file Ruff checks pass. Next is Phase 10.6a (tooltips) and 10.6 (per-operation approval controls in the popup). See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
+- **Current development:** Phase 10.5 is accepted: project manifests support v2 transforms, structural actions are exposed to adapters, safe transforms follow the owner setting, destructive/content edits carry operation review metadata, and selection/history state tracks moves. Phase 10.6a is accepted locally: every control has registered hover help, and the full suite passes on Python 3.10, 3.13 and 3.14 (446-447 passed). Next is Phase 10.6 (per-operation approval controls in the popup). See the [Phase 10 plan](plans/2026-10-02-project-transforms.md).
 - **Run from a checkout:** `pip install -e ".[dev]"`, then `projectmapper <folder>` or
   `python -m projectmapper <folder>`.
 - **Test:** `python -m pytest`; the Phase 9 full suite passed with 389 tests on Python
@@ -34,7 +34,7 @@ verification records. End-user instructions remain in the root `README.md`.
 ## Active plan
 
 - [Application hardening and shared action layer](plans/2026-09-16-application-hardening-and-action-layer.md)
-- [Project transforms: Phase 10, steps 10.0–10.3 accepted; backups v2 and undo next](plans/2026-10-02-project-transforms.md)
+- [Project transforms: Phase 10, steps 10.0–10.6a accepted; review UI (10.6) next](plans/2026-10-02-project-transforms.md)
 - [Verified desktop action inventory](action-inventory.md)
 - [UI entry-point map](ui-map.md)
 - [Developer guide: actions, events, approvals and errors](developer-guide.md)

@@ -72,6 +72,10 @@ The SQLite snapshot is the primary truth source. Markdown exports are derived vi
    - Filedump
    - Combined tree and filedump
 
+Hover over any button, checkbox, entry, list or tree in any window to see a short help
+bubble. The help text lives in one place, `src/projectmapper/tools/tooltips.py`, and a test
+fails if a control is added without it.
+
 ## Tree navigation and selection
 
 Folders load their displayed children when expanded, in small batches. The complete

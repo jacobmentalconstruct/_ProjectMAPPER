@@ -7,7 +7,8 @@ accepted and released. Cross-platform CI passed all nine platform/version jobs i
 `37139891049`. Steps 10.0–10.4 are complete. Phase 10.4 passed the full local suite and all
 nine Windows/macOS/Linux × Python 3.10/3.13/3.14 hosted jobs in run `37148797317`. Phase
 10.5 is accepted: local verification passes and hosted run `37151399734` passes all nine
-Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Proceed to 10.6a and 10.6.**
+Windows/macOS/Linux × Python 3.10/3.13/3.14 jobs. Step 10.6a (hover help for every
+control) is accepted locally (2026-10-06; hosted CI not yet run on it). Proceed to 10.6.**
 Active as Phase 10, following the conventions of
 `2026-09-16-application-hardening-and-action-layer.md` (entry record, implementation/review
 cycle, stop gate per step, dated `.dev-log/` journal).
@@ -43,13 +44,14 @@ Current status (2026-10-03; refreshed after hosted CI run `37148797317`):
   - 9.4's approval popup is built so it can later show a per-op checklist with Approve
     selected / Approve all / Deny all (D2). A single-decision popup is fine for Phase 9,
     but don't hard-code one yes/no into the request shape if avoidable.
-- **Steps 10.0–10.5 are complete; 10.6a is next:** `.dev-log/10-project-transforms.md`
+- **Steps 10.0–10.6a are complete; 10.6 is next:** `.dev-log/10-project-transforms.md`
   records the entry gate and acceptance; D1–D7 are present in section 17 of the main plan.
   The shared executor applies content and structural operations, quarantines deletes until
   commit, and rolls back failures. Hosted run `37148797317` passed all nine Windows,
   macOS and Linux jobs on Python 3.10, 3.13 and 3.14 with backup manifest v2 and changeset
   undo. Phase 10.5 adds v2 changesets, adapter actions, selection remapping and approval
-  classification. Hosted run `37151399734` passes all nine matrix jobs; proceed to 10.6a.
+  classification. Hosted run `37151399734` passes all nine matrix jobs. Step 10.6a is accepted locally
+  (2026-10-06); proceed to 10.6.
 - **Everything decided is in this file:** design (§3), user-facing text and docs (§3.8),
   ordered steps with gates (§4), and owner decisions (§5). Nothing is open.
 - **9.2 gate completed:** after the line-ending fix, the full 378-test suite passes on
@@ -496,6 +498,14 @@ with 2 skips; changed-file Ruff, line-ending tests and the docs accuracy check p
 run [`37151399734`](https://github.com/jacobmentalconstruct/_ProjectMAPPER/actions/runs/37151399734)
 passes all nine jobs. Step 10.5 is accepted; proceed to 10.6a.
 
+**10.5 corrections (2026-10-06, decisions D8 and D9).** A post-acceptance review found two
+validate/apply mismatches, both safe (nothing written) but contrary to §3.1: existing files
+named by their post-move path were refused at apply, and v1 manifests with unknown fields
+passed review but failed after approval. Fixed in `core/vtree.py` (`origin` on `before`
+entries), `core/transaction.py` (baseline inspects `origin`) and `tools/project_patcher.py`
+(v1 strict parse); covered in `tests/test_transaction.py` and `tests/test_project_patcher.py`.
+Evidence is in `.dev-log/10-project-transforms.md`, "10.5a".
+
 ### 10.6a — Tooltips for every existing control
 - `ToolTip` helper, the tooltip text registry, and tooltips for every control listed in
   `docs/ui-map.md` (§3.8 C).
@@ -504,6 +514,15 @@ passes all nine jobs. Step 10.5 is accepted; proceed to 10.6a.
 - Gate: the coverage test passes for every window. UI smoke tests stay green, and no test
   opens a real tooltip window. Owner reviews the wording list (the registry file) before
   the step is parked.
+
+**Accepted locally (2026-10-06).** The owner tested the windows and approved the close. Two root
+causes had left the suite red (94-95 failures): `ToolWindowMixin.button` never forwarded `tooltip_id`
+to the app's button factory, and the tooltip delay timer was registered on its own widget, so test
+teardown (which cancels timers through the root) made the widget delete the same Tcl command twice.
+Both are fixed in `tools/ui_base.py`. The one intermittent Ctrl+Enter test now invokes its own binding
+(`fire_binding`) and asserts it returns `break`, so it no longer depends on OS focus. Full suite on
+Python 3.13, 3.10 and 3.14, one after another: 446 passed, 2 skipped; 447 passed, 1 skipped;
+447 passed, 1 skipped; all exit 0. Hosted CI has not run on this step.
 
 ### 10.6 — Review UI
 - Op list, badges, move/create/delete diffs, destructive-first approval text.
@@ -578,6 +597,21 @@ with owner approval.
   visible, grouped under their cause, and switchable per op or per group. In the agent
   path, derived ops are `patch` ops and follow the content-edit rule in D2.
 - **D7 — Manifest version. Decided:** `version: 2` with `ops`; v1 `files` stays accepted.
+- **D8 — Baseline identity belongs to the original path. Decided (owner, 2026-10-06):** the
+  virtual tree records, with each `before` entry, the path an object had on disk at review
+  (`origin`). The executor's start-of-apply baseline check inspects that path, not the
+  object's path after earlier operations in the same changeset. This makes the sequential
+  path rule hold at apply time: `move` then `patch`/`delete`/`move` of the same existing file,
+  and operations on the contents of a moved folder, apply and undo. The check is no weaker:
+  an external edit or removal of the original source after review is still refused. Found
+  while documenting the patcher; before this change such plans simulated as valid and were
+  refused with `source_changed` before any write.
+- **D9 — v1 review is as strict as v1 apply. Decided (owner, 2026-10-06):** `apply_all`
+  normalizes through `parse_changeset` to record undo data, so v1 manifests are now parsed
+  by the same strict parser at construction, after the existing v1 checks and their
+  messages. Unknown entry/top-level fields and malformed hunks are refused at review instead
+  of after approval. Valid v1 manifests, including `description`, optional `sha256` and
+  hunk `description`, behave as before.
 
 ## 6. Out of scope (for now)
 

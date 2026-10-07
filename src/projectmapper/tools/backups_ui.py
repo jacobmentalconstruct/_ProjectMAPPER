@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from .patcher import PatchError
-from .ui_base import ToolWindowMixin
+from .ui_base import ToolWindowMixin, attach_tooltip
 
 VIEW_CURRENT, VIEW_DIFF, VIEW_BACKUP = range(3)
 
@@ -48,21 +48,26 @@ class BackupsWindow(ToolWindowMixin):
         colors = self.colors
         toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
-        self.button(toolbar, "Refresh", self.refresh).pack(side="left")
-        self.delete_button = self.button(toolbar, "Delete Selected…", self.delete_selected, "danger")
+        self.button(toolbar, "Refresh", self.refresh, tooltip_id="backups.refresh").pack(side="left")
+        self.delete_button = self.button(toolbar, "Delete Selected…", self.delete_selected, "danger",
+                                         tooltip_id="backups.delete")
         self.delete_button.pack(side="right")
-        self.cleanup_button = self.button(toolbar, "Clean Up…", self.clean_up, "secondary")
+        self.cleanup_button = self.button(toolbar, "Clean Up…", self.clean_up, "secondary",
+                                          tooltip_id="backups.cleanup")
         self.cleanup_button.pack(side="right", padx=6)
         self.keep = tk.StringVar(self.top, "10")
         self.keep_box = ttk.Spinbox(toolbar, from_=0, to=999, width=4, textvariable=self.keep,
                                     style="Review.TSpinbox", font=("Arial", 10))
+        attach_tooltip(self.keep_box, "backups.keep", colors)
         self.keep_box.pack(side="right", padx=(4, 6))
         self.label(toolbar, panel=True, text="keep newest").pack(side="right")
         self.cleanup_scope = tk.StringVar(self.top, "project")
         for value, text in (("user", "User store"), ("project", "Project store")):
-            tk.Radiobutton(toolbar, text=text, value=value, variable=self.cleanup_scope, bg=colors["panel_bg"],
+            radio = tk.Radiobutton(toolbar, text=text, value=value, variable=self.cleanup_scope, bg=colors["panel_bg"],
                            fg=colors["text"], selectcolor=colors["tree_bg"], activebackground=colors["panel_bg"],
-                           activeforeground=colors["text"], font=("Arial", 10)).pack(side="right", padx=2)
+                           activeforeground=colors["text"], font=("Arial", 10))
+            attach_tooltip(radio, "backups.scope", colors)
+            radio.pack(side="right", padx=2)
 
         self.status = tk.StringVar(self.top, "")
         self.status_label = tk.Label(self.top, textvariable=self.status, bg=colors["status_bg"],
@@ -77,6 +82,7 @@ class BackupsWindow(ToolWindowMixin):
         self.label(left, panel=True, text="GENERATIONS (newest first, F5 refreshes)").pack(anchor="w", padx=6, pady=(6, 4))
         self.generation_list = ttk.Treeview(left, columns=("scope", "kind", "files", "size", "status"),
                                             selectmode="browse")
+        attach_tooltip(self.generation_list, "backups.generations", colors)
         for column, text, width in (("#0", "Created", 150), ("scope", "Scope", 64), ("kind", "Kind", 80),
                                     ("files", "Files", 44), ("size", "Size", 64), ("status", "Status", 80)):
             self.generation_list.heading(column, text=text, anchor="w")
@@ -92,6 +98,7 @@ class BackupsWindow(ToolWindowMixin):
         self.label(right, panel=True, textvariable=self.detail, fg=colors["text"], anchor="w",
                    justify="left", wraplength=420).pack(fill="x", padx=6, pady=(6, 4))
         self.file_list = ttk.Treeview(right, columns=("state",), height=4, selectmode="browse")
+        attach_tooltip(self.file_list, "backups.files", colors)
         self.file_list.heading("#0", text="File", anchor="w")
         self.file_list.heading("state", text="Compared with current", anchor="w")
         self.file_list.column("#0", width=260, stretch=True, anchor="w")
@@ -100,9 +107,11 @@ class BackupsWindow(ToolWindowMixin):
         self.file_list.bind("<<TreeviewSelect>>", self.on_file_selected)
         actions = self.frame(right)
         actions.pack(fill="x", padx=4, pady=(0, 4))
-        self.restore_file_button = self.button(actions, "Restore File…", self.restore_file, "accent")
+        self.restore_file_button = self.button(actions, "Restore File…", self.restore_file, "accent",
+                                               tooltip_id="backups.restore_file")
         self.restore_file_button.pack(side="left")
-        self.restore_all_button = self.button(actions, "Restore All Files…", self.restore_all, "accent")
+        self.restore_all_button = self.button(actions, "Restore All Files…", self.restore_all, "accent",
+                                              tooltip_id="backups.restore_all")
         self.restore_all_button.pack(side="left", padx=6)
         self.views = ttk.Notebook(right, style="Review.TNotebook")
         self.views.pack(fill="both", expand=True, padx=4, pady=(0, 4))

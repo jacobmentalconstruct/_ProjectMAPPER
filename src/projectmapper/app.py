@@ -23,12 +23,14 @@ if __package__:
     from .tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                         TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow,
                         SettingsWindow)
+    from .tools.ui_base import attach_tooltip
     from .core import format_diagnostics, scan_project_tree
 else:
     from tree_view import TreeProjection
     from tools import (PatchError, validate_target, PatcherWindow, TextEditorWindow,
                        TextToucherWindow, ProjectPatcherWindow, BackupsWindow, HistoryWindow,
                        SettingsWindow)
+    from tools.ui_base import attach_tooltip
     from core import format_diagnostics, scan_project_tree
 # === [SECTION: IMPORTS] END ===
 
@@ -178,6 +180,7 @@ class ProgressPopup:
             font=("Arial", 10, "bold"),
             command=self.trigger_cancel,
         )
+        attach_tooltip(self.cancel_btn, "progress.cancel", THEME)
         self.cancel_btn.pack(pady=10)
 
     def update_text(self, text):
@@ -236,15 +239,17 @@ class ExclusionsPopup:
         self.project_label = tk.Label(self.top, bg=THEME["panel_bg"], fg=THEME["muted_text"], anchor="w")
         self.project_label.pack(fill=tk.X, padx=16, pady=(6, 0))
         self._checkbutton(self.top, app.widgets["respect_exclusions"], app.apply_exclusion_settings,
-                          "Apply exclusion rules (checked = hide matches)").pack(anchor="w", padx=12, pady=6)
+                          "Apply exclusion rules (checked = hide matches)", tooltip_id="exclusions.apply").pack(anchor="w", padx=12, pady=6)
 
         add_row = tk.Frame(self.top, bg=THEME["panel_bg"])
         add_row.pack(fill=tk.X, padx=16, pady=(0, 10))
         tk.Label(add_row, text="Hide filenames matching:", bg=THEME["panel_bg"], fg=THEME["text"]).pack(side=tk.LEFT)
         self.entry = tk.Entry(add_row, bg=THEME["field_bg"], fg=THEME["text"], insertbackground=THEME["text"])
+        attach_tooltip(self.entry, "exclusions.pattern", THEME)
         self.entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
         self.entry.bind("<Return>", lambda _event: self.add_pattern())
-        app._make_button(add_row, "Add", self.add_pattern, THEME["accent"], THEME["accent_hover"]).pack(side=tk.RIGHT)
+        app._make_button(add_row, "Add", self.add_pattern, THEME["accent"], THEME["accent_hover"],
+                         tooltip_id="exclusions.add").pack(side=tk.RIGHT)
 
         list_frame = tk.Frame(self.top, bg=THEME["tree_bg"])
         self.canvas = tk.Canvas(list_frame, bg=THEME["tree_bg"], highlightthickness=0)
@@ -265,14 +270,15 @@ class ExclusionsPopup:
         actions = tk.Frame(self.top, bg=THEME["panel_bg"])
         actions.pack(side=tk.BOTTOM, fill=tk.X, padx=12, pady=(0, 12))
         self.batch_buttons = []
-        for label, command, color in (
-            ("Select All", lambda: self.select_all(True), "panel_alt_bg"),
-            ("Deselect All", lambda: self.select_all(False), "panel_alt_bg"),
-            ("Exclude Selected", lambda: self.set_selected_enabled(True), "secondary"),
-            ("Allow Selected", lambda: self.set_selected_enabled(False), "secondary"),
-            ("Delete Selected", self.delete_selected, "danger"),
+        for label, command, color, tooltip_id in (
+            ("Select All", lambda: self.select_all(True), "panel_alt_bg", "exclusions.select_all"),
+            ("Deselect All", lambda: self.select_all(False), "panel_alt_bg", "exclusions.deselect_all"),
+            ("Exclude Selected", lambda: self.set_selected_enabled(True), "secondary", "exclusions.exclude_selected"),
+            ("Allow Selected", lambda: self.set_selected_enabled(False), "secondary", "exclusions.allow_selected"),
+            ("Delete Selected", self.delete_selected, "danger", "exclusions.delete_selected"),
         ):
-            button = app._make_button(actions, label, command, THEME[color], THEME["field_bg_alt"])
+            button = app._make_button(actions, label, command, THEME[color], THEME["field_bg_alt"],
+                                      tooltip_id=tooltip_id)
             button.pack(side=tk.LEFT, padx=3)
             if label.endswith("Selected"):
                 self.batch_buttons.append(button)
@@ -280,11 +286,12 @@ class ExclusionsPopup:
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16)
         self.refresh()
 
-    def _checkbutton(self, parent, variable, command, text="", background=None):
+    def _checkbutton(self, parent, variable, command, text="", background=None, *, tooltip_id):
         bg = background or THEME["panel_bg"]
-        return tk.Checkbutton(parent, text=text, variable=variable, command=command,
-                              bg=bg, fg=THEME["text"], selectcolor=THEME["tree_bg"],
-                              activebackground=bg, activeforeground=THEME["text"])
+        widget = tk.Checkbutton(parent, text=text, variable=variable, command=command,
+                                bg=bg, fg=THEME["text"], selectcolor=THEME["tree_bg"],
+                                activebackground=bg, activeforeground=THEME["text"])
+        return attach_tooltip(widget, tooltip_id, THEME)
 
     def _scroll(self, event):
         self.canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
@@ -313,9 +320,11 @@ class ExclusionsPopup:
             enabled = tk.BooleanVar(value=bool(rule["active"]))
             self.selection_vars[key] = selected
             self._checkbutton(self.rows_frame, selected,
-                              lambda k=key, v=selected: self.select_row(k, v.get()), background=bg).grid(row=index, column=0, sticky="nsew")
+                              lambda k=key, v=selected: self.select_row(k, v.get()), background=bg,
+                              tooltip_id="exclusions.row_select").grid(row=index, column=0, sticky="nsew")
             self._checkbutton(self.rows_frame, enabled,
-                              lambda r=rule, v=enabled: self.toggle_rule(r, v.get()), background=bg).grid(row=index, column=1, sticky="nsew")
+                              lambda r=rule, v=enabled: self.toggle_rule(r, v.get()), background=bg,
+                              tooltip_id="exclusions.rule").grid(row=index, column=1, sticky="nsew")
             tk.Label(self.rows_frame, text=rule["pattern"], bg=bg, fg=THEME["text"], anchor="w",
                      padx=10, pady=5, wraplength=330, justify=tk.LEFT).grid(row=index, column=2, sticky="nsew")
             tk.Label(self.rows_frame, text=self.SOURCE_LABELS[rule["source"]], bg=bg,
@@ -608,12 +617,13 @@ class ProjectMapperApp:
             insertbackground=THEME["field_text"],
             relief=tk.FLAT,
         )
+        attach_tooltip(self.widgets["project_path_entry"], "main.project_root", THEME)
         self.widgets["project_path_entry"].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=6)
         self.widgets["project_path_entry"].bind("<Return>", lambda _event: self.choose_root_from_entry())
 
-        self._make_button(top_frame, "Choose...", self.choose_root_dialog, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.RIGHT)
-        self._make_button(top_frame, "Settings…", self.open_settings, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=5)
-        self._make_button(top_frame, "↑", self.navigate_to_parent, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=5)
+        self._make_button(top_frame, "Choose...", self.choose_root_dialog, THEME["secondary"], THEME["secondary_hover"], tooltip_id="main.choose_root").pack(side=tk.RIGHT)
+        self._make_button(top_frame, "Settings…", self.open_settings, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.settings").pack(side=tk.RIGHT, padx=5)
+        self._make_button(top_frame, "↑", self.navigate_to_parent, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.parent").pack(side=tk.RIGHT, padx=5)
 
         paned = ttk.PanedWindow(self.root, orient=tk.VERTICAL)
         paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
@@ -625,6 +635,7 @@ class ProjectMapperApp:
             columns=("nav_up", "nav_down", "size"),
             selectmode="browse",
         )
+        attach_tooltip(self.widgets["folder_tree"], "main.tree", THEME)
         self.widgets["folder_tree"].heading("#0", text="Explorer")
         self.widgets["folder_tree"].heading("nav_up", text="↑")
         self.widgets["folder_tree"].heading("nav_down", text="↓")
@@ -655,19 +666,19 @@ class ProjectMapperApp:
         tool_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
         tool_row.pack(fill=tk.X, padx=5, pady=2)
 
-        self._make_button(btn_row, "Compile Snapshot", self.compile_snapshot_placeholder, THEME["accent"], THEME["accent_hover"], bold=True).pack(side=tk.LEFT, padx=4)
-        self._make_button(btn_row, "Export Tree MD", self.export_tree_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
-        self._make_button(btn_row, "Export Filedump MD", self.export_filedump_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
-        self._make_button(btn_row, "Export Tree+Dump MD", self.export_combined_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=4)
-        self._make_button(tool_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"]).pack(side=tk.LEFT, padx=4)
-        vendor_button = self._make_button(tool_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"])
+        self._make_button(btn_row, "Compile Snapshot", self.compile_snapshot_placeholder, THEME["accent"], THEME["accent_hover"], bold=True, tooltip_id="main.compile").pack(side=tk.LEFT, padx=4)
+        self._make_button(btn_row, "Export Tree MD", self.export_tree_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.export_tree").pack(side=tk.LEFT, padx=4)
+        self._make_button(btn_row, "Export Filedump MD", self.export_filedump_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.export_filedump").pack(side=tk.LEFT, padx=4)
+        self._make_button(btn_row, "Export Tree+Dump MD", self.export_combined_markdown, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.export_combined").pack(side=tk.LEFT, padx=4)
+        self._make_button(tool_row, "Open Output Folder", self.open_output_folder, THEME["success"], THEME["success_hover"], tooltip_id="main.output_folder").pack(side=tk.LEFT, padx=4)
+        vendor_button = self._make_button(tool_row, "Export Vendor App", self.export_vendor_app, THEME["secondary"], THEME["secondary_hover"], tooltip_id="main.vendor_export")
         if SOURCE_ROOT is None:  # Installed package: there is no source checkout to vendor.
             vendor_button.configure(state=tk.DISABLED)
         vendor_button.pack(side=tk.LEFT, padx=4)
         self.widgets["vendor_export_button"] = vendor_button
-        self._make_button(tool_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.RIGHT, padx=4)
+        self._make_button(tool_row, "Diagnostics", self.run_diagnostics, THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.diagnostics").pack(side=tk.RIGHT, padx=4)
         self.widgets["backups_button"] = self._make_button(tool_row, "Backups…", self.open_backups,
-                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"])
+                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.backups")
         self.widgets["backups_button"].pack(side=tk.RIGHT, padx=4)
 
         option_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
@@ -675,7 +686,7 @@ class ProjectMapperApp:
         control_row = tk.Frame(action_frame, bg=THEME["panel_bg"])
         control_row.pack(fill=tk.X, padx=5, pady=2)
         self.widgets["respect_exclusions"] = tk.BooleanVar(value=True)
-        tk.Checkbutton(
+        exclusion_toggle = tk.Checkbutton(
             option_row,
             text="Apply exclusions (hide matches)",
             variable=self.widgets["respect_exclusions"],
@@ -685,9 +696,10 @@ class ProjectMapperApp:
             selectcolor=THEME["tree_bg"],
             activebackground=THEME["panel_bg"],
             activeforeground=THEME["text"],
-        ).pack(side=tk.LEFT, padx=6)
+        )
+        attach_tooltip(exclusion_toggle, "main.apply_exclusions", THEME).pack(side=tk.LEFT, padx=6)
         self.widgets["include_tree_in_filedump"] = tk.BooleanVar(value=False)
-        tk.Checkbutton(
+        tree_export_toggle = tk.Checkbutton(
             option_row,
             text="Tree in filedump export",
             variable=self.widgets["include_tree_in_filedump"],
@@ -696,10 +708,11 @@ class ProjectMapperApp:
             selectcolor=THEME["tree_bg"],
             activebackground=THEME["panel_bg"],
             activeforeground=THEME["text"],
-        ).pack(side=tk.LEFT, padx=6)
+        )
+        attach_tooltip(tree_export_toggle, "main.tree_export", THEME).pack(side=tk.LEFT, padx=6)
         self.widgets["include_binary_blobs"] = tk.BooleanVar(value=False)
         self.widgets["include_binary_blobs"].trace_add("write", lambda *_: None if self.syncing_controls else self.action("capture.configure", {"include_binary": bool(self.widgets["include_binary_blobs"].get())}))
-        tk.Checkbutton(
+        binary_toggle = tk.Checkbutton(
             option_row,
             text="Preserve binary blobs in DB",
             variable=self.widgets["include_binary_blobs"],
@@ -708,10 +721,11 @@ class ProjectMapperApp:
             selectcolor=THEME["tree_bg"],
             activebackground=THEME["panel_bg"],
             activeforeground=THEME["text"],
-        ).pack(side=tk.LEFT, padx=6)
-        self._make_button(control_row, "All", lambda: self.set_global_selection(S_CHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=2)
-        self._make_button(control_row, "None", lambda: self.set_global_selection(S_UNCHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"]).pack(side=tk.LEFT, padx=2)
-        self._make_button(control_row, "Add", self.add_exclusion_from_entry, THEME["accent"], THEME["accent_hover"]).pack(side=tk.RIGHT, padx=2)
+        )
+        attach_tooltip(binary_toggle, "main.binary_blobs", THEME).pack(side=tk.LEFT, padx=6)
+        self._make_button(control_row, "All", lambda: self.set_global_selection(S_CHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.select_all").pack(side=tk.LEFT, padx=2)
+        self._make_button(control_row, "None", lambda: self.set_global_selection(S_UNCHECKED), THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.select_none").pack(side=tk.LEFT, padx=2)
+        self._make_button(control_row, "Add", self.add_exclusion_from_entry, THEME["accent"], THEME["accent_hover"], tooltip_id="main.add_exclusion").pack(side=tk.RIGHT, padx=2)
         self.widgets["exclusion_entry"] = tk.Entry(
             control_row,
             bg=THEME["field_bg_alt"],
@@ -720,18 +734,19 @@ class ProjectMapperApp:
             width=22,
             relief=tk.FLAT,
         )
+        attach_tooltip(self.widgets["exclusion_entry"], "main.exclusion_pattern", THEME)
         self.widgets["exclusion_entry"].pack(side=tk.RIGHT, padx=4)
         # Packed right to left: reads "Hide pattern: [entry] Add".
         tk.Label(control_row, text="Hide pattern:", bg=THEME["panel_bg"], fg=THEME["muted_text"]).pack(side=tk.RIGHT, padx=4)
-        self._make_button(control_row, "Exclusions", self.manage_exclusions_popup, THEME["success"], THEME["success_hover"]).pack(side=tk.RIGHT, padx=2)
-        self._make_button(control_row, "Rescan", self.request_rescan_tree, THEME["secondary"], THEME["secondary_hover"]).pack(side=tk.RIGHT, padx=2)
+        self._make_button(control_row, "Exclusions", self.manage_exclusions_popup, THEME["success"], THEME["success_hover"], tooltip_id="main.manage_exclusions").pack(side=tk.RIGHT, padx=2)
+        self._make_button(control_row, "Rescan", self.request_rescan_tree, THEME["secondary"], THEME["secondary_hover"], tooltip_id="main.rescan").pack(side=tk.RIGHT, padx=2)
 
         log_header = tk.Frame(action_frame, bg=THEME["panel_bg"])
         log_header.pack(fill=tk.X, padx=5, pady=(4, 0))
         tk.Label(log_header, text="LOG (recent lines; operations are kept in History)", bg=THEME["panel_bg"],
                  fg=THEME["muted_text"], font=("Arial", 9)).pack(side=tk.LEFT)
         self.widgets["history_button"] = self._make_button(log_header, "History…", self.open_history,
-                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"])
+                                                           THEME["panel_alt_bg"], THEME["field_bg_alt"], tooltip_id="main.history")
         self.widgets["history_button"].pack(side=tk.RIGHT)
 
         self.widgets["log_box"] = scrolledtext.ScrolledText(
@@ -760,8 +775,8 @@ class ProjectMapperApp:
         self.root.update_idletasks()
         self.root.minsize(self.root.winfo_reqwidth(), MIN_WINDOW_HEIGHT)
 
-    def _make_button(self, parent, text, command, bg, active_bg, bold=False):
-        return tk.Button(
+    def _make_button(self, parent, text, command, bg, active_bg, bold=False, *, tooltip_id):
+        widget = tk.Button(
             parent,
             text=text,
             command=command,
@@ -774,6 +789,7 @@ class ProjectMapperApp:
             padx=10,
             pady=6,
         )
+        return attach_tooltip(widget, tooltip_id, THEME)
 # === [SECTION: TK_UI_LAYOUT] END ===
 
 

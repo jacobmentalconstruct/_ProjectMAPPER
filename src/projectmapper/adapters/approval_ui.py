@@ -22,6 +22,12 @@ def show_approval(request, timeout_seconds):
     """Show the exact action summary and diff; approve only on an explicit button press."""
     import tkinter as tk
     from tkinter import ttk
+    try:
+        from ..app import THEME
+        from ..tools.ui_base import attach_tooltip
+    except ImportError:
+        from app import THEME
+        from tools.ui_base import attach_tooltip
 
     root = tk.Tk()
     root.withdraw()
@@ -81,8 +87,10 @@ def show_approval(request, timeout_seconds):
         window.after(1000, tick)
 
     deny = ttk.Button(buttons, text="Deny", command=lambda: finish(False), takefocus=True)
+    attach_tooltip(deny, "approval.deny", THEME)
     deny.pack(side=tk.RIGHT, padx=(8, 0))
     approve = ttk.Button(buttons, text="Approve", command=lambda: finish(True))
+    attach_tooltip(approve, "approval.approve", THEME)
     approve.pack(side=tk.RIGHT)
     deny.focus_set()
     window.protocol("WM_DELETE_WINDOW", lambda: finish(False))

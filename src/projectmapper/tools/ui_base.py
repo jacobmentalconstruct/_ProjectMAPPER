@@ -11,6 +11,109 @@ except ImportError:
 DIFF_KINDS = ("header", "hunk", "add", "remove")  # Theme tokens are "diff_<kind>".
 
 
+class ToolTip:
+    """Delayed, non-activating help bubble for a Tk control."""
+
+    def __init__(self, widget, text, colors, *, delay=500, wraplength=360):
+        self.widget = widget
+        self.text = text
+        self.colors = colors
+        self.delay = delay
+        self.wraplength = wraplength
+        self.pending = None
+        self.window = None
+        widget.bind("<Enter>", self.schedule, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+        widget.bind("<ButtonPress>", self.hide, add="+")
+        widget.bind("<FocusOut>", self.hide, add="+")
+
+    def _timer_owner(self):
+        """The root window. A timer registered on a child widget is recorded in that widget's
+        command list, so cancelling it through the root (as test teardown and shutdown do)
+        would later make the widget's own destroy delete the same Tcl command twice."""
+        return self.widget.nametowidget(".")
+
+    def schedule(self, _event=None):
+        self.cancel_pending()
+        try:
+            self.pending = self._timer_owner().after(self.delay, self.show)
+        except (tk.TclError, KeyError):
+            self.pending = None
+
+    def cancel_pending(self):
+        if self.pending is not None:
+            try:
+                self._timer_owner().after_cancel(self.pending)
+            except (tk.TclError, KeyError):
+                pass
+            self.pending = None
+
+    def show(self):
+        self.pending = None
+        if self.window is not None or not self.widget.winfo_exists():
+            return
+        window = self.window = tk.Toplevel(self.widget)
+        window.withdraw()
+        window.overrideredirect(True)
+        window.transient(self.widget.winfo_toplevel())
+        bg = self.colors["panel_alt_bg"]
+        frame = tk.Frame(window, bg=bg, bd=1, relief=tk.SOLID,
+                         highlightthickness=1, highlightbackground=self.colors["secondary"])
+        frame.pack(fill=tk.BOTH, expand=True)
+        tk.Label(frame, text=self.text, justify=tk.LEFT, wraplength=self.wraplength,
+                 bg=bg, fg=self.colors["text"], padx=9, pady=6).pack()
+        window.update_idletasks()
+        x = self.widget.winfo_rootx() + 10
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        x = min(x, max(0, window.winfo_screenwidth() - window.winfo_reqwidth() - 8))
+        y = min(y, max(0, window.winfo_screenheight() - window.winfo_reqheight() - 8))
+        window.geometry(f"+{x}+{y}")
+        window.deiconify()
+
+    def hide(self, _event=None):
+        self.cancel_pending()
+        if self.window is not None:
+            try:
+                self.window.destroy()
+            except tk.TclError:
+                pass
+            self.window = None
+
+
+def attach_tooltip(widget, tooltip_id, colors):
+    """Attach registry text and a stable id to a widget for coverage checks."""
+    try:
+        from .tooltips import TOOLTIPS
+    except ImportError:
+        from tools.tooltips import TOOLTIPS
+    if tooltip_id not in TOOLTIPS:
+        raise KeyError(f"No tooltip text registered for {tooltip_id!r}.")
+    widget._projectmapper_tooltip_id = tooltip_id
+    widget._projectmapper_tooltip = ToolTip(widget, TOOLTIPS[tooltip_id], colors)
+    return widget
+
+
+INTERACTIVE_WIDGET_CLASSES = frozenset({
+    "Button", "TButton", "Checkbutton", "TCheckbutton", "Radiobutton", "TRadiobutton",
+    "Entry", "TEntry", "Spinbox", "TSpinbox", "Combobox", "TCombobox", "Treeview",
+})
+
+
+def missing_tooltips(root):
+    """Return interactive descendants without a stable tooltip id."""
+    missing = []
+
+    def walk(widget):
+        if widget.winfo_class() in INTERACTIVE_WIDGET_CLASSES and not getattr(
+                widget, "_projectmapper_tooltip_id", None):
+            missing.append(widget)
+        for child in widget.winfo_children():
+            walk(child)
+
+    walk(root)
+    return missing
+
+
 class ToolWindowMixin:
     def configure_tool_window(self, title, geometry, minimum):
         self.top.configure(bg=self.colors["app_bg"])
@@ -34,12 +137,14 @@ class ToolWindowMixin:
         defaults.update(kwargs)
         return tk.Label(parent, **defaults)
 
-    def button(self, parent, text, command, color=None, state="normal", **kwargs):
+    def button(self, parent, text, command, color=None, state="normal", *, tooltip_id, **kwargs):
         emphasized = color is not None
         color = color or "panel_alt_bg"
         kwargs.setdefault("bold", emphasized)
+        # _make_button attaches the tooltip itself; attaching again would stack a second one.
         button = self.app._make_button(parent, text, command, self.colors[color],
-                                       self.colors.get(color + "_hover", self.colors["field_bg_alt"]), **kwargs)
+                                       self.colors.get(color + "_hover", self.colors["field_bg_alt"]),
+                                       tooltip_id=tooltip_id, **kwargs)
         button.configure(state=state, disabledforeground=self.colors["muted_text"])
         return button
 
@@ -49,11 +154,13 @@ class ToolWindowMixin:
         button.configure(state="normal" if enabled else "disabled", bg=self.colors[shade],
                          activebackground=self.colors.get(shade + "_hover", self.colors["field_bg_alt"]))
 
-    def checkbutton(self, parent, text, variable, command=None):
-        return tk.Checkbutton(parent, text=text, variable=variable, command=command,
-                              bg=self.colors["panel_bg"], fg=self.colors["text"],
-                              selectcolor=self.colors["tree_bg"], activebackground=self.colors["panel_bg"],
-                              activeforeground=self.colors["text"], font=("Arial", 10))
+    def checkbutton(self, parent, text, variable, command=None, *, tooltip_id):
+        widget = tk.Checkbutton(parent, text=text, variable=variable, command=command,
+                                bg=self.colors["panel_bg"], fg=self.colors["text"],
+                                selectcolor=self.colors["tree_bg"], activebackground=self.colors["panel_bg"],
+                                activeforeground=self.colors["text"], font=("Arial", 10))
+        attach_tooltip(widget, tooltip_id, self.colors)
+        return widget
 
     def setup_review_styles(self):
         """Scoped styles for review panes and tabs; other windows' ttk defaults are untouched."""

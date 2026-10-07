@@ -6,7 +6,7 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 
 from .patcher import PatchError
-from .ui_base import ToolWindowMixin
+from .ui_base import ToolWindowMixin, attach_tooltip
 try:
     from ..application.desktop import Session
 except ImportError:
@@ -52,17 +52,18 @@ class TextEditorWindow(ToolWindowMixin):
     def build_ui(self):
         toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
-        self.button(toolbar, "Open…", self.open_file, "secondary").pack(side="left")
-        self.button(toolbar, "Save", self.save, "success").pack(side="left", padx=5)
-        self.button(toolbar, "Save As…", self.save_as).pack(side="left")
-        self.button(toolbar, "Find / Replace", self.show_find_replace).pack(side="left", padx=5)
-        self.button(toolbar, "Tokenizing Patcher…", self.open_patcher, "accent").pack(side="left")
+        self.button(toolbar, "Open…", self.open_file, "secondary", tooltip_id="editor.open").pack(side="left")
+        self.button(toolbar, "Save", self.save, "success", tooltip_id="editor.save").pack(side="left", padx=5)
+        self.button(toolbar, "Save As…", self.save_as, tooltip_id="editor.save_as").pack(side="left")
+        self.button(toolbar, "Find / Replace", self.show_find_replace, tooltip_id="editor.find_replace").pack(side="left", padx=5)
+        self.button(toolbar, "Tokenizing Patcher…", self.open_patcher, "accent", tooltip_id="editor.patcher").pack(side="left")
         self.read_only_var = tk.BooleanVar(self.top, self.read_only)
         self.checkbutton(toolbar, "Read-only", self.read_only_var,
-                         self.toggle_read_only).pack(side="right")
+                         self.toggle_read_only, tooltip_id="editor.read_only").pack(side="right")
         # Keep the previous bytes as a backup generation whenever this window overwrites a file.
         self.backup = tk.BooleanVar(self.top, False)
-        self.checkbutton(toolbar, "Keep backup", self.backup).pack(side="right", padx=(0, 8))
+        self.checkbutton(toolbar, "Keep backup", self.backup,
+                         tooltip_id="editor.keep_backup").pack(side="right", padx=(0, 8))
         body = self.frame(self.top)
         body.pack(fill="both", expand=True, padx=12, pady=(0, 8))
         body.rowconfigure(0, weight=1)
@@ -73,6 +74,7 @@ class TextEditorWindow(ToolWindowMixin):
                               selectforeground=self.colors["text"], relief="flat", padx=10, pady=8,
                               highlightthickness=1, highlightbackground=self.colors["panel_alt_bg"],
                               highlightcolor=self.colors["secondary"])
+        attach_tooltip(self.editor, "editor.text", self.colors)
         self.editor.grid(row=0, column=0, sticky="nsew")
         ybar = tk.Scrollbar(body, command=self.editor.yview, bg=self.colors["panel_alt_bg"],
                             troughcolor=self.colors["log_bg"], activebackground=self.colors["secondary"])
@@ -178,10 +180,14 @@ class TextEditorWindow(ToolWindowMixin):
         replace = tk.StringVar(self.find_window)
         for row, label, variable in ((0, "Find:", find), (1, "Replace:", replace)):
             tk.Label(self.find_window, text=label, bg=self.colors["panel_bg"], fg=self.colors["text"]).grid(row=row, column=0, padx=8, pady=7)
-            tk.Entry(self.find_window, textvariable=variable, width=38, bg=self.colors["field_bg"], fg=self.colors["field_text"],
-                     insertbackground=self.colors["text"], relief="flat").grid(row=row, column=1, padx=8, pady=7)
-        self.button(self.find_window, "Find Next", lambda: self.find_next(find.get())).grid(row=2, column=0, padx=8, pady=8)
-        self.button(self.find_window, "Replace All", lambda: self.replace_all(find.get(), replace.get()), "accent").grid(row=2, column=1, padx=8, pady=8)
+            entry = tk.Entry(self.find_window, textvariable=variable, width=38, bg=self.colors["field_bg"], fg=self.colors["field_text"],
+                             insertbackground=self.colors["text"], relief="flat")
+            attach_tooltip(entry, "editor.find" if row == 0 else "editor.replace", self.colors)
+            entry.grid(row=row, column=1, padx=8, pady=7)
+        self.button(self.find_window, "Find Next", lambda: self.find_next(find.get()),
+                    tooltip_id="editor.find_next").grid(row=2, column=0, padx=8, pady=8)
+        self.button(self.find_window, "Replace All", lambda: self.replace_all(find.get(), replace.get()), "accent",
+                    tooltip_id="editor.replace_all").grid(row=2, column=1, padx=8, pady=8)
 
     def find_next(self, value):
         if not value:

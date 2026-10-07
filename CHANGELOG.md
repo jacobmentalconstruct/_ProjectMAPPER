@@ -2,6 +2,22 @@
 
 All notable changes to ProjectMapper. Versions follow [PEP 440](https://peps.python.org/pep-0440/).
 
+## Unreleased
+
+### Added
+
+- **Hover help for every control** in every window, from one reviewed text registry
+  (`tools/tooltips.py`). A test fails if a control has no registered help.
+
+### Fixed
+
+- **Project changesets may name an existing file by the path it has after an earlier
+  move.** Move then patch, delete or move again, and operations on the contents of a moved
+  folder, used to validate but be refused at apply time. The original source is still
+  re-checked, so an outside edit after review is still refused.
+- **Version 1 project patches are reviewed as strictly as they are applied.** An unknown
+  field is now refused at review instead of after approval.
+
 ## 1.1.0 — 2026-10-02
 
 Local CLI and MCP adapters let agent clients inspect, snapshot and transform a project

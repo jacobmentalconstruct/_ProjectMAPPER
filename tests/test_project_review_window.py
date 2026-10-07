@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from tests.support import temporary_directory, tk_root
+from tests.support import fire_binding, temporary_directory, tk_root
 from projectmapper.app import ProjectMapperApp
 from projectmapper.application.controller import create_application
 from projectmapper.tools.project_patcher import EXAMPLE_CHANGESET, EXAMPLE_MANIFEST
@@ -137,7 +137,10 @@ class ReviewWindowTests(unittest.TestCase):
     def test_ctrl_enter_in_manifest_validates_without_inserting_newline(self):
         self.set_manifest({"path": "b.py", "hunks": [hunk("same", "same")]})
         before = self.window.manifest_box.get("1.0", "end-1c")
-        self.press(self.window.manifest_box, "<Control-Return>")
+        # Invoke the widget's own binding: no OS focus or event delivery is needed. "break" is
+        # what stops Tk's class binding from inserting the newline.
+        result = fire_binding(self.window.manifest_box, "<Control-Return>")
+        self.assertEqual(result, "break")
         self.assertEqual(self.window.manifest_box.get("1.0", "end-1c"), before)
         self.assertIsNotNone(self.window.session)
 

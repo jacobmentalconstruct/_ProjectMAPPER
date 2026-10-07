@@ -7,6 +7,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from .ui_base import ToolWindowMixin
+from .ui_base import attach_tooltip
 try:
     from ..application.desktop import Session
 except ImportError:
@@ -47,12 +48,13 @@ class PatcherWindow(ToolWindowMixin):
         self.path_label.pack(fill="x", padx=12, pady=8)
         toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12)
-        self.button(toolbar, "Reload Target", self.reload).pack(side="left")
-        self.button(toolbar, "Load Patch JSON", self.load_patch, "secondary").pack(side="left", padx=6)
-        self.button(toolbar, "Copy Schema", self.copy_schema).pack(side="left")
+        self.button(toolbar, "Reload Target", self.reload, tooltip_id="patcher.reload").pack(side="left")
+        self.button(toolbar, "Load Patch JSON", self.load_patch, "secondary",
+                    tooltip_id="patcher.load").pack(side="left", padx=6)
+        self.button(toolbar, "Copy Schema", self.copy_schema, tooltip_id="patcher.schema").pack(side="left")
         self.force_indent = tk.BooleanVar(self.top, False)
         self.checkbutton(toolbar, "Force patch indentation", self.force_indent,
-                         self.invalidate).pack(side="left", padx=12)
+                         self.invalidate, tooltip_id="patcher.indent").pack(side="left", padx=12)
         panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=10)
         self.views = ttk.Notebook(panes, style="Review.TNotebook")
@@ -65,6 +67,7 @@ class PatcherWindow(ToolWindowMixin):
         self.label(right, text="JSON PATCH", panel=True).pack(anchor="w", padx=8, pady=(6, 2))
         self.label(right, text="All hunks target the original source", panel=True).pack(anchor="w", padx=8, pady=(0, 6))
         self.patch_box = self.editor(right, editable=True)
+        attach_tooltip(self.patch_box, "patcher.proposal", self.colors)
         self.patch_box.pack(fill="both", expand=True)
         self.patch_box.insert("1.0", SCHEMA)
         self.patch_box.edit_modified(False)
@@ -75,29 +78,37 @@ class PatcherWindow(ToolWindowMixin):
         self.action_group.configure(padx=4, pady=4)
         self.action_group.pack(side="left")
         self.validate_button = self.button(self.action_group, "Validate / Preview",
-                                           lambda: self.run_action("validate"), "success")
+                                           lambda: self.run_action("validate"), "success",
+                                           tooltip_id="patcher.validate")
         self.validate_button.pack(side="left")
-        self.link_button = self.button(self.action_group, "&", self.toggle_action_link)
+        self.link_button = self.button(self.action_group, "&", self.toggle_action_link,
+                                       tooltip_id="patcher.link")
         self.link_button.configure(width=3, padx=2)
         self.link_button.pack(side="left", padx=3)
         self.apply_button = self.button(self.action_group, "Apply to Result",
-                                        lambda: self.run_action("apply"), "secondary", state="disabled")
+                                        lambda: self.run_action("apply"), "secondary", state="disabled",
+                                        tooltip_id="patcher.apply")
         self.apply_button.pack(side="left")
         self.set_button_enabled(self.apply_button, False, "secondary")
-        self.save_button = self.button(footer, "Save Result", self.save, "accent", state="disabled")
+        self.save_button = self.button(footer, "Save Result", self.save, "accent", state="disabled",
+                                       tooltip_id="patcher.save")
         self.save_button.pack(side="right")
         self.set_button_enabled(self.save_button, False, "accent")
         self.version = tk.BooleanVar(self.top, False)
         self.backup = tk.BooleanVar(self.top, False)
         options = self.frame(self.top)
         options.pack(side="bottom", fill="x", padx=12, pady=(0, 5), before=panes)
-        self.checkbutton(options, "Save as version", self.version).pack(side="left", padx=(0, 4))
-        self.checkbutton(options, "Keep backup", self.backup).pack(side="left", padx=(10, 4))
+        self.checkbutton(options, "Save as version", self.version,
+                         tooltip_id="patcher.version").pack(side="left", padx=(0, 4))
+        self.checkbutton(options, "Keep backup", self.backup,
+                         tooltip_id="patcher.backup").pack(side="left", padx=(10, 4))
         self.suffix = tk.StringVar(self.top, "_v1.0")
-        tk.Entry(options, textvariable=self.suffix, width=14,
+        suffix_entry = tk.Entry(options, textvariable=self.suffix, width=14,
                  bg=self.colors["field_bg"], fg=self.colors["field_text"],
                  insertbackground=self.colors["text"], selectbackground=self.colors["selection"],
-                 selectforeground=self.colors["text"], relief="flat", font=("Arial", 10)).pack(side="left", pady=5)
+                 selectforeground=self.colors["text"], relief="flat", font=("Arial", 10))
+        attach_tooltip(suffix_entry, "patcher.suffix", self.colors)
+        suffix_entry.pack(side="left", pady=5)
         self.status = tk.StringVar(self.top, "Paste a patch, validate it, then apply and save the result.")
         tk.Label(self.top, textvariable=self.status, wraplength=700, anchor="w", justify="left",
                  bg=self.colors["status_bg"], fg=self.colors["status_text"],

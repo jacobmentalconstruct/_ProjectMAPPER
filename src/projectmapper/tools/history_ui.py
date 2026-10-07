@@ -14,7 +14,7 @@ try:
 except ImportError:
     from application.errors import label as error_label
 from .patcher import PatchError
-from .ui_base import ToolWindowMixin
+from .ui_base import ToolWindowMixin, attach_tooltip
 
 CATEGORIES = ("All", "internal", "project", "selection", "exclusions", "capture", "snapshot", "text", "file",
               "patch", "project_patch", "backup", "output", "vendor", "application", "state")
@@ -69,16 +69,22 @@ class HistoryWindow(ToolWindowMixin):
         self.outcome = tk.StringVar(self.top, "All")
         self.text = tk.StringVar(self.top, "")
         self.label(toolbar, panel=True, text="Category").pack(side="left")
-        ttk.Combobox(toolbar, textvariable=self.category, values=CATEGORIES, state="readonly", width=13,
-                     style="Review.TCombobox").pack(side="left", padx=(4, 10))
+        category = ttk.Combobox(toolbar, textvariable=self.category, values=CATEGORIES, state="readonly", width=13,
+                                style="Review.TCombobox")
+        attach_tooltip(category, "history.category", colors)
+        category.pack(side="left", padx=(4, 10))
         self.label(toolbar, panel=True, text="Outcome").pack(side="left")
-        ttk.Combobox(toolbar, textvariable=self.outcome, values=OUTCOMES, state="readonly", width=17,
-                     style="Review.TCombobox").pack(side="left", padx=(4, 10))
+        outcome = ttk.Combobox(toolbar, textvariable=self.outcome, values=OUTCOMES, state="readonly", width=17,
+                               style="Review.TCombobox")
+        attach_tooltip(outcome, "history.outcome", colors)
+        outcome.pack(side="left", padx=(4, 10))
         self.label(toolbar, panel=True, text="Contains").pack(side="left")
-        tk.Entry(toolbar, textvariable=self.text, width=18, bg=colors["field_bg"], fg=colors["field_text"],
-                 insertbackground=colors["text"], relief="flat", font=("Arial", 10)).pack(side="left", padx=(4, 6))
-        self.button(toolbar, "Clear", self.clear_filters).pack(side="left")
-        self.button(toolbar, "Refresh", self.refresh).pack(side="right")
+        contains = tk.Entry(toolbar, textvariable=self.text, width=18, bg=colors["field_bg"], fg=colors["field_text"],
+                            insertbackground=colors["text"], relief="flat", font=("Arial", 10))
+        attach_tooltip(contains, "history.contains", colors)
+        contains.pack(side="left", padx=(4, 6))
+        self.button(toolbar, "Clear", self.clear_filters, tooltip_id="history.clear").pack(side="left")
+        self.button(toolbar, "Refresh", self.refresh, tooltip_id="history.refresh").pack(side="right")
         for variable in (self.category, self.outcome, self.text):
             variable.trace_add("write", lambda *_: self.schedule_refresh())
 
@@ -93,6 +99,7 @@ class HistoryWindow(ToolWindowMixin):
         panes.add(upper, weight=3)
         self.operation_list = ttk.Treeview(upper, columns=("action", "origin", "status", "duration", "target"),
                                            selectmode="browse")
+        attach_tooltip(self.operation_list, "history.operations", colors)
         for column, text, width in (("#0", "Time", 80), ("action", "Action", 190), ("origin", "Origin", 80),
                                     ("status", "Status", 130), ("duration", "Duration", 76),
                                     ("target", "Target", 200)):
@@ -109,7 +116,8 @@ class HistoryWindow(ToolWindowMixin):
         actions = self.frame(lower)
         actions.pack(fill="x", padx=4, pady=(4, 2))
         self.label(actions, panel=True, text="DETAILS").pack(side="left")
-        self.backups_button = self.button(actions, "Open Backups…", self.open_backups, "secondary")
+        self.backups_button = self.button(actions, "Open Backups…", self.open_backups, "secondary",
+                                          tooltip_id="history.backups")
         self.backups_button.pack(side="right")
         self.set_button_enabled(self.backups_button, False, "secondary")
         self.details = self.editor(lower)

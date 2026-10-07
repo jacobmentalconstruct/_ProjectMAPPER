@@ -10,7 +10,7 @@ except ImportError:
     from core.diff import DiffFile, diff_line_kinds, diff_summary, unified_diff_text
 from .patcher import PatchError
 from .project_patcher import SKELETON_MANIFEST
-from .ui_base import ToolWindowMixin
+from .ui_base import ToolWindowMixin, attach_tooltip
 
 
 SKELETON = json.dumps(SKELETON_MANIFEST, indent=2)
@@ -47,13 +47,16 @@ class ProjectPatcherWindow(ToolWindowMixin):
     def build_ui(self):
         toolbar = self.toolbar = self.frame(self.top)
         toolbar.pack(fill="x", padx=12, pady=8)
-        self.button(toolbar, "Copy Schema", self.copy_schema).pack(side="right")
-        self.button(toolbar, "Load Patch JSON", self.load_patch, "secondary").pack(side="right", padx=6)
-        self.button(toolbar, "Add File…", self.add_file, "secondary").pack(side="right", padx=6)
+        self.button(toolbar, "Copy Schema", self.copy_schema,
+                    tooltip_id="project_patcher.schema").pack(side="right")
+        self.button(toolbar, "Load Patch JSON", self.load_patch, "secondary",
+                    tooltip_id="project_patcher.load").pack(side="right", padx=6)
+        self.button(toolbar, "Add File…", self.add_file, "secondary",
+                    tooltip_id="project_patcher.add_file").pack(side="right", padx=6)
         self.force_indent = tk.BooleanVar(self.top, False)
         self.backup = tk.BooleanVar(self.top, False)
         self.checkbutton(toolbar, "Force patch indentation", self.force_indent,
-                         self.invalidate).pack(side="left", padx=(4, 12))
+                         self.invalidate, tooltip_id="project_patcher.indent").pack(side="left", padx=(4, 12))
         self.label(self.top, text=f"Project root: {self.root_path}").pack(fill="x", padx=14)
 
         # Status and actions are packed before the panes so a small window never hides them.
@@ -68,23 +71,28 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.action_group.configure(padx=4, pady=4)
         self.action_group.pack(side="left")
         self.validate_button = self.button(self.action_group, "Validate / Preview",
-                                           lambda: self.run_action("validate"), "success")
+                                           lambda: self.run_action("validate"), "success",
+                                           tooltip_id="project_patcher.validate")
         self.validate_button.pack(side="left")
-        self.link_button = self.button(self.action_group, "&", self.toggle_action_link)
+        self.link_button = self.button(self.action_group, "&", self.toggle_action_link,
+                                       tooltip_id="project_patcher.link")
         self.link_button.configure(width=3, padx=2)
         self.link_button.pack(side="left", padx=3)
         self.apply_button = self.button(self.action_group, "Apply Project Patch",
-                                        lambda: self.run_action("apply"), "accent", state="disabled")
+                                        lambda: self.run_action("apply"), "accent", state="disabled",
+                                        tooltip_id="project_patcher.apply")
         self.apply_button.pack(side="left")
         self.set_button_enabled(self.apply_button, False, "accent")
         # Backups are an apply option, so the choice sits beside Apply.
-        self.checkbutton(footer, "Keep backups", self.backup).pack(side="left", padx=12)
+        self.checkbutton(footer, "Keep backups", self.backup,
+                         tooltip_id="project_patcher.backup").pack(side="left", padx=12)
 
         panes = ttk.Panedwindow(self.top, orient="horizontal", style="Review.TPanedwindow")
         panes.pack(fill="both", expand=True, padx=12, pady=(4, 6))
         left = self.manifest_pane = self.frame(panes)
         self.label(left, text="PROJECT PATCH MANIFEST", panel=True).pack(anchor="w", padx=8, pady=(6, 4))
         self.manifest_box = self.editor(left, True)
+        attach_tooltip(self.manifest_box, "project_patcher.proposal", self.colors)
         self.manifest_box.configure(width=40)  # Requested width; the pane still stretches.
         self.manifest_box.pack(fill="both", expand=True)
         self.manifest_box.insert("1.0", SKELETON)
@@ -102,6 +110,7 @@ class ProjectPatcherWindow(ToolWindowMixin):
         self.label(header, panel=True, text="Alt+↑/↓ · F8 · Ctrl+Enter").pack(side="right")
         self.file_list = ttk.Treeview(right, columns=("status", "add", "del", "hunks"), height=4,
                                       selectmode="browse")
+        attach_tooltip(self.file_list, "project_patcher.list", self.colors)
         for column, text, width in (("#0", "File", 220), ("status", "Status", 150), ("add", "+", 48),
                                     ("del", "−", 48), ("hunks", "Hunks", 56)):
             self.file_list.heading(column, text=text, anchor="w")
@@ -112,10 +121,14 @@ class ProjectPatcherWindow(ToolWindowMixin):
 
         nav = self.nav = self.frame(right)
         nav.pack(fill="x", padx=4, pady=(0, 4))
-        self.prev_file_button = self.button(nav, "◀ File", lambda: self.step_file(-1), state="disabled")
-        self.next_file_button = self.button(nav, "File ▶", lambda: self.step_file(1), state="disabled")
-        self.prev_hunk_button = self.button(nav, "◀ Hunk", lambda: self.step_hunk(-1), state="disabled")
-        self.next_hunk_button = self.button(nav, "Hunk ▶", lambda: self.step_hunk(1), state="disabled")
+        self.prev_file_button = self.button(nav, "◀ File", lambda: self.step_file(-1), state="disabled",
+                                            tooltip_id="project_patcher.prev_operation")
+        self.next_file_button = self.button(nav, "File ▶", lambda: self.step_file(1), state="disabled",
+                                            tooltip_id="project_patcher.next_operation")
+        self.prev_hunk_button = self.button(nav, "◀ Hunk", lambda: self.step_hunk(-1), state="disabled",
+                                            tooltip_id="project_patcher.prev_hunk")
+        self.next_hunk_button = self.button(nav, "Hunk ▶", lambda: self.step_hunk(1), state="disabled",
+                                            tooltip_id="project_patcher.next_hunk")
         for button in (self.prev_file_button, self.next_file_button, self.prev_hunk_button, self.next_hunk_button):
             button.pack(side="left", padx=(0, 4))
 
